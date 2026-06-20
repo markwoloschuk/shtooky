@@ -194,16 +194,16 @@ export default function NavBar() {
     })
 
     useEffect(() => {
-        const nav = navRef.current
-        const nameWrap = nameWrapRef.current
-        const navName = navNameRef.current
-        const navNameOver = navNameOverRef.current
-        const titleWrap = titleWrapRef.current
-        const navTitle = navTitleRef.current
-        const stripsAnchor = stripsAnchorRef.current
-        const stripsRow = stripsRowRef.current
-        const colorBar = colorBarRef.current
-        const ms = msRef.current
+        const nav = navRef.current!
+        const nameWrap = nameWrapRef.current!
+        const navName = navNameRef.current!
+        const navNameOver = navNameOverRef.current!
+        const titleWrap = titleWrapRef.current!
+        const navTitle = navTitleRef.current!
+        const stripsAnchor = stripsAnchorRef.current!
+        const stripsRow = stripsRowRef.current!
+        const colorBar = colorBarRef.current!
+        const ms = msRef.current!
 
         if (
             !nav ||
@@ -220,7 +220,7 @@ export default function NavBar() {
             return
 
         document.body.appendChild(ms)
-        const st = stateRef.current
+        const st = stateRef.current!
         const wraps = Array.from(
             stripsRow.querySelectorAll<HTMLDivElement>(".strip-wrap")
         )
