@@ -287,7 +287,7 @@ export default function NavBar() {
         ): number[] {
             const words = splitWords(text)
             const spW = meas(
-                ms,
+                ms!,
                 "\u00A0",
                 fs,
                 "500",
@@ -299,7 +299,7 @@ export default function NavBar() {
             words.forEach((w, i) => {
                 pos.push(x)
                 x +=
-                    meas(ms, w, fs, "500", tracking + "em", "uppercase") +
+                    meas(ms!, w, fs, "500", tracking + "em", "uppercase") +
                     (i < words.length - 1 ? spW : 0)
             })
             return pos
@@ -382,12 +382,12 @@ export default function NavBar() {
         // ── Layout ──────────────────────────────────────────────────
         function applyLayout() {
             if (st.glitched) return
-            const nameW = getNameWidth(ms)
-            const nameH = measH(ms, S.fontSize, "700")
-            const titleFs = fitFontSize(ms, S.titleText, S.tracking, nameW)
-            const titleH = Math.ceil(measH(ms, titleFs, "500")) + 2
+            const nameW = getNameWidth(ms!)
+            const nameH = measH(ms!, S.fontSize, "700")
+            const titleFs = fitFontSize(ms!, S.titleText, S.tracking, nameW)
+            const titleH = Math.ceil(measH(ms!, titleFs, "500")) + 2
             const shtookyTracking = fitTracking(
-                ms,
+                ms!,
                 S.shtookyTitle,
                 titleFs,
                 nameW
