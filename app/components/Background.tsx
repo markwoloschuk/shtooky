@@ -322,7 +322,7 @@ export default function Background() {
 
         // ── State ──────────────────────────────────────────────────────────
         const s: any = {
-            pageColor: COLORS[activePage] || COLORS.welcome,
+            pageColor: COLORS[activePage as keyof typeof COLORS] || COLORS.welcome,
             // Use window dimensions — background is viewport-fixed
             VW: window.innerWidth,
             VH: window.innerHeight,
