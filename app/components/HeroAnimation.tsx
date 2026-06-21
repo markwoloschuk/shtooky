@@ -199,7 +199,7 @@ export default function HeroAnimation({
                 top: 0;
                 transform: none;
                 display: flex;
-                align-items: flex-start;
+                align-items: center;
                 gap: 0.3em;
                 font-family: ${FONT_DISPLAY};
                 font-weight: ${TYPE.OPENING.weight};
