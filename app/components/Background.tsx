@@ -264,11 +264,12 @@ useEffect(() => {
     }, [])
     const containerRef = useRef<HTMLDivElement>(null)
     const stateRef = useRef<any>(null)
+    const unmountingRef = useRef(false)
 
 useEffect(() => {
         const container = containerRef.current
         if (!container) return
-
+        console.log("Background useEffect fired — stateRef.current:", stateRef.current)
         // ── Page color update (re-run after mount) ─────────────────────────
         if (stateRef.current) {
             stateRef.current.pageColor =
@@ -1078,7 +1079,13 @@ useEffect(() => {
 
         s.rafId = requestAnimationFrame(render)
 
-       return () => {
+useEffect(() => {
+        unmountingRef.current = false
+        return () => { unmountingRef.current = true }
+    }, [])
+
+ return () => {
+            if (!unmountingRef.current) return
             s.running = false
             cancelAnimationFrame(s.rafId)
             window.removeEventListener("resize", handleResize)
