@@ -815,6 +815,7 @@ export default function NavBar() {
                 }}
             />
             */}
+            {/*
             <div
                 ref={colorBarRef}
                 style={{
@@ -828,6 +829,7 @@ export default function NavBar() {
                     transition: "background 0.4s ease",
                 }}
             />
+            */}
             <nav
                 ref={navRef}
                 style={{
