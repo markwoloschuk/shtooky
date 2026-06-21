@@ -13,6 +13,7 @@
 "use client"
 
 import { COLORS, DEBUG, NAV, getVisibility } from "./Tokens"
+import { useState, useEffect } from "react"
 
 // ─── Global config store ──────────────────────────────────────────────────────
 // Read by any component that needs to know the current zone positions.
@@ -24,6 +25,12 @@ let _config = {
     BF0: 88,
 }
 
+const VISIBILITY_TIERS_DESKTOP = {
+    TF0: 6, TF100: 24, BF100: 85, BF0: 95,
+    gradientHeight: 120, gradientOpacity: 0.95,
+    revealMs: 800, staggerMs: 600, idleMs: 4000,
+}
+
 export function getScrollConfig() {
     return _config
 }
@@ -31,7 +38,8 @@ export function getScrollConfig() {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ScrollConfig() {
-    const vis = getVisibility()
+    const [vis, setVis] = useState(VISIBILITY_TIERS_DESKTOP)
+    useEffect(() => { setVis(getVisibility()) }, [])
     const { TF0, TF100, BF100, BF0, gradientOpacity } = vis
     const debug = DEBUG.visibility
 
