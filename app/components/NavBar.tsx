@@ -166,6 +166,8 @@ export default function NavBar() {
         setActivePage(getActivePage())
     }, [])
     const router = useRouter()
+    const routerRef = useRef(router)
+    useEffect(() => { routerRef.current = router })
     const navRef = useRef<HTMLDivElement>(null)
     const nameWrapRef = useRef<HTMLDivElement>(null)
     const navNameRef = useRef<HTMLSpanElement>(null)
@@ -735,7 +737,7 @@ export default function NavBar() {
                 hideLabel(wrap)
                 doFillClick(wrap)
                 setTimeout(() => {
-                window.location.href = wrap.getAttribute("href")!   
+                    routerRef.current.push(wrap.getAttribute("href")!)
                 }, S.clickSpeed + 80)
             })
         })
