@@ -265,9 +265,16 @@ useEffect(() => {
     const containerRef = useRef<HTMLDivElement>(null)
     const stateRef = useRef<any>(null)
 
-    useEffect(() => {
+useEffect(() => {
         const container = containerRef.current
         if (!container) return
+
+        // ── Page color update (re-run after mount) ─────────────────────────
+        if (stateRef.current) {
+            stateRef.current.pageColor =
+                COLORS[activePage as keyof typeof COLORS] || COLORS.welcome
+            return
+        }
 
         container.style.cssText =
             "position:fixed;inset:0;overflow:hidden;pointer-events:none;width:100vw;height:100vh;"
