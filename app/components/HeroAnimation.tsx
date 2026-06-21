@@ -195,8 +195,8 @@ export default function HeroAnimation({
                 top: 0;
                 transform: none;
                 display: flex;
-                align-items: center;
-                gap: 0.3em;
+                align-items: flex-start;
+                gap: 0.1em;
                 font-family: ${FONT_DISPLAY};
                 font-weight: ${TYPE.OPENING.weight};
                 letter-spacing: ${TYPE.OPENING.tracking}em;
@@ -220,7 +220,7 @@ export default function HeroAnimation({
             slotOuter.style.cssText = `
                 display: block;
                 overflow: hidden;
-                position: absolute;
+                position: relative;
             `
             carouselAnchor.appendChild(slotOuter)
 
@@ -310,9 +310,7 @@ export default function HeroAnimation({
             stage.style.fontSize = fontSizeStr
             staticEl.style.cssText = `opacity:1;transform:translateY(0);display:inline-block;white-space:nowrap;`
             const outerH = lineH + padding * 2
-            carouselAnchor.style.height = lineH + "px"
             slotOuter.style.height = outerH + "px"
-            slotOuter.style.top = `-${padding}px`
             slotOuter.style.left = "0px"
             slotOuter.style.width = maxW + "px"
             slotOuter.style.opacity = "0"
@@ -343,7 +341,6 @@ export default function HeroAnimation({
             carouselAnchor.style.height = lineH + "px"
             slotOuter.style.height = outerH + "px"
             slotOuter.style.top = `-${padding}px`
-            slotOuter.style.left = "0px"
             slotOuter.style.width = maxW + "px"
             slotOuter.style.opacity = "1"
             setMask(outerH, lineH, padding, reachStart)
