@@ -252,7 +252,7 @@ function getDailySeed(baseSeed: number) {
 
 export default function Background() {
 const pathname = usePathname()
-const [activePage, setActivePage] = useState(getActivePage())
+const [activePage, setActivePage] = useState("welcome")
 const [visible, setVisible] = useState(false)
 
 useEffect(() => {
@@ -269,11 +269,16 @@ useEffect(() => {
 useEffect(() => {
         const container = containerRef.current
         if (!container) return
-        console.log("Background useEffect fired — stateRef.current:", stateRef.current)
-        // ── Page color update (re-run after mount) ─────────────────────────
+       // ── Page color update (re-run after mount) ─────────────────────────
         if (stateRef.current) {
             stateRef.current.pageColor =
                 COLORS[activePage as keyof typeof COLORS] || COLORS.welcome
+            stateRef.current.nebulaParticles.forEach((p: NebulaParticle) => {
+                p.age = p.lifespan - rand(0, p.fadedur)
+            })
+            stateRef.current.bokehParticles.forEach((p: BokehParticle) => {
+                p.age = p.lifespan - rand(0, p.fadedur)
+            })
             return
         }
 
@@ -1079,11 +1084,6 @@ useEffect(() => {
 
         s.rafId = requestAnimationFrame(render)
 
-useEffect(() => {
-        unmountingRef.current = false
-        return () => { unmountingRef.current = true }
-    }, [])
-
  return () => {
             if (!unmountingRef.current) return
             s.running = false
@@ -1094,6 +1094,12 @@ useEffect(() => {
             stateRef.current = null
         }
     }, [activePage])
+
+useEffect(() => {
+        unmountingRef.current = false
+        return () => { unmountingRef.current = true }
+    }, [])
+
 
     return (
         <div

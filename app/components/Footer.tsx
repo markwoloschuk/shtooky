@@ -30,7 +30,7 @@ const ICONS = {
 }
 
 export default function Footer() {
-    const [activePage, setActivePage] = useState(getActivePage())
+const [activePage, setActivePage] = useState("welcome")
     const [visible, setVisible] = useState(false)
     const pathname = usePathname()
 
@@ -43,10 +43,22 @@ export default function Footer() {
         return () => clearTimeout(timer)
     }, [])
 
-    const pageBlurbs =
+const pageBlurbs =
         FOOTER.blurbs[activePage as keyof typeof FOOTER.blurbs] ??
         FOOTER.blurbs.welcome
-    const blurb = pageBlurbs[Math.floor(Math.random() * pageBlurbs.length)]
+    const [blurb, setBlurb] = useState("")
+    const [blurbVisible, setBlurbVisible] = useState(true)
+
+    useEffect(() => {
+        const blurbs = FOOTER.blurbs[activePage as keyof typeof FOOTER.blurbs] ?? FOOTER.blurbs.welcome
+        setBlurbVisible(false)
+        const t = setTimeout(() => {
+            setBlurb(blurbs[Math.floor(Math.random() * blurbs.length)])
+            setBlurbVisible(true)
+        }, 500)
+        return () => clearTimeout(t)
+    }, [activePage])
+
     const pageColor =
         PAGES.find((p) => p.id === activePage)?.color ?? COLORS.welcome
 
@@ -87,7 +99,7 @@ export default function Footer() {
             {/* Blurb */}
             <span
                 style={{
-                    fontFamily: FONT_DISPLAY,
+                       fontFamily: FONT_DISPLAY,
                     fontSize: 14,
                     fontWeight: 400,
                     letterSpacing: "0.04em",
@@ -97,6 +109,8 @@ export default function Footer() {
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     maxWidth: "60%",
+                    opacity: blurbVisible ? 1 : 0,
+                    transition: "opacity 500ms ease",
                 }}
             >
                 {blurb}
