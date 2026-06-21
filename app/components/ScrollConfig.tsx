@@ -12,7 +12,7 @@
 
 "use client"
 
-import { COLORS, DEBUG, NAV, getVisibility } from "../Tokens.tsx"
+import { COLORS, DEBUG, NAV, getVisibility } from "../Tokens"
 
 // ─── Global config store ──────────────────────────────────────────────────────
 // Read by any component that needs to know the current zone positions.
