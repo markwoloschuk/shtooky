@@ -1078,12 +1078,13 @@ useEffect(() => {
 
         s.rafId = requestAnimationFrame(render)
 
-        return () => {
+       return () => {
             s.running = false
             cancelAnimationFrame(s.rafId)
             window.removeEventListener("resize", handleResize)
             while (container.firstChild)
                 container.removeChild(container.firstChild)
+            stateRef.current = null
         }
     }, [activePage])
 
