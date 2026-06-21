@@ -735,9 +735,8 @@ export default function NavBar() {
                 hideLabel(wrap)
                 doFillClick(wrap)
                 setTimeout(() => {
-         setTimeout(() => {
-    window.location.href = wrap.getAttribute("href")!
-}, S.clickSpeed + 80)
+                window.location.href = wrap.getAttribute("href")!   
+                }, S.clickSpeed + 80)
             })
         })
 
