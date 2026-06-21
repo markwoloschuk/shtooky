@@ -70,6 +70,18 @@ export default function Footer() {
                     activePage === "welcome" ? "opacity 1500ms ease" : "none",
             }}
         >
+    <div
+    style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 3,
+        background: pageColor,
+        transition: "background 0.4s ease",
+    }}
+/>
+
             {/* Blurb */}
             <span
                 style={{
