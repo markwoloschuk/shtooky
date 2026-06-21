@@ -199,7 +199,7 @@ export default function HeroAnimation({
                 top: 0;
                 transform: none;
                 display: flex;
-                align-items: center;
+                align-items: flex-start;
                 gap: 0.3em;
                 font-family: ${FONT_DISPLAY};
                 font-weight: ${TYPE.OPENING.weight};
@@ -385,6 +385,7 @@ export default function HeroAnimation({
 
             const outerH = lineH + padding * 2
             slotOuter.style.height = outerH + "px"
+            carouselAnchor.style.marginTop = `-${padding}px`
             slotOuter.style.width = maxW + "px"
             slotOuter.style.opacity = "1"
             setMask(outerH, lineH, padding, reachStart)
