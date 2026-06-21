@@ -7,7 +7,7 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { PAGES, COLORS, NAV, FOOTER, getActivePage } from "../components/Tokens"
 
 // ── Locked defaults (from v18 prototype) ─────────────────────
@@ -161,10 +161,8 @@ function makeEase(sp: number): string {
 
 // ── Component ─────────────────────────────────────────────────
 export default function NavBar() {
-    const [activePage, setActivePage] = useState(getActivePage())
-    useEffect(() => {
-        setActivePage(getActivePage())
-    }, [])
+
+
     const router = useRouter()
     const routerRef = useRef(router)
     useEffect(() => { routerRef.current = router })
@@ -178,6 +176,9 @@ export default function NavBar() {
     const stripsRowRef = useRef<HTMLDivElement>(null)
     const colorBarRef = useRef<HTMLDivElement>(null)
     const msRef = useRef<HTMLSpanElement>(null)
+
+    const pathname = usePathname()
+    const [activePage, setActivePage] = useState(getActivePage())
 
     const stateRef = useRef({
         activePage,
@@ -197,6 +198,13 @@ export default function NavBar() {
             stripsTopY: 0,
         },
     })
+
+useEffect(() => {
+    if (stateRef.current?.glitched) return
+    const page = getActivePage()
+    setActivePage(page)
+}, [pathname])
+
 
     useEffect(() => {
         const nav = navRef.current!

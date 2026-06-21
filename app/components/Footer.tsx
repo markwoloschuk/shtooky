@@ -1,6 +1,7 @@
 // Footer.tsx — shtooky.com
 "use client"
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { COLORS, FOOTER, PAGES, getActivePage } from "../components/Tokens"
 
 const FONT_DISPLAY = '"Archivo", sans-serif'
@@ -31,10 +32,11 @@ const ICONS = {
 export default function Footer() {
     const [activePage, setActivePage] = useState(getActivePage())
     const [visible, setVisible] = useState(false)
+    const pathname = usePathname()
 
     useEffect(() => {
         setActivePage(getActivePage())
-    }, [])
+    }, [pathname])
 
     useEffect(() => {
         const timer = setTimeout(() => setVisible(true), 600)

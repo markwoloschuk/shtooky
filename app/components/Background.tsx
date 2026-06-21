@@ -5,6 +5,7 @@
 
 "use client"
 import { useEffect, useRef, useState } from "react"
+import { usePathname } from "next/navigation"
 import { PAGES, NAV, COLORS, getActivePage } from "../components/Tokens"
 
 interface NebulaParticle {
@@ -250,12 +251,13 @@ function getDailySeed(baseSeed: number) {
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 
 export default function Background() {
-    const [activePage, setActivePage] = useState(getActivePage())
-    const [visible, setVisible] = useState(false)
+const pathname = usePathname()
+const [activePage, setActivePage] = useState(getActivePage())
+const [visible, setVisible] = useState(false)
 
-    useEffect(() => {
-        setActivePage(getActivePage())
-    }, [])
+useEffect(() => {
+    setActivePage(getActivePage())
+}, [pathname])
     useEffect(() => {
         const timer = setTimeout(() => setVisible(true), 100)
         return () => clearTimeout(timer)
