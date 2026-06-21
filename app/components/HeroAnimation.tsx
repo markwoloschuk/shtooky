@@ -1,10 +1,12 @@
+"use client"
+
 // HeroAnimation.tsx — shtooky.com
 // Combines OpeningAnimation and WelcomeTagline into a single self-sizing component.
 // Measures its own width and sets height as a ratio — no fixed px needed.
 // Place inside ContentColumn. Set width 100%, no fixed height needed.
 
 import { useEffect, useRef, useState } from "react"
-import { TYPE, COLORS, TIMING } from "./Tokens.tsx"
+import { TYPE, COLORS, TIMING } from "./Tokens"
 
 // ─── TUNING ──────────────────────────────────────────────────────────────────
 
