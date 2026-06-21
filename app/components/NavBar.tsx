@@ -6,6 +6,7 @@
 
 "use client"
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { PAGES, COLORS, NAV, FOOTER, getActivePage } from "../components/Tokens"
 
 // ── Locked defaults (from v18 prototype) ─────────────────────
@@ -930,7 +931,7 @@ export default function NavBar() {
                         }}
                     >
                         {PAGES.map((page) => (
-                            <a
+                            <Link
                                 key={page.id}
                                 className="strip-wrap"
                                 href={page.url}
@@ -973,7 +974,7 @@ export default function NavBar() {
                                 >
                                     {page.label}
                                 </div>
-                            </a>
+                            </Link> 
                         ))}
                     </div>
                 </div>
