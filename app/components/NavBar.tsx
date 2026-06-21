@@ -9,7 +9,6 @@ import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PAGES, COLORS, NAV, FOOTER, getActivePage } from "../components/Tokens"
-import router from "next/dist/shared/lib/router/router"
 
 // ── Locked defaults (from v18 prototype) ─────────────────────
 const S = {
