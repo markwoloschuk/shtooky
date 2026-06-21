@@ -7,7 +7,9 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { PAGES, COLORS, NAV, FOOTER, getActivePage } from "../components/Tokens"
+import router from "next/dist/shared/lib/router/router"
 
 // ── Locked defaults (from v18 prototype) ─────────────────────
 const S = {
@@ -164,6 +166,7 @@ export default function NavBar() {
     useEffect(() => {
         setActivePage(getActivePage())
     }, [])
+    const router = useRouter()
     const navRef = useRef<HTMLDivElement>(null)
     const nameWrapRef = useRef<HTMLDivElement>(null)
     const navNameRef = useRef<HTMLSpanElement>(null)
@@ -733,7 +736,7 @@ export default function NavBar() {
                 hideLabel(wrap)
                 doFillClick(wrap)
                 setTimeout(() => {
-                    window.location.href = wrap.getAttribute("href")!
+                router.push(wrap.getAttribute("href")!)
                 }, S.clickSpeed + 80)
             })
         })
