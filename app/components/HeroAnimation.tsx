@@ -196,7 +196,7 @@ export default function HeroAnimation({
                 transform: none;
                 display: flex;
                 align-items: flex-start;
-                gap: 0em;
+                gap: 0.3em;
                 font-family: ${FONT_DISPLAY};
                 font-weight: ${TYPE.OPENING.weight};
                 letter-spacing: ${TYPE.OPENING.tracking}em;
