@@ -76,7 +76,7 @@ export default function Footer() {
         top: 0,
         left: 0,
         right: 0,
-        height: 3,
+        height: 2,
         background: pageColor,
         transition: "background 0.4s ease",
     }}
