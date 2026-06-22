@@ -1,3 +1,5 @@
+"use client"
+
 // HeroAnimation.tsx — shtooky.com
 // Combines OpeningAnimation and WelcomeTagline into a single self-sizing component.
 // Measures its own width and sets height as a ratio — no fixed px needed.
