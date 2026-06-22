@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useCallback } from "react"
-import { COLORS, TIMING } from "./Tokens.tsx"
+import { COLORS, TIMING } from "./Tokens"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TUNING — adjust these to change animation behaviour
