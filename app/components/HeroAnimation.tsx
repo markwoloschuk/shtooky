@@ -4,7 +4,7 @@
 // Place inside ContentColumn. Set width 100%, no fixed height needed.
 
 import { useEffect, useRef, useState } from "react"
-import { TYPE, COLORS, TIMING } from "./Tokens.tsx"
+import { TYPE, COLORS, TIMING } from "./Tokens"
 
 // ─── TUNING ──────────────────────────────────────────────────────────────────
 
