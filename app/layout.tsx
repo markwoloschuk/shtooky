@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Archivo, Source_Serif_4 } from "next/font/google";
 import Background from "./components/Background";
 import NavBar from "./components/NavBar";
 import Footer from "./components/Footer";
+import ScrollConfig from "./components/ScrollConfig";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -43,14 +44,8 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <Background />
         <NavBar />
-      <div style={{
-          position: "relative",
-          zIndex: 1,
-          WebkitMaskImage: "linear-gradient(to bottom, transparent 0vh, black 18vh, black 72vh, transparent 88vh)",
-          maskImage: "linear-gradient(to bottom, transparent 0vh, black 18vh, black 72vh, transparent 88vh)",
-        }}>
-          {children}
-        </div>
+        <ScrollConfig />
+        {children}
         <Footer />
       </body>
     </html>

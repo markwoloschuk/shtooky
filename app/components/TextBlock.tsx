@@ -142,19 +142,23 @@ function useScrollFade(
     fadeInOnly = false,
     mountIndex = 0
 ) {
-    const ref = useRef<HTMLDivElement>(null)
+const ref = useRef<HTMLDivElement>(null)
+    const mountComplete = useRef(false)
 
     useEffect(() => {
         const el = ref.current
         if (!el) return
         if (!enabled) {
             el.style.opacity = "0"
+            mountComplete.current = false
             return
         }
 
         el.style.opacity = "0"
+        mountComplete.current = false
 
         function handleScroll() {
+            if (!mountComplete.current) return
             if (!el) return
             const rect = el.getBoundingClientRect()
             const viewH = window.innerHeight
@@ -185,6 +189,7 @@ function useScrollFade(
         const alreadyVisible = rect.top < viewH && rect.bottom > 0
 
         if (fadeInOnly) {
+            mountComplete.current = true
             el.style.opacity = "1"
         } else if (alreadyVisible) {
             setTimeout(
@@ -193,13 +198,18 @@ function useScrollFade(
                     function fadeInOnMount(ts: number) {
                         const p = Math.min((ts - start) / config.mountFadeIn, 1)
                         el!.style.opacity = String(p)
-                        if (p < 1) requestAnimationFrame(fadeInOnMount)
+                        if (p < 1) {
+                            requestAnimationFrame(fadeInOnMount)
+                        } else {
+                            mountComplete.current = true
+                        }
                     }
                     requestAnimationFrame(fadeInOnMount)
                 },
                 config.mountDelay + mountIndex * 400
             )
         } else {
+            mountComplete.current = true
             handleScroll()
         }
 
