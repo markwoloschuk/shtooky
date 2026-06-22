@@ -334,7 +334,8 @@ export default function HeroAnimation({
         function positionTagline(lineH: number) {
             // Sits just below the opening text line
             const gap = 5
-            taglineEl.style.top = lineH + gap + "px"
+            const capH = Math.round(lineH * 0.76)
+            taglineEl.style.top = capH + gap + "px"
         }
 
         function applyResolvedState(
