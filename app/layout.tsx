@@ -43,7 +43,14 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <Background />
         <NavBar />
-        {children}
+      <div style={{
+          position: "relative",
+          zIndex: 1,
+          WebkitMaskImage: "linear-gradient(to bottom, transparent 0vh, black 18vh, black 72vh, transparent 88vh)",
+          maskImage: "linear-gradient(to bottom, transparent 0vh, black 18vh, black 72vh, transparent 88vh)",
+        }}>
+          {children}
+        </div>
         <Footer />
       </body>
     </html>
