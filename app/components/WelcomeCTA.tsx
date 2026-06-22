@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
-import { COLORS, TIMING, TYPE } from "./Tokens.tsx"
+import { COLORS, TIMING, TYPE } from "./Tokens"
 
 // ─────────────────────────────────────────────────────────────
 // DEFAULTS — all tuning lives here
