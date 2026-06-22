@@ -46,6 +46,8 @@ const SCROLL_FADE_PULL = {
     fadeInEnd: 400,
     fadeOutStart: 250,
     fadeOutEnd: 50,
+    mountFadeIn: 1500,
+    mountDelay: 0,
 }
 
 // ─── Paragraph type style ─────────────────────────────────────────────────────
