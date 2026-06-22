@@ -5,7 +5,7 @@
 // Place inside ContentColumn (76vw centered frame) — fills 100% of container width
 // Last updated: 2026-05-26
 
-import { useEffect, useRef, useCallback } from "react"
+import { useEffect, useRef, useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
 import { COLORS, TIMING, TYPE } from "./Tokens.tsx"
 
