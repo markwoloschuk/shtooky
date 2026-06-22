@@ -1,7 +1,7 @@
 "use client"
 
 import HeroAnimation from "./components/HeroAnimation"
-import ScrollFade from "./components/ScrollFade"
+import ScrollFade from "./components/WelcomeScrollFade"
 import EverythingIsInteresting from "./components/EverythingIsInteresting"
 import ClientLogoGrid from "./components/ClientLogoGrid"
 import WelcomeCTA from "./components/WelcomeCTA"
@@ -32,17 +32,18 @@ export default function Page() {
         </p>
         </ScrollFade>
         <div style={{ height: "3vh" }} />
-          <ScrollFade>
+        <ScrollFade>
         <p style={BODY_STYLE}>
           Doing that means speaking fluent executive, marketer and engineer – I aim to be the gear that connects them all together in turning out business goals.
         </p>
+        </ScrollFade>
         <div style={{ height: "5vh" }} />
         <ClientLogoGrid triggerOnScroll={true} />
         <div style={{ height: "6vh" }} />
         <ScrollFade>
-<p style={{ ...BODY_STYLE, maxWidth: "70%" }}>
-  I've worked with some great people. Why not you?
-</p>
+        <p style={{ ...BODY_STYLE, maxWidth: "70%" }}>
+        I've worked with some great people. Why not you?
+        </p>
         </ScrollFade>
         <div style={{ height: "6vh" }} />
          <WelcomeCTA />
