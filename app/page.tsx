@@ -22,7 +22,7 @@ export default function Page() {
       <div style={{ height: "35vh" }} />
       <div style={{ width: "76%", marginLeft: "auto", marginRight: "auto" }}>
         <HeroAnimation />
-        <div style={{ height: "10vh" }} />
+        <div style={{ height: "8vh" }} />
         <EverythingIsInteresting />
         <div style={{ height: "3vh" }} />
         <p style={BODY_STYLE}>
