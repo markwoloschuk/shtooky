@@ -93,7 +93,7 @@ interface PullTiming {
     highlightColor: string
 }
 
-interface ContentItem {
+export interface ContentItem {
     id: number
     type: "paragraph" | "pull" | "link"
     seq: number
