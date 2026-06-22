@@ -6,7 +6,7 @@
 // v01 — 2026-06-22
 
 import { useEffect } from "react"
-import { reset, unlock } from "../components/SequenceController"
+import { unlock } from "../components/SequenceController"
 import SkillsSphere from "../components/SkillsSphere"
 import VennDiagram from "../components/VennDiagram"
 import TextBlock from "../components/TextBlock"
@@ -14,7 +14,6 @@ import TextBlock from "../components/TextBlock"
 export default function WhoIAm() {
     // Unlock seq 1 on mount — first elements always visible on load
 useEffect(() => {
-        reset()
         unlock(1)
     }, [])
 

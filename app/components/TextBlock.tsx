@@ -142,27 +142,26 @@ function useScrollFade(
     fadeInOnly = false,
     mountIndex = 0
 ) {
-const ref = useRef<HTMLDivElement>(null)
+    const ref = useRef<HTMLDivElement>(null)
     const mountComplete = useRef(false)
+    const enabledRef = useRef(enabled)
 
+    // Keep enabledRef in sync without re-running the effect
+    useEffect(() => {
+        enabledRef.current = enabled
+    }, [enabled])
+
+    // Scroll listener — set up once on mount, never torn down until unmount
     useEffect(() => {
         const el = ref.current
         if (!el) return
-        if (!enabled) {
-            el.style.opacity = "0"
-            mountComplete.current = false
-            return
-        }
-
-        el.style.opacity = "0"
-        mountComplete.current = false
 
 function handleScroll() {
-    if (!mountComplete.current) return
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    const viewH = window.innerHeight
-    console.log("rect.top", rect.top, "rect.bottom", rect.bottom, "distFromBottom", viewH - rect.top)
+            if (!mountComplete.current) return
+            if (!el) return
+            console.log("handleScroll firing — mountComplete:", mountComplete.current)
+            const rect = el.getBoundingClientRect()
+            const viewH = window.innerHeight
 
             if (rect.bottom < config.fadeOutStart) {
                 const raw =
@@ -185,6 +184,21 @@ function handleScroll() {
             el.style.opacity = String(Math.max(0, Math.min(1, raw)))
         }
 
+        window.addEventListener("scroll", handleScroll, { passive: true })
+        return () => window.removeEventListener("scroll", handleScroll)
+    }, [])
+
+    // Mount animation — runs when enabled flips to true
+    useEffect(() => {
+        const el = ref.current
+        if (!el) return
+
+        if (!enabled) {
+            el.style.opacity = "0"
+            mountComplete.current = false
+            return
+        }
+
         const rect = el.getBoundingClientRect()
         const viewH = window.innerHeight
         const alreadyVisible = rect.top < viewH && rect.bottom > 0
@@ -193,29 +207,23 @@ function handleScroll() {
             mountComplete.current = true
             el.style.opacity = "1"
         } else if (alreadyVisible) {
-            setTimeout(
-                () => {
-                    const start = performance.now()
-                    function fadeInOnMount(ts: number) {
-                        const p = Math.min((ts - start) / config.mountFadeIn, 1)
-                        el!.style.opacity = String(p)
-                        if (p < 1) {
-                            requestAnimationFrame(fadeInOnMount)
-                        } else {
-                            mountComplete.current = true
-                        }
+            setTimeout(() => {
+                const start = performance.now()
+                function fadeInOnMount(ts: number) {
+                    if (!enabledRef.current) return
+                    const p = Math.min((ts - start) / config.mountFadeIn, 1)
+                    el.style.opacity = String(p)
+                    if (p < 1) {
+                        requestAnimationFrame(fadeInOnMount)
+                    } else {
+                        mountComplete.current = true
                     }
-                    requestAnimationFrame(fadeInOnMount)
-                },
-                config.mountDelay + mountIndex * 400
-            )
+                }
+                requestAnimationFrame(fadeInOnMount)
+            }, config.mountDelay + mountIndex * 400)
         } else {
             mountComplete.current = true
-            handleScroll()
         }
-
-        window.addEventListener("scroll", handleScroll, { passive: true })
-        return () => window.removeEventListener("scroll", handleScroll)
     }, [enabled])
 
     return ref
