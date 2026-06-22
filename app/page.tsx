@@ -3,6 +3,7 @@
 import HeroAnimation from "./components/HeroAnimation"
 import EverythingIsInteresting from "./components/EverythingIsInteresting"
 import ClientLogoGrid from "./components/ClientLogoGrid"
+import WelcomeCTA from "./components/WelcomeCTA"
 import { TYPE } from "./components/Tokens"
 
 const BODY_STYLE = {
@@ -12,7 +13,7 @@ const BODY_STYLE = {
     letterSpacing: `${TYPE.BODY_WELCOME.tracking}em`,
     lineHeight: TYPE.BODY_WELCOME.lineHeight,
     color: "#ffffff",
-        maxWidth: "54%",
+    maxWidth: "54%",
 }
 
 export default function Page() {
@@ -33,6 +34,12 @@ export default function Page() {
         </p>
         <div style={{ height: "5vh" }} />
         <ClientLogoGrid triggerOnScroll={true} />
+        <div style={{ height: "6vh" }} />
+        <p style={BODY_STYLE}>
+          I've worked with some great people. Why not you?
+        </p>
+        <div style={{ height: "6vh" }} />
+        <WelcomeCTA />
       </div>
     </div>
   )
