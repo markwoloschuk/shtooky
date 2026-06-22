@@ -6,7 +6,7 @@
 // v01 — 2026-06-22
 
 import { useEffect } from "react"
-import { unlock } from "../components/SequenceController"
+import { reset, unlock } from "../components/SequenceController"
 import SkillsSphere from "../components/SkillsSphere"
 import VennDiagram from "../components/VennDiagram"
 import TextBlock from "../components/TextBlock"

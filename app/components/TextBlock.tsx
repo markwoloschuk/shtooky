@@ -157,11 +157,12 @@ const ref = useRef<HTMLDivElement>(null)
         el.style.opacity = "0"
         mountComplete.current = false
 
-        function handleScroll() {
-            if (!mountComplete.current) return
-            if (!el) return
-            const rect = el.getBoundingClientRect()
-            const viewH = window.innerHeight
+function handleScroll() {
+    if (!mountComplete.current) return
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const viewH = window.innerHeight
+    console.log("rect.top", rect.top, "rect.bottom", rect.bottom, "distFromBottom", viewH - rect.top)
 
             if (rect.bottom < config.fadeOutStart) {
                 const raw =
@@ -583,10 +584,10 @@ function PullTextItem({
                                         display: "inline-block",
                                         position: "relative",
                                         overflow: "visible",
-                                        ["-webkit-mask-image" as any]: doWipe
+                                WebkitMaskImage: doWipe
                                             ? `linear-gradient(to right, transparent 0%, transparent 0%, black ${timing.feather}%, black 100%)`
                                             : "none",
-                                        ["mask-image" as any]: doWipe
+                                        maskImage: doWipe
                                             ? `linear-gradient(to right, transparent 0%, transparent 0%, black ${timing.feather}%, black 100%)`
                                             : "none",
                                         opacity: willAnimate ? 0 : 1,
