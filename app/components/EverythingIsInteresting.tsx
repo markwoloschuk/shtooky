@@ -118,11 +118,11 @@ function CACanvas({
         rafId: 0,
     })
 
-    const fontSize = Math.round(
-        (typeof window !== "undefined" ? window.innerWidth : 1440) *
-            (TYPE.DISPLAY_HERO.sizeVw / 100)
-    )
-    const lineH = Math.round(fontSize * TYPE.DISPLAY_HERO.lineHeight)
+    const [lineH, setLineH] = useState(74)
+    useEffect(() => {
+        const fs = Math.round(window.innerWidth * (TYPE.DISPLAY_HERO.sizeVw / 100))
+        setLineH(Math.round(fs * TYPE.DISPLAY_HERO.lineHeight))
+    }, [])
 
     useEffect(() => {
         const canvas = canvasRef.current
@@ -410,10 +410,10 @@ export default function EverythingIsInteresting() {
         return () => ro.disconnect()
     }, [])
 
-    const displayFontSize = Math.round(
-        (typeof window !== "undefined" ? window.innerWidth : 1440) *
-            (TYPE.DISPLAY.sizeVw / 100)
-    )
+    const [displayFontSize, setDisplayFontSize] = useState(31)
+    useEffect(() => {
+        setDisplayFontSize(Math.round(window.innerWidth * (TYPE.DISPLAY.sizeVw / 100)))
+    }, [])
 
     useEffect(() => {
         const block = blockRef.current
