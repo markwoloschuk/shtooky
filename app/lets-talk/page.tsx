@@ -6,12 +6,13 @@
 // v01 — 2026-06-22
 
 import { useEffect } from "react"
-import { unlock } from "../components/SequenceController"
+import { unlock, reset } from "../components/SequenceController"
 import TextBlock from "../components/TextBlock"
 
 export default function LetsTalk() {
     // Unlock seq 1 on mount — all contact content is seq 1
-    useEffect(() => {
+ useEffect(() => {
+        reset()
         unlock(1)
     }, [])
 

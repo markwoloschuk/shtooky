@@ -13,7 +13,8 @@ import TextBlock from "../components/TextBlock"
 
 export default function WhoIAm() {
     // Unlock seq 1 on mount — first elements always visible on load
-    useEffect(() => {
+useEffect(() => {
+        reset()
         unlock(1)
     }, [])
 
