@@ -2,10 +2,11 @@
 
 import HeroAnimation from "./components/HeroAnimation"
 import EverythingIsInteresting from "./components/EverythingIsInteresting"
+import ClientLogoGrid from "./components/ClientLogoGrid"
 import { TYPE } from "./components/Tokens"
 
 const BODY_STYLE = {
-    fontFamily: '"Source Serif 4", serif',
+    fontFamily: TYPE.display,
     fontSize: `${TYPE.BODY_WELCOME.sizePx}px`,
     fontWeight: TYPE.BODY_WELCOME.weight,
     letterSpacing: `${TYPE.BODY_WELCOME.tracking}em`,
@@ -29,6 +30,8 @@ export default function Page() {
         <p style={BODY_STYLE}>
           Doing that means speaking fluent executive, marketer and engineer – I aim to be the gear that connects them all together in turning out business goals.
         </p>
+        <div style={{ height: "5vh" }} />
+        <ClientLogoGrid triggerOnScroll={true} />
       </div>
     </div>
   )
