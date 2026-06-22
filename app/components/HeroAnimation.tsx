@@ -25,11 +25,11 @@ const CFG = {
 }
 
 const SCROLL_FADE = {
-    fadeStart: 170,
-    fadeEnd: 340,
+    fadeStart: 170, // scrollY where fade-out begins
+    fadeEnd: 340, // scrollY where fade-out completes
 }
 
-const RATIO = 0.12
+const RATIO = 0.12 // height = width × RATIO — adjust to taste
 
 // ─── CONTENT ─────────────────────────────────────────────────────────────────
 
@@ -82,7 +82,8 @@ function gradientAt(t: number): [number, number, number] {
     const seg = (NG - 1) * t
     const i = Math.min(Math.floor(seg), NG - 2)
     const f = seg - i
-    const a = GSTOPS[i], b = GSTOPS[i + 1]
+    const a = GSTOPS[i],
+        b = GSTOPS[i + 1]
     return [
         Math.round(a[0] + (b[0] - a[0]) * f),
         Math.round(a[1] + (b[1] - a[1]) * f),
@@ -169,6 +170,7 @@ export default function HeroAnimation({
         let resolvedNCar = 0
         let resolvedColors: [number, number, number][] = []
 
+        // ── ResizeObserver — sets component height ──────────────────────────
         const resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const w = entry.contentRect.width
@@ -177,6 +179,7 @@ export default function HeroAnimation({
         })
         resizeObserver.observe(wrap)
 
+        // ── DOM elements ────────────────────────────────────────────────────
         const stage = document.createElement("div")
         const staticEl = document.createElement("span")
         const carouselAnchor = document.createElement("div")
@@ -188,6 +191,7 @@ export default function HeroAnimation({
         function buildDOM() {
             wrap.innerHTML = ""
 
+            // Opening animation stage
             stage.style.cssText = `
                 position: absolute;
                 overflow: visible;
@@ -213,7 +217,6 @@ export default function HeroAnimation({
                 display: inline-block;
                 vertical-align: top;
                 position: relative;
-                overflow: visible;
             `
             stage.appendChild(carouselAnchor)
 
@@ -243,7 +246,9 @@ export default function HeroAnimation({
             `
             carouselAnchor.appendChild(finalEl)
 
-            const tagline = TAGLINES[Math.floor(Math.random() * TAGLINES.length)]
+            // Tagline
+            const tagline =
+                TAGLINES[Math.floor(Math.random() * TAGLINES.length)]
             taglineEl.textContent = tagline
             taglineEl.style.cssText = `
                 position: absolute;
@@ -263,7 +268,12 @@ export default function HeroAnimation({
             wrap.appendChild(taglineEl)
         }
 
-        function setMask(outerH: number, lH: number, padding: number, reach: number) {
+        function setMask(
+            outerH: number,
+            lH: number,
+            padding: number,
+            reach: number
+        ) {
             const c = lH
             const t0 = Math.max(0, c - lH / 2 - reach)
             const t1 = c - lH / 2
@@ -275,26 +285,54 @@ export default function HeroAnimation({
         }
 
         function calcLayout() {
-            const fontSize = Math.round(window.innerWidth * (TYPE.OPENING.sizeVw / 100))
+            const fontSize = Math.round(
+                window.innerWidth * (TYPE.OPENING.sizeVw / 100)
+            )
             const fontSizeStr = fontSize + "px"
-            const lineH = measureText("A", fontSizeStr, FONT_DISPLAY, TYPE.OPENING.weight).h
+            const lineH = measureText(
+                "A",
+                fontSizeStr,
+                FONT_DISPLAY,
+                TYPE.OPENING.weight
+            ).h
             const scale = fontSize / 34
             const travelPx = Math.round(CFG.TRAVEL_PX * scale)
             const reachStart = Math.round(CFG.REACH_START * scale)
             const reachEnd = Math.round(CFG.REACH_END * scale)
-            const carSeq = shuffle(POOL).slice(0, Math.max(4, CFG.NUM_ENTRIES - 1))
+            const carSeq = shuffle(POOL).slice(
+                0,
+                Math.max(4, CFG.NUM_ENTRIES - 1)
+            )
             const nCar = carSeq.length
             const allColors = buildColors(nCar + 1)
             let maxW = 0
             ;[...carSeq, FINAL].forEach((p) => {
-                const { w } = measureText(p, fontSizeStr, FONT_DISPLAY, TYPE.OPENING.weight)
+                const { w } = measureText(
+                    p,
+                    fontSizeStr,
+                    FONT_DISPLAY,
+                    TYPE.OPENING.weight
+                )
                 if (w > maxW) maxW = w
             })
             const padding = Math.max(travelPx, lineH + reachStart + 4)
-            return { fontSize, fontSizeStr, lineH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding }
+            return {
+                fontSize,
+                fontSizeStr,
+                lineH,
+                travelPx,
+                reachStart,
+                reachEnd,
+                carSeq,
+                nCar,
+                allColors,
+                maxW,
+                padding,
+            }
         }
 
         function positionTagline(lineH: number) {
+            // Sits just below the opening text line
             const gap = 5
             taglineEl.style.top = lineH + gap + "px"
         }
@@ -311,7 +349,6 @@ export default function HeroAnimation({
             staticEl.style.cssText = `opacity:1;transform:translateY(0);display:inline-block;white-space:nowrap;`
             const outerH = lineH + padding * 2
             slotOuter.style.height = outerH + "px"
-            slotOuter.style.left = "0px"
             slotOuter.style.width = maxW + "px"
             slotOuter.style.opacity = "0"
             slotOuter.style.maskImage = "none"
@@ -326,7 +363,18 @@ export default function HeroAnimation({
         }
 
         function play() {
-            const { fontSizeStr, lineH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding } = calcLayout()
+            const {
+                fontSizeStr,
+                lineH,
+                travelPx,
+                reachStart,
+                reachEnd,
+                carSeq,
+                nCar,
+                allColors,
+                maxW,
+                padding,
+            } = calcLayout()
 
             resolvedNCar = nCar
             resolvedColors = allColors
@@ -336,11 +384,7 @@ export default function HeroAnimation({
             staticEl.style.cssText = `opacity:0;transform:translateY(${travelPx}px);display:inline-block;white-space:nowrap;`
 
             const outerH = lineH + padding * 2
-
-            // carouselAnchor is only as tall as one text line — slot floats absolutely around it
-            carouselAnchor.style.height = lineH + "px"
             slotOuter.style.height = outerH + "px"
-            slotOuter.style.top = `-${padding}px`
             slotOuter.style.width = maxW + "px"
             slotOuter.style.opacity = "1"
             setMask(outerH, lineH, padding, reachStart)
@@ -394,8 +438,13 @@ export default function HeroAnimation({
                 slotOuter.style.opacity = (1 - fadeE).toFixed(4)
                 finalEl.style.opacity = fadeE.toFixed(4)
 
-                const colorT = Math.max(0, (ct - (CFG.CAR_DUR - CFG.SHIFT_DUR)) / CFG.SHIFT_DUR)
-                finalEl.style.color = rgbStr(lerpRgb(finalColor, WHITE_RGB, Math.min(colorT, 1)))
+                const colorT = Math.max(
+                    0,
+                    (ct - (CFG.CAR_DUR - CFG.SHIFT_DUR)) / CFG.SHIFT_DUR
+                )
+                finalEl.style.color = rgbStr(
+                    lerpRgb(finalColor, WHITE_RGB, Math.min(colorT, 1))
+                )
 
                 if (lp < 1 || cp < 1) {
                     rafId = requestAnimationFrame(frame)
@@ -413,6 +462,7 @@ export default function HeroAnimation({
 
             rafId = requestAnimationFrame(frame)
 
+            // Tagline fade in
             let taglineTimer: ReturnType<typeof setTimeout> | null = null
             let taglineRaf = 0
             taglineTimer = setTimeout(() => {
@@ -445,19 +495,29 @@ export default function HeroAnimation({
                 if (!running) return
                 if (hasResolved) {
                     const { fontSizeStr, lineH, padding, maxW } = calcLayout()
-                    applyResolvedState(fontSizeStr, lineH, padding, maxW, resolvedNCar, resolvedColors)
+                    applyResolvedState(
+                        fontSizeStr,
+                        lineH,
+                        padding,
+                        maxW,
+                        resolvedNCar,
+                        resolvedColors
+                    )
                 }
             }, 100)
         }
 
         function handleScroll() {
             const scrollY = window.scrollY
-            const raw = (scrollY - SCROLL_FADE.fadeStart) / (SCROLL_FADE.fadeEnd - SCROLL_FADE.fadeStart)
+            const raw =
+                (scrollY - SCROLL_FADE.fadeStart) /
+                (SCROLL_FADE.fadeEnd - SCROLL_FADE.fadeStart)
             const opacity = 1 - Math.max(0, Math.min(1, raw))
             wrap.style.opacity = opacity.toFixed(3)
         }
 
         window.addEventListener("scroll", handleScroll, { passive: true })
+
         window.addEventListener("resize", handleResize)
         buildDOM()
 
@@ -466,7 +526,6 @@ export default function HeroAnimation({
                 if (running) play()
             })
         }
-
         return () => {
             running = false
             if (rafId) cancelAnimationFrame(rafId)
