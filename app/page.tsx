@@ -41,7 +41,8 @@ export default function Page() {
 </p>
 
         <div style={{ height: "6vh" }} />
-        <WelcomeCTA />
+         <WelcomeCTA />
+        <div style={{ height: "20vh" }} />
       </div>
     </div>
   )
