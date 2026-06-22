@@ -161,7 +161,7 @@ export default function HeroAnimation({
     const [height, setHeight] = useState(0)
 
     useEffect(() => {
-        const wrap = wrapRef.current
+        const wrap = wrapRef.current!
         if (!wrap) return
 
         let rafId = 0
@@ -382,7 +382,7 @@ export default function HeroAnimation({
 
             stage.style.fontSize = fontSizeStr
             staticEl.style.cssText = `opacity:0;transform:translateY(${travelPx}px);display:inline-block;white-space:nowrap;`
-            staticEl.style.marginTop = padding + "px"
+        staticEl.style.marginTop = padding + "px"
             const outerH = lineH + padding * 2
             slotOuter.style.height = outerH + "px"
             slotOuter.style.width = maxW + "px"
