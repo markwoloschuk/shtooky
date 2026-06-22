@@ -35,9 +35,11 @@ export default function Page() {
         <div style={{ height: "5vh" }} />
         <ClientLogoGrid triggerOnScroll={true} />
         <div style={{ height: "6vh" }} />
-        <p style={BODY_STYLE}>
-          I've worked with some great people. Why not you?
-        </p>
+    
+<p style={{ ...BODY_STYLE, maxWidth: "70%" }}>
+  I've worked with some great people. Why not you?
+</p>
+
         <div style={{ height: "6vh" }} />
         <WelcomeCTA />
       </div>

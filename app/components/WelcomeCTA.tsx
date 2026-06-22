@@ -78,6 +78,11 @@ export default function WelcomeCTA() {
     const ruleRef = useRef<HTMLHRElement>(null)
     const rowRef = useRef<HTMLDivElement>(null)
     const textRefs = useRef<(HTMLSpanElement | null)[]>([null, null, null])
+    const [fontPx, setFontPx] = useState(26)
+    useEffect(() => {
+        setFontPx(Math.round((DEFAULTS.fontSizeVw / 100) * window.innerWidth))
+    }, [])
+
     const router = useRouter()
 
     const lingerT = useRef<(ReturnType<typeof setTimeout> | null)[]>([
@@ -96,9 +101,8 @@ export default function WelcomeCTA() {
 
     // ── font size ─────────────────────────────────────────────
 
-    function getFontPx(): number {
-        if (typeof window === "undefined") return 28
-        return Math.round((DEFAULTS.fontSizeVw / 100) * window.innerWidth)
+function getFontPx(): number {
+        return fontPx
     }
 
     // ── layout ────────────────────────────────────────────────
