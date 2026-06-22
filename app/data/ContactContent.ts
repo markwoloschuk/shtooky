@@ -3,6 +3,7 @@
 // Page content data for the Contact page.
 // v02 — ported to Next.js 2026-06-22
 
+import type { ContentItem } from "../components/TextBlock"
 import { COLORS } from "../components/Tokens"
 
 // ─── Spacing ──────────────────────────────────────────────────────────────────
@@ -17,7 +18,7 @@ export const SPACING = {
 
 // ─── Content ──────────────────────────────────────────────────────────────────
 
-export const CONTENT = [
+export const CONTENT: ContentItem[] = [
     {
         id: 1,
         type: "paragraph",

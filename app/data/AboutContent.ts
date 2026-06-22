@@ -1,7 +1,9 @@
 // AboutContent.ts
 // app/data/
 // Single source of truth for all Who I Am page copy and pull text config.
-// v02 — ported to Next.js 2026-06-22
+// v03 — type fix 2026-06-22
+
+import type { ContentItem } from "../components/TextBlock"
 
 // ─── Spacing ──────────────────────────────────────────────────────────────────
 
@@ -15,7 +17,7 @@ export const SPACING = {
 
 // ─── Content ──────────────────────────────────────────────────────────────────
 
-export const CONTENT = [
+export const CONTENT: ContentItem[] = [
     {
         id: 1,
         type: "paragraph",
