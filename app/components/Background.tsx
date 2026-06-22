@@ -165,11 +165,14 @@ const CFG = {
     GB_DEPTH: 0.5,
 
     //We’ve made this vignette just sides 2026.06.01
-    VIG_INTENSITY: 0.85,
+    VIG_INTENSITY: 0.75,
     VIG_CX: 0.5,
     VIG_CY: 0.5,
+    // how far the bright center extends horizontally
     VIG_RX: 0.65,
-    VIG_RY: 1.2,
+    //how far the bright center extends vertically (>1 = pushes dark off top/bottom)
+
+    VIG_RY: 1.1,
     VIG_TINT: 0.03,
 }
 
