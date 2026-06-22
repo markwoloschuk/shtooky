@@ -12,7 +12,7 @@ const BODY_STYLE = {
     letterSpacing: `${TYPE.BODY_WELCOME.tracking}em`,
     lineHeight: TYPE.BODY_WELCOME.lineHeight,
     color: "#ffffff",
-        maxWidth: "50%",
+        maxWidth: "54%",
 }
 
 export default function Page() {
