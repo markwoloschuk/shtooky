@@ -143,8 +143,9 @@ function useScrollFade(
     mountIndex = 0
 ) {
     const ref = useRef<HTMLDivElement>(null)
+    const wasEnabledOnMount = useRef(enabled)
 
-    useEffect(() => {
+ useEffect(() => {
         const el = ref.current
         if (!el) return
         el.style.opacity = "0"
@@ -173,37 +174,32 @@ function useScrollFade(
             el.style.opacity = "1"
         }
 
-        requestAnimationFrame(() => {
+const rect2 = el.getBoundingClientRect()
+        const isVisible = rect2.top < window.innerHeight * 0.85
+
+        if (isVisible) {
+            // Was enabled from the start — use mount delay
             setTimeout(() => {
                 if (!el) return
-                const rect = el.getBoundingClientRect()
-                const viewH = window.innerHeight
-                const alreadyVisible = mountIndex >= 0 || rect.top < viewH * 0.85
-
-                function check() {
-                    if (!el) return
-                    const r = el.getBoundingClientRect()
-                    if (r.top < viewH * 0.85) {
-                        el.style.transition = `opacity ${config.mountFadeIn}ms ease`
-                        el.style.opacity = "1"
-                        window.removeEventListener("scroll", check)
-                        window.addEventListener("scroll", handleScroll, { passive: true })
-                    }
+                el.style.transition = `opacity ${config.mountFadeIn}ms ease`
+                el.style.opacity = "1"
+                window.addEventListener("scroll", handleScroll, { passive: true })
+            }, config.mountDelay + mountIndex * 400)
+        } else {
+            // Was locked, just unlocked — wait for scroll into view
+            function check() {
+                if (!el) return
+                const r = el.getBoundingClientRect()
+                if (r.top < window.innerHeight * 0.85) {
+                    el.style.transition = `opacity ${config.mountFadeIn}ms ease`
+                    el.style.opacity = "1"
+                    window.removeEventListener("scroll", check)
+                    window.addEventListener("scroll", handleScroll, { passive: true })
                 }
-
-                if (alreadyVisible) {
-                    setTimeout(() => {
-                        if (!el) return
-                        el.style.transition = `opacity ${config.mountFadeIn}ms ease`
-                        el.style.opacity = "1"
-                        window.addEventListener("scroll", handleScroll, { passive: true })
-                    }, config.mountDelay + mountIndex * 400)
-                } else {
-                    check()
-                    window.addEventListener("scroll", check, { passive: true })
-                }
-            }, 50)
-        })
+            }
+            check()
+            window.addEventListener("scroll", check, { passive: true })
+        }
 
         return () => {
             window.removeEventListener("scroll", handleScroll)

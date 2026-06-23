@@ -21,7 +21,7 @@ export const CONTENT: ContentItem[] = [
     {
         id: 1,
         type: "paragraph",
-        seq: 0,
+        seq: 1,
         text: `As a freelancer, I haven\u2019t had a lot of official titles \u2014 but over my career I\u2019ve taken on many jobs.`,
     },
     {
