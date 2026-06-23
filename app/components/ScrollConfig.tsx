@@ -102,7 +102,7 @@ export default function ScrollConfig() {
                 position: "fixed",
                 inset: 0,
                 pointerEvents: "none",
-                zIndex: -1,
+                zIndex: 35,
             }}
         >
             {/* Top gradient */}

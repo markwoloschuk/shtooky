@@ -44,10 +44,11 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <Background />
         <NavBar />
-        <ScrollConfig />
-<div style={{ position: "relative", zIndex: 1 }}>
+        <div style={{ position: "relative", zIndex: 1 }}>
           {children}
-        </div>        <Footer />
+        </div>
+        <ScrollConfig />
+        <Footer />
       </body>
     </html>
   );

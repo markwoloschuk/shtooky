@@ -21,7 +21,7 @@ export default function WhoIAm() {
     return (
         <div
             style={{
-                paddingTop: "10vh",
+                paddingTop: "9vh",
                 paddingBottom: "15vh",
             }}
         >

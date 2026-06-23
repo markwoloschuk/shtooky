@@ -7,6 +7,7 @@
 
 import { useEffect } from "react"
 import { unlock, reset } from "../components/SequenceController"
+import RippleNetwork from "../components/RippleNetwork"
 import TextBlock from "../components/TextBlock"
 
 export default function LetsTalk() {
@@ -20,7 +21,7 @@ export default function LetsTalk() {
     return (
         <div
             style={{
-                paddingTop: "10vh",
+                paddingTop: "2vh",
                 paddingBottom: "15vh",
             }}
         >
@@ -31,6 +32,7 @@ export default function LetsTalk() {
                     marginRight: "auto",
                 }}
             >
+                <RippleNetwork />
                 <TextBlock page="contact" ids="1-5" />
             </div>
         </div>
