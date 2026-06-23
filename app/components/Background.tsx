@@ -297,7 +297,7 @@ useEffect(() => {
         fadeWrapper.style.cssText =
             "position:absolute;inset:0;pointer-events:none;"
 
-        if (activePage === "welcome") {
+      if (window.location.pathname === "/") {
             fadeWrapper.style.opacity = "0"
             fadeWrapper.style.transition = "opacity 8000ms ease"
             setTimeout(() => {
@@ -340,7 +340,7 @@ useEffect(() => {
 
         // ── State ──────────────────────────────────────────────────────────
         const s: any = {
-            pageColor: COLORS[activePage as keyof typeof COLORS] || COLORS.welcome,
+pageColor: COLORS[getActivePage() as keyof typeof COLORS] || COLORS.welcome,
             // Use window dimensions — background is viewport-fixed
             VW: window.innerWidth,
             VH: window.innerHeight,
@@ -1119,9 +1119,8 @@ useEffect(() => {
                 overflow: "hidden",
                 pointerEvents: "none",
                 zIndex: 0,
-                opacity: visible ? 1 : 0,
-                transition:
-                    activePage === "welcome" ? "opacity 4000ms ease" : "none",
+opacity: visible ? 1 : 0,
+transition: activePage === "welcome" ? "opacity 4000ms ease" : "none",
             }}
         />
     )

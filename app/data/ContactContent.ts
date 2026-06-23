@@ -47,7 +47,7 @@ export const CONTENT: ContentItem[] = [
         id: 5,
         type: "link",
         seq: 1,
-        text: "Download résumé",
+        text: "Download resume",
         href: "https://drive.google.com/file/d/1itQd8z_xoR3zm7M2B7pLBDF6QY5VVRWJ/view?usp=share_link",
         color: COLORS.contact,
     },

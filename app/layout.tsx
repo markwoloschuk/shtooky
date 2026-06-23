@@ -45,8 +45,9 @@ export default function RootLayout({
         <Background />
         <NavBar />
         <ScrollConfig />
-        {children}
-        <Footer />
+<div style={{ position: "relative", zIndex: 1 }}>
+          {children}
+        </div>        <Footer />
       </body>
     </html>
   );

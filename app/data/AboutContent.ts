@@ -21,7 +21,7 @@ export const CONTENT: ContentItem[] = [
     {
         id: 1,
         type: "paragraph",
-        seq: 1,
+        seq: 0,
         text: `As a freelancer, I haven\u2019t had a lot of official titles \u2014 but over my career I\u2019ve taken on many jobs.`,
     },
     {
@@ -59,13 +59,13 @@ export const CONTENT: ContentItem[] = [
     {
         id: 4,
         type: "paragraph",
-        seq: 2,
+        seq: 3,
         text: `My first job out of school was as an assistant editor on a ten-part documentary series called \u201cLife After Death\u201d \u2014 produced by a company called Sleeping Giant that has since, ironically, lived up to its name. That first zig led to a series of zags that eventually brought me to San Francisco.`,
     },
     {
         id: 5,
         type: "pull",
-        seq: 3,
+        seq: 4,
         timing: {
             duration: 1500,
             pushY: 20,
@@ -99,19 +99,19 @@ export const CONTENT: ContentItem[] = [
     {
         id: 6,
         type: "paragraph",
-        seq: 4,
+        seq: 5,
         text: `San Francisco is a home to entrepreneurs, thinkers, artists, misfits and other dreamers. It\u2019s a small city wearing boots a few sizes too big \u2014 but also a place with deep community \u2014 where common interest brings people together and social universes collide in unexpected ways.`,
     },
     {
         id: 7,
         type: "paragraph",
-        seq: 4,
+        seq: 5,
         text: `And where three distinct yet overlapping worlds left their mark.`,
     },
     {
         id: 8,
         type: "pull",
-        seq: 5,
+        seq: 6,
         timing: {
             duration: 1500,
             pushY: 0,
@@ -137,25 +137,25 @@ export const CONTENT: ContentItem[] = [
     {
         id: 9,
         type: "paragraph",
-        seq: 5,
+        seq: 7,
         text: `As a freelance video editor I often found myself waiting on someone else to produce graphics. I\u2019m a patient person \u2014 but not on my client\u2019s time \u2014 so I was inspired to start creating them myself. That decision opened my eyes to design and to new possibility.`,
     },
     {
         id: 10,
         type: "paragraph",
-        seq: 5,
+        seq: 7,
         text: `It started with After Effects \u2014 Illustrator and Photoshop soon followed. One application opened doors to others \u2014 and somewhere in that journey I stopped thinking as much about the tools and more about design itself. Not just as a way to solve problems or create more beautiful work \u2014 but as a way of thinking. A way of being.`,
     },
     {
         id: 11,
         type: "paragraph",
-        seq: 5,
+        seq: 7,
         text: `There is something like an invisible language that threads between all design principles and binds them together \u2014 a harmonious color palette, an elegant typesetting, a more efficient UX layout. These are very different things and yet something is common to all of them. A quality \u2014 the simple recognition that anything can be improved through its application. That, to me, is the power of design.`,
     },
     {
         id: 12,
         type: "pull",
-        seq: 6,
+        seq: 8,
         timing: {
             duration: 1500,
             pushY: 0,
@@ -189,19 +189,19 @@ export const CONTENT: ContentItem[] = [
     {
         id: 13,
         type: "paragraph",
-        seq: 6,
+        seq: 9,
         text: `San Francisco is also a unique nexus in the world of technology. As a sort of spiritual capital to Silicon Valley its central role in tech innovation further altered my trajectory. Much of my creative energy has been directed towards promoting or explaining technology.`,
     },
     {
         id: 14,
         type: "paragraph",
-        seq: 6,
+        seq: 9,
         text: `It made sense \u2014 as a child I was a voracious reader of science fiction, delighting in future possibility. But here I found myself drawn into present reality \u2014 technology NOW \u2014 and all the ways in which it shapes our lives. How does it solve problems and remove barriers? Where can it be improved? Who does it empower? Finding the answers to those questions remains the kind of mission I want to be part of.`,
     },
     {
         id: 15,
         type: "pull",
-        seq: 7,
+        seq: 10,
         timing: {
             duration: 1500,
             pushY: 0,
@@ -227,25 +227,25 @@ export const CONTENT: ContentItem[] = [
     {
         id: 16,
         type: "paragraph",
-        seq: 7,
+        seq: 11,
         text: `Burning Man was born in San Francisco and its cultural roots stretch deep into its history and people. It is many things: an experiment in community and self-expression; a vast ephemeral art gallery; a festival of culture, music and technology; a perfect confluence of the ridiculous and the sublime. But fundamentally it too is a way of being. A path towards greater self-expression, stronger community and positive social values.`,
     },
     {
         id: 17,
         type: "paragraph",
-        seq: 7,
+        seq: 11,
         text: `The world of art and culture were already familiar to me \u2014 my degree is in \u201cFine Art\u201d after all, but like many, my eyes, ears and mind were only so open. Burning Man expanded my taste and broadened my horizons. Over the years I\u2019ve created many things out in the desert and beyond \u2014 interactive sculptures of light and sound, raucous dance parties, experiential media \u2014 a bowling alley. But above all else what I found in the desert was a clearer picture of myself and a deeper connection with my communities.`,
     },
     {
         id: 18,
         type: "paragraph",
-        seq: 7,
+        seq: 11,
         text: `Similar to the way design changed my life, this greater exposure to art and self-expression colors every part of how I live. I make my own art \u2014 and I help others make theirs.`,
     },
     {
         id: 19,
         type: "pull",
-        seq: 8,
+        seq: 12,
         timing: {
             duration: 1000,
             pushY: 18,
@@ -279,43 +279,43 @@ export const CONTENT: ContentItem[] = [
     {
         id: 20,
         type: "paragraph",
-        seq: 9,
+        seq: 13,
         text: `San Francisco had more communities to offer \u2014 I became a rock climber, a bike racer, a DJ, and a baker of pies. But in my connection to media production I was led to perhaps the deepest and most impactful one: the world of documentary films.`,
     },
     {
         id: 21,
         type: "paragraph",
-        seq: 9,
+        seq: 13,
         text: `I\u2019ve made three feature-length documentaries and contributed to a number of others. While I have a range of feelings about the end products, I can say with total sincerity that the experience of creating them changed me for the better.`,
     },
     {
         id: 22,
         type: "paragraph",
-        seq: 9,
+        seq: 13,
         text: `I imagine that many people believe the key to a successful documentary is discovering a great, untold story. My experience suggests that while this is certainly possible, the greater truth is that any story can be great. It then follows that one must find the contours of the story, understand its structure and \u2014 most importantly \u2014 feel its value.`,
     },
     {
         id: 23,
         type: "paragraph",
-        seq: 9,
+        seq: 13,
         text: `One must empathize with one\u2019s subject, but also one\u2019s audience. We can never truly know another\u2019s experience \u2014 but if we cultivate our hearts and minds to be open to them, we can get closer. A well-crafted documentary is like a window of empathy \u2014 it allows us to see inside another person, to feel their story. It also lets us see inside ourselves.`,
     },
     {
         id: 24,
         type: "paragraph",
-        seq: 9,
+        seq: 13,
         text: `I believe that same empathy is at the core of good design (and art, and technology). Understanding the problem, feeling for the client\u2019s needs, and genuinely considering the intended audience \u2014 empathy is what elevates good design into great design.`,
     },
     {
         id: 25,
         type: "paragraph",
-        seq: 9,
+        seq: 13,
         text: `And I think a well-developed sense of empathy is part of what makes a good human. I\u2019ve written a fairly long essay on the topic \u2014 you can find it over on Medium \u2014 but the core premise is that empathy opens us up to greater possibility in all aspects of life. It\u2019s certainly what I\u2019m trying to do.`,
     },
     {
         id: 26,
         type: "paragraph",
-        seq: 10,
+        seq: 14,
         text: `The more we understand about ourselves the more we see there is to know. It feels almost fractal \u2014 there\u2019s more to this story. This is just where I am right now.`,
     },
 ]

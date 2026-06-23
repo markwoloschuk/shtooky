@@ -118,7 +118,10 @@ export function useSequence(seqIndex: number): boolean {
 
     useEffect(() => {
         setUnlocked(isUnlocked(seqIndex))
-        const unsub = subscribe(() => setUnlocked(isUnlocked(seqIndex)))
+        const unsub = subscribe(() => {
+            const next = isUnlocked(seqIndex)
+            setUnlocked(prev => prev === next ? prev : next)
+        })
         return unsub
     }, [seqIndex])
 

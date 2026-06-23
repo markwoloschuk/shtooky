@@ -12,6 +12,7 @@ import TextBlock from "../components/TextBlock"
 export default function LetsTalk() {
     // Unlock seq 1 on mount — all contact content is seq 1
  useEffect(() => {
+            window.scrollTo(0, 0)
         reset()
         unlock(1)
     }, [])
