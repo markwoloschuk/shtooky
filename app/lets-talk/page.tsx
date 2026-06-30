@@ -11,18 +11,19 @@ import RippleNetwork from "../components/RippleNetwork"
 import TextBlock from "../components/TextBlock"
 
 export default function LetsTalk() {
-    // Unlock seq 1 on mount — all contact content is seq 1
- useEffect(() => {
-            window.scrollTo(0, 0)
-        reset()
-        unlock(1)
+    reset()
+    unlock(1)
+
+    useEffect(() => {
+        window.scrollTo(0, 0)
+        setTimeout(() => unlock(2), 3000)
     }, [])
 
     return (
         <div
             style={{
-                paddingTop: "2vh",
-                paddingBottom: "15vh",
+                paddingTop: "7vh",
+                paddingBottom: "18vh",
             }}
         >
             <div
@@ -33,7 +34,9 @@ export default function LetsTalk() {
                 }}
             >
                 <RippleNetwork />
-                <TextBlock page="contact" ids="1-5" />
+                <div style={{ marginTop: "-80px" }}>
+                    <TextBlock page="contact" ids="1-5" />
+                </div>
             </div>
         </div>
     )

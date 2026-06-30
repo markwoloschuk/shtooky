@@ -9,7 +9,7 @@ import { COLORS, TYPE } from "./Tokens"
 
 // ─── LAYOUT ───────────────────────────────────────────────────────────────────
 
-const HEIGHT = 400
+const HEIGHT = 350
 const PLAY_DELAY = 0
 const TEXT_DELAY = 1000
 const playOnce = true
@@ -57,11 +57,11 @@ const CHUNKS = [
 // ─── RIPPLE / LINE CFG ────────────────────────────────────────────────────────
 
 const CFG = {
-    maxPairs: 7,
+    maxPairs: 5,
     rampUp: 8,
     birthVar: 100,
     centerBias: 50,
-    antiClump: 160,
+    antiClump: 150,
 
     rippleCount: 3,
     rippleBirthRate: 400,
@@ -74,13 +74,13 @@ const CFG = {
     energyLoss: 65,
     fadePct: 25,
     rippleStroke: 1.5,
-    rippleStrokeOp: 0.6,
-    rippleFillOp: 0.25,
-    rippleOpVar: 80,
+    rippleStrokeOp: 0.5,
+    rippleFillOp: 0.15,
+    rippleOpVar: 20,
 
     lineSpeed: 80,
     lineSpeedVar: 100,
-    lineOp: 0.5,
+    lineOp: 0.3,
     lineOpVar: 30,
     lineWeight: 1.5,
     tailLen: 0.95,

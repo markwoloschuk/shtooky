@@ -797,7 +797,7 @@ useEffect(() => {
             style={{
                 position: "fixed",
                 inset: 0,
-                pointerEvents: "auto",
+                pointerEvents: "none",
                 zIndex: 38,
             }}
         >
@@ -850,6 +850,7 @@ useEffect(() => {
                     top: "2.4vw",
                     left: "2.5vw",
                     zIndex: 40,
+                    pointerEvents: "auto",
                 }}
             >
                 <div
