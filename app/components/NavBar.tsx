@@ -395,7 +395,7 @@ useEffect(() => {
         function applyLayout() {
             if (st.glitched) return
             const nameW = getNameWidth(ms!)
-            const nameH = measH(ms!, S.fontSize, "700") * .76
+            const nameH = measH(ms!, S.fontSize, "700") * .73
             const titleFs = fitFontSize(ms!, S.titleText, S.tracking, nameW)
             const titleH = Math.ceil(measH(ms!, titleFs, "500")) + 2
             const shtookyTracking = fitTracking(

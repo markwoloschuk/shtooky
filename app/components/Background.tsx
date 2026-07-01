@@ -77,7 +77,7 @@ const TINT_COMP: Record<string, number> = {
 }
 
 // ── Background color transition duration (seconds) — adjust to taste ────────
-const COLOR_TRANSITION_SECS = 2.5
+const COLOR_TRANSITION_SECS = 2
 
 const CFG = {
     NB_COUNT: 12,
@@ -179,7 +179,7 @@ const CFG = {
     VIG_RY: 1.1,
     VIG_TINT: 0.03,
 }
-
+// set which layers of the background are visible here
 const LAYERS = {
     noise: false,
     nebula: true,
@@ -1140,7 +1140,8 @@ useEffect(() => {
                 pointerEvents: "none",
                 zIndex: 0,
 opacity: visible ? 1 : 0,
-transition: activePage === "welcome" ? "opacity 4000ms ease" : "none",
+// background fade in on welcome page load
+transition: activePage === "welcome" ? "opacity 3000ms ease" : "none",
             }}
         />
     )

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import HeroAnimation from "./components/HeroAnimation"
 import ScrollFade from "./components/WelcomeScrollFade"
 import EverythingIsInteresting from "./components/EverythingIsInteresting"
@@ -18,37 +19,39 @@ const BODY_STYLE = {
 }
 
 export default function Page() {
-  return (
-    <div style={{ position: "relative", width: "100%" }}>
-      <div style={{ height: "35vh" }} />
-      <div style={{ width: "76%", marginLeft: "auto", marginRight: "auto" }}>
-        <HeroAnimation />
-        <div style={{ height: "8vh" }} />
-        <EverythingIsInteresting />
-        <div style={{ height: "4vh" }} />
-        <ScrollFade>
-        <p style={BODY_STYLE}>
-          This simple truth is in the heart of everything I do. I like to ask questions and think before I get my hands dirty. I want to understand all the whos and whats before I get to the hows.
-        </p>
-        </ScrollFade>
-        <div style={{ height: "3vh" }} />
-        <ScrollFade>
-        <p style={BODY_STYLE}>
-          Doing that means speaking fluent executive, marketer and engineer – I aim to be the gear that connects them all together in turning out business goals.
-        </p>
-        </ScrollFade>
-        <div style={{ height: "5vh" }} />
-        <ClientLogoGrid triggerOnScroll={true} />
-        <div style={{ height: "6vh" }} />
-        <ScrollFade>
-        <p style={{ ...BODY_STYLE, maxWidth: "70%" }}>
-        I've worked with some great people. Why not you?
-        </p>
-        </ScrollFade>
-        <div style={{ height: "6vh" }} />
-         <WelcomeCTA />
-        <div style={{ height: "20vh" }} />
-      </div>
-    </div>
-  )
+    const [interestingComplete, setInterestingComplete] = useState(false)
+
+    return (
+        <div style={{ position: "relative", width: "100%" }}>
+            <div style={{ height: "35vh" }} />
+            <div style={{ width: "76%", marginLeft: "auto", marginRight: "auto" }}>
+                <HeroAnimation />
+                <div style={{ height: "8vh" }} />
+                <EverythingIsInteresting onComplete={() => setInterestingComplete(true)} />
+                <div style={{ height: "4vh" }} />
+                <ScrollFade enabled={interestingComplete}>
+                    <p style={BODY_STYLE}>
+                        This simple truth is in the heart of everything I do. I like to ask questions and think before I get my hands dirty. I want to understand all the whos and whats before I get to the hows.
+                    </p>
+                </ScrollFade>
+                <div style={{ height: "3vh" }} />
+                <ScrollFade enabled={interestingComplete}>
+                    <p style={BODY_STYLE}>
+                        Doing that means speaking fluent executive, marketer and engineer – I aim to be the gear that connects them all together in turning out business goals.
+                    </p>
+                </ScrollFade>
+                <div style={{ height: "5vh" }} />
+                <ClientLogoGrid triggerOnScroll={true} />
+                <div style={{ height: "6vh" }} />
+                <ScrollFade>
+                    <p style={{ ...BODY_STYLE, maxWidth: "70%" }}>
+                        I've worked with some great people. Why not you?
+                    </p>
+                </ScrollFade>
+                <div style={{ height: "6vh" }} />
+                <WelcomeCTA />
+                <div style={{ height: "20vh" }} />
+            </div>
+        </div>
+    )
 }

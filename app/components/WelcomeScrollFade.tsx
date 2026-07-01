@@ -4,14 +4,16 @@ import { useEffect, useRef, useState, ReactNode } from "react"
 
 interface Props {
     children: ReactNode
-    fadeInStart?: number  // px from viewport bottom where fade begins
-    fadeInEnd?: number    // px from viewport bottom where fade completes
-    fadeOutStart?: number // rect.top where fade-out begins
-    fadeOutEnd?: number   // rect.top where fade-out completes
+    enabled?: boolean       // when false, stays invisible and ignores scroll
+    fadeInStart?: number    // px from viewport bottom where fade begins
+    fadeInEnd?: number      // px from viewport bottom where fade completes
+    fadeOutStart?: number   // rect.top where fade-out begins
+    fadeOutEnd?: number     // rect.top where fade-out completes
 }
 
 export default function ScrollFade({
     children,
+    enabled = true,
     fadeInStart = 250,
     fadeInEnd = 350,
     fadeOutStart = 150,
@@ -22,7 +24,10 @@ export default function ScrollFade({
     useEffect(() => {
         const el = ref.current
         if (!el) return
+
         el.style.opacity = "0"
+
+        if (!enabled) return
 
         function handleScroll() {
             const rect = el!.getBoundingClientRect()
@@ -44,8 +49,12 @@ export default function ScrollFade({
         }
 
         window.addEventListener("scroll", handleScroll, { passive: true })
+
+        // Run once on enable in case element is already in viewport
+        handleScroll()
+
         return () => window.removeEventListener("scroll", handleScroll)
-    }, [fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd])
+    }, [enabled, fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd])
 
     return (
         <div ref={ref} style={{ width: "100%" }}>

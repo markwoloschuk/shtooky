@@ -1,7 +1,7 @@
 "use client"
 
 // EverythingIsInteresting.tsx
-// v5 — scroll-driven per-line opacity
+// v6 — viewport-aware auto-fire + onComplete callback
 
 import * as React from "react"
 import ReactDOM from "react-dom"
@@ -35,18 +35,21 @@ const CA = {
 
 const FRONT_COLORS = [COLORS.work, COLORS.thinking]
 const BACK_COLORS = [COLORS.welcome, COLORS.about, COLORS.contact]
-const DEBUG = false // set to false to hide overlay
+const DEBUG = false
 
 // ─── Scroll fade tuning ───────────────────────────────────────────────────────
 
 const SCROLL_FADE = {
-    gateMs: 2000,
-    scrollStart: 38, // scrollY where line 0 starts
-    fadeZone: 120, // px of scroll for each line to go 0→1
-    lineStagger: 40, // px between each line starting
+    scrollStart: 38,
+    fadeZone: 120,
+    lineStagger: 40,
     topMargin: 30,
     topFadeZone: 160,
     yOffset: 0,
+    // Auto-fire timing (ms) when block is already in viewport on mount
+    autoStagger: 400,
+    // Delay before auto-fire sequence begins
+    autoDelay: 600,
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -329,10 +332,7 @@ function DebugOverlay() {
             color: "#FF8800",
         },
         {
-            y:
-                window.innerHeight -
-                SCROLL_FADE.scrollStart -
-                SCROLL_FADE.fadeZone,
+            y: window.innerHeight - SCROLL_FADE.scrollStart - SCROLL_FADE.fadeZone,
             label: "bottom fade ends",
             color: "#00FFAA",
         },
@@ -391,12 +391,17 @@ function DebugOverlay() {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function EverythingIsInteresting() {
+interface Props {
+    onComplete?: () => void
+}
+
+export default function EverythingIsInteresting({ onComplete }: Props) {
     const blockRef = useRef<HTMLDivElement>(null)
     const lineRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null])
     const [lineOpacity, setLineOpacity] = useState([0, 0, 0, 0])
     const [containerWidth, setContainerWidth] = useState(0)
-    const gateOpen = useRef(false)
+    const completeFired = useRef(false)
+    const autoFired = useRef(false)
 
     useEffect(() => {
         const block = blockRef.current
@@ -415,22 +420,58 @@ export default function EverythingIsInteresting() {
         setDisplayFontSize(Math.round(window.innerWidth * (TYPE.DISPLAY.sizeVw / 100)))
     }, [])
 
+    // ── Fire onComplete once when line 3 reaches full opacity ────────────────
+    function checkComplete(opacities: number[]) {
+        if (!completeFired.current && opacities[3] >= 1) {
+            completeFired.current = true
+            onComplete?.()
+        }
+    }
+
     useEffect(() => {
         const block = blockRef.current
         if (!block) return
 
-        const gateTimer = setTimeout(() => {
-            gateOpen.current = true
-        }, SCROLL_FADE.gateMs)
+        // ── Check if block is in viewport on mount ───────────────────────────
+        const rect = block.getBoundingClientRect()
+        const inViewport = rect.top < window.innerHeight && rect.bottom > 0
 
+        if (inViewport && !autoFired.current) {
+            autoFired.current = true
+            // Auto-fire staggered sequence
+            const timers: ReturnType<typeof setTimeout>[] = []
+            ;[0, 1, 2, 3].forEach((i) => {
+                timers.push(
+                    setTimeout(() => {
+                        setLineOpacity((prev) => {
+                            const next = [...prev]
+                            next[i] = 1
+                            // Check complete after line 3 fires
+                            if (i === 3) {
+                                setTimeout(() => {
+                                    if (!completeFired.current) {
+                                        completeFired.current = true
+                                        onComplete?.()
+                                    }
+                                }, 50)
+                            }
+                            return next
+                        })
+                    }, SCROLL_FADE.autoDelay + i * SCROLL_FADE.autoStagger)
+                )
+            })
+            return () => timers.forEach(clearTimeout)
+        }
+
+        // ── Off-screen: scroll-driven ────────────────────────────────────────
         function handleScroll() {
-            if (!block || !gateOpen.current) return
+            if (!block) return
             const rect = block.getBoundingClientRect()
 
-            // ── Fade out — per-line, based on each line's own top and bottom ──
+            // Fade out — per-line
             if (rect.top < SCROLL_FADE.topFadeZone) {
-                const fadeStart = SCROLL_FADE.topFadeZone // viewport y where fade begins
-                const fadeEnd = SCROLL_FADE.topMargin // viewport y where fade ends (0 opacity)
+                const fadeStart = SCROLL_FADE.topFadeZone
+                const fadeEnd = SCROLL_FADE.topMargin
 
                 const opacities = [0, 1, 2, 3].map((i) => {
                     const lineEl = lineRefs.current[i]
@@ -438,7 +479,6 @@ export default function EverythingIsInteresting() {
                         ? lineEl.getBoundingClientRect()
                         : rect
 
-                    // For CACanvas (line 1), use visible bottom not actual bottom
                     const lineH = Math.round(
                         (typeof window !== "undefined"
                             ? window.innerWidth
@@ -453,10 +493,11 @@ export default function EverythingIsInteresting() {
                     return Math.max(0, Math.min(1, raw))
                 })
                 setLineOpacity(opacities)
+                checkComplete(opacities)
                 return
             }
 
-            // ── Scroll-driven fade in ────────────────────────────────────
+            // Scroll-driven fade in
             const scrollY = window.scrollY
             const opacities = [0, 1, 2, 3].map((i) => {
                 const start =
@@ -465,14 +506,12 @@ export default function EverythingIsInteresting() {
                 return Math.max(0, Math.min(1, raw))
             })
             setLineOpacity(opacities)
+            checkComplete(opacities)
         }
 
         window.addEventListener("scroll", handleScroll, { passive: true })
-        return () => {
-            clearTimeout(gateTimer)
-            window.removeEventListener("scroll", handleScroll)
-        }
-    }, [])
+        return () => window.removeEventListener("scroll", handleScroll)
+    }, [onComplete])
 
     return (
         <div
