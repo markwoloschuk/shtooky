@@ -16,7 +16,7 @@ const S = {
     tracking: NAV.titleTracking,
     lineHeight: NAV.lineSpacing,
     nameHit: 8,
-    textGap: 3,
+    textGap: -3,
     stripHeightPct: NAV.stripHeight * 100,
     stripGap: 0,
     hitAbove: 10,
