@@ -41,6 +41,7 @@ const CW   = 1440
 const CH   = 480
 const BASE_W = CW / N
 
+
 // ── Carousel headlines drawn on canvas ───────────────────────────────────────
 const HEADLINES = [
   '12 Products. 1 Holiday Hook.',
@@ -105,11 +106,12 @@ interface Props {
   onOpen: (idx: number) => void
   onClose: () => void
   activeIdx: number | null
+  onRegisterControls: (step: (dir: number) => void, close: () => void) => void
 }
 
-export default function WorkCarousel({ onOpen, onClose, activeIdx }: Props) {
-const canvasRef    = useRef<HTMLCanvasElement>(null)
-const hitRef       = useRef<HTMLDivElement>(null)
+export default function WorkCarousel({ onOpen, onClose, activeIdx, onRegisterControls }: Props) {const canvasRef    = useRef<HTMLCanvasElement>(null)
+const fadeRan = useRef(false)
+  const hitRef       = useRef<HTMLDivElement>(null)
 const fullHitRef   = useRef<HTMLDivElement>(null)
 const navRef       = useRef<HTMLDivElement>(null)
 const rafRef       = useRef<number>(0)
@@ -201,8 +203,14 @@ const stageRef     = useRef<HTMLDivElement>(null)
   }
 
   // ── Nav button visibility ─────────────────────────────────────────────────
-  function showNav() { navRef.current?.classList.add('visible') }
-  function hideNav() { navRef.current?.classList.remove('visible') }
+function showNav() {
+    const n = navRef.current; if (!n) return
+    n.style.opacity = '1'; n.style.transform = 'scale(1)'; n.style.pointerEvents = 'auto'
+  }
+  function hideNav() {
+    const n = navRef.current; if (!n) return
+    n.style.opacity = '0'; n.style.transform = 'scale(0.85)'; n.style.pointerEvents = 'none'
+  }
 
   // ── Headline helpers ──────────────────────────────────────────────────────
   function startHLIn(idx: number) {
@@ -312,7 +320,7 @@ const stageRef     = useRef<HTMLDivElement>(null)
       return
     }
 
-    const ep = easeIO(m === 'fullview' ? 1 : op)
+const ep = easeIO(m === 'nav' ? navProg.current : m === 'fullview' ? 1 : op)
     const fCX = fullviewCX()
     const ct = CFG.CHROMA_ON ? CFG.CHROMA_AMT : 0
     const sliceFadeOp = CFG.SLICE_FADE_COLOR ? ep * CFG.COL_OPACITY : 0
@@ -467,7 +475,7 @@ const stageRef     = useRef<HTMLDivElement>(null)
     onClose()
   }, [updateHitLayer, onClose])
 
-  const stepCase = useCallback((dir: number) => {
+const stepCase = useCallback((dir: number) => {
     if (mode.current !== 'fullview') return
     navFrom.current = openIdx.current
     navTo.current = (openIdx.current + dir + N) % N
@@ -573,7 +581,7 @@ const stageRef     = useRef<HTMLDivElement>(null)
       render()
     }
 
-    if (m === 'nav') {
+if (m === 'nav') {
       const sp = clamp(dt / CFG.NAV_DUR * 2.2, 0, 1)
       navProg.current = lerp(navProg.current, 1, sp)
 
@@ -635,8 +643,27 @@ const stageRef     = useRef<HTMLDivElement>(null)
     window.addEventListener('resize', scaleStage)
     scaleStage()
 
+onRegisterControls(stepCase, closeCase)
     updateHitLayer()
     rafRef.current = requestAnimationFrame(tick)
+
+// Page load fade-in
+if (!fadeRan.current) {
+  fadeRan.current = true
+  const wrap = wrapRef.current
+  const carText = carTextRef.current
+  if (wrap) {
+    wrap.style.transition = 'none'
+    wrap.style.opacity = '0'
+    setTimeout(() => { wrap.style.transition = 'opacity 1000ms ease'; wrap.style.opacity = '1' }, 200)
+  }
+  if (carText) {
+    carText.style.transition = 'none'
+    carText.style.opacity = '0'
+    carText.style.transform = 'translateY(12px)'
+    setTimeout(() => { carText.style.transition = 'opacity 1000ms ease, transform 700ms cubic-bezier(0.22,1,0.36,1)'; carText.style.opacity = '1'; carText.style.transform = 'translateY(0px)' }, 600)
+  }
+}
 
     return () => {
       document.removeEventListener('mousemove', onMove)
@@ -655,7 +682,7 @@ return (
     <div style={{ position: 'relative', width: '100%' }}>
       <div
         ref={wrapRef}
-        style={{ width: '100%', position: 'relative', background: '#000', overflow: 'hidden' }}
+style={{ width: '100%', position: 'relative', background: '#000', overflow: 'hidden' }}
       >
         <div
           ref={stageRef}
@@ -678,11 +705,14 @@ return (
             onClick={() => { if (CFG.CLICK_TO_CLOSE) closeCase() }}
             style={{ position: 'absolute', top: 0, left: 0, width: CW, height: CH, cursor: 'pointer', zIndex: 2, display: 'none' }}
           />
+          
+</div>
+      </div>
           {/* Carousel text — resting state headline + subhead */}
-          <div
-            ref={carTextRef}
-            style={{ position: 'absolute', top: 492, left: 104, width: 900, pointerEvents: 'none', zIndex: 1 }}
-          >
+      <div
+  ref={carTextRef}
+  style={{ position: 'relative', left: 104, width: 900, pointerEvents: 'none', zIndex: 1, marginTop: 24, opacity: 0, transform: 'translateY(12px)' }}
+>
             <p style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.15, color: '#fff', margin: '0 0 10px 0', fontFamily: 'Arial, sans-serif' }}>
               <span style={{ display: 'block' }}>The work reveals the process.</span>
               <span style={{ display: 'block' }}>The process reveals the person.</span>
@@ -691,49 +721,9 @@ return (
               This is how I apply curiosity with empathy to solve creative problems.
             </p>
           </div>
-        </div>
-      </div>
 
-      {/* Nav buttons — fixed bottom-right */}
-      <div
-        ref={navRef}
-        style={{
-          position: 'fixed', bottom: 32, right: 32,
-          display: 'flex', gap: 8, zIndex: 1000,
-          pointerEvents: 'none', opacity: 0,
-          transform: 'scale(0.85)',
-          transition: 'opacity 500ms ease, transform 500ms ease',
-        }}
-        className="carousel-nav"
-      >
-        <button
-          onClick={e => { e.stopPropagation(); stepCase(-1) }}
-          style={{ width: CFG.NAV_BTN_SIZE, height: CFG.NAV_BTN_SIZE, background: '#e0057a', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, pointerEvents: 'auto' }}
-        >
-          <svg viewBox="0 0 100 100" style={{ width: CFG.NAV_BTN_SIZE * CFG.SYM_PCT, height: CFG.NAV_BTN_SIZE * CFG.SYM_PCT, display: 'block', overflow: 'visible' }}>
-            <polyline points="65,20 35,50 65,80" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth={CFG.STROKE_W} vectorEffect="non-scaling-stroke" />
-          </svg>
-        </button>
-        <button
-          onClick={e => { e.stopPropagation(); closeCase() }}
-          style={{ width: CFG.NAV_BTN_SIZE, height: CFG.NAV_BTN_SIZE, background: '#e0057a', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, pointerEvents: 'auto' }}
-        >
-          <svg viewBox="0 0 100 100" style={{ width: CFG.NAV_BTN_SIZE * CFG.SYM_PCT, height: CFG.NAV_BTN_SIZE * CFG.SYM_PCT, display: 'block', overflow: 'visible' }}>
-            <line x1="25" y1="25" x2="75" y2="75" stroke="#fff" strokeLinecap="round" strokeWidth={CFG.STROKE_W} vectorEffect="non-scaling-stroke" />
-            <line x1="75" y1="25" x2="25" y2="75" stroke="#fff" strokeLinecap="round" strokeWidth={CFG.STROKE_W} vectorEffect="non-scaling-stroke" />
-          </svg>
-        </button>
-        <button
-          onClick={e => { e.stopPropagation(); stepCase(1) }}
-          style={{ width: CFG.NAV_BTN_SIZE, height: CFG.NAV_BTN_SIZE, background: '#e0057a', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, pointerEvents: 'auto' }}
-        >
-          <svg viewBox="0 0 100 100" style={{ width: CFG.NAV_BTN_SIZE * CFG.SYM_PCT, height: CFG.NAV_BTN_SIZE * CFG.SYM_PCT, display: 'block', overflow: 'visible' }}>
-            <polyline points="35,20 65,50 35,80" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth={CFG.STROKE_W} vectorEffect="non-scaling-stroke" />
-          </svg>
-        </button>
-      </div>
+      
 
-      <style>{`.carousel-nav.visible { opacity: 1 !important; transform: scale(1) !important; pointer-events: auto !important; }`}</style>
     </div>
   )
 }

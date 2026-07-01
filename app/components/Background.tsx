@@ -75,6 +75,10 @@ const TINT_COMP: Record<string, number> = {
     "#D6DE23": 0.72,
     "#885198": 0.95,
 }
+
+// ── Background color transition duration (seconds) — adjust to taste ────────
+const COLOR_TRANSITION_SECS = 2.5
+
 const CFG = {
     NB_COUNT: 12,
     NB_SMIN: 20,
@@ -274,8 +278,12 @@ useEffect(() => {
         if (!container) return
        // ── Page color update (re-run after mount) ─────────────────────────
         if (stateRef.current) {
-            stateRef.current.pageColor =
-                COLORS[activePage as keyof typeof COLORS] || COLORS.welcome
+
+            stateRef.current.targetPageColorRgb =
+                hexToRgb(COLORS[activePage as keyof typeof COLORS] || COLORS.welcome)
+                stateRef.current.colorTransitionElapsed = 0
+stateRef.current.pageColorRgb = { ...stateRef.current.pageColorRgb }
+
             stateRef.current.nebulaParticles.forEach((p: NebulaParticle) => {
                 p.age = p.lifespan - rand(0, p.fadedur)
             })
@@ -340,7 +348,11 @@ useEffect(() => {
 
         // ── State ──────────────────────────────────────────────────────────
         const s: any = {
-pageColor: COLORS[getActivePage() as keyof typeof COLORS] || COLORS.welcome,
+            pageColor: COLORS[getActivePage() as keyof typeof COLORS] || COLORS.welcome,
+            pageColorRgb: hexToRgb(COLORS[getActivePage() as keyof typeof COLORS] || COLORS.welcome),
+            targetPageColorRgb: hexToRgb(COLORS[getActivePage() as keyof typeof COLORS] || COLORS.welcome),
+
+
             // Use window dimensions — background is viewport-fixed
             VW: window.innerWidth,
             VH: window.innerHeight,
@@ -970,11 +982,20 @@ pageColor: COLORS[getActivePage() as keyof typeof COLORS] || COLORS.welcome,
 
         // ── Render loop ────────────────────────────────────────────────────
         function render(ts: number) {
-            if (!s.running) return
-            if (s.lastTime === null) s.lastTime = ts
-            const dt = Math.min((ts - s.lastTime) / 1000, 0.05)
-            s.lastTime = ts
-            s.totalTime += dt
+    if (!s.running) return
+    if (s.lastTime === null) s.lastTime = ts
+    const dt = Math.min((ts - s.lastTime) / 1000, 0.05)
+    s.lastTime = ts
+    s.totalTime += dt
+
+// Drive pageColor toward target using elapsed time
+s.colorTransitionElapsed = (s.colorTransitionElapsed || 0) + dt
+const t = clamp(s.colorTransitionElapsed / COLOR_TRANSITION_SECS, 0, 1)
+s.pageColorRgb.r = lerp(s.pageColorRgb.r, s.targetPageColorRgb.r, t)
+s.pageColorRgb.g = lerp(s.pageColorRgb.g, s.targetPageColorRgb.g, t)
+s.pageColorRgb.b = lerp(s.pageColorRgb.b, s.targetPageColorRgb.b, t)
+const pr = Math.round(s.pageColorRgb.r), pg = Math.round(s.pageColorRgb.g), pb = Math.round(s.pageColorRgb.b)
+s.pageColor = `#${pr.toString(16).padStart(2,'0')}${pg.toString(16).padStart(2,'0')}${pb.toString(16).padStart(2,'0')}`
 
             const scrollY = window.scrollY
             const rawVel = (scrollY - s.lastScrollY) / Math.max(dt, 0.001)

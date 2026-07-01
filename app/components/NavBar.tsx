@@ -812,21 +812,20 @@ useEffect(() => {
                     pointerEvents: "none",
                 }}
             />
-            {/* NAV GRADIENT — commented out v36, replaced by ScrollConfig.tsx
-            <div
-                style={{
-                    position: "fixed",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 180,
-                    background:
-                        "linear-gradient(to bottom,rgba(13,13,13,0.82) 0%,transparent 100%)",
-                    pointerEvents: "none",
-                    zIndex: 39,
-                }}
-            />
-            */}
+    <div
+    style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 180,
+        background:
+            "linear-gradient(to bottom,rgba(13,13,13,0.82) 0%,transparent 100%)",
+        pointerEvents: "none",
+        zIndex: 39,
+        mixBlendMode: "multiply",
+    }}
+/>
             {/*}
             <div
                 ref={colorBarRef}

@@ -102,10 +102,11 @@ export default function ScrollConfig() {
                 position: "fixed",
                 inset: 0,
                 pointerEvents: "none",
+                // Gradient overlay z-index is set here (was 35, changed to 0 to allow for Carousel)
                 zIndex: 35,
             }}
         >
-            {/* Top gradient */}
+            {/* Top gradient  - removed and added to navbar
             <div
                 style={{
                     position: "absolute",
@@ -117,7 +118,8 @@ export default function ScrollConfig() {
                     pointerEvents: "none",
                 }}
             />
-
+            */}
+             
             {/* Bottom gradient */}
             <div
                 style={{

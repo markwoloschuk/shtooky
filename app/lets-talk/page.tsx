@@ -22,7 +22,7 @@ export default function LetsTalk() {
     return (
         <div
             style={{
-                paddingTop: "7vh",
+                paddingTop: "11vh",
                 paddingBottom: "18vh",
             }}
         >
