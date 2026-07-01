@@ -279,8 +279,8 @@ useEffect(() => {
        // ── Page color update (re-run after mount) ─────────────────────────
         if (stateRef.current) {
 
-            stateRef.current.targetPageColorRgb =
-                hexToRgb(COLORS[activePage as keyof typeof COLORS] || COLORS.welcome)
+        stateRef.current.targetPageColorRgb =
+            hexToRgb(String(COLORS[activePage as keyof typeof COLORS] || COLORS.welcome))
                 stateRef.current.colorTransitionElapsed = 0
 stateRef.current.pageColorRgb = { ...stateRef.current.pageColorRgb }
 
@@ -349,9 +349,8 @@ stateRef.current.pageColorRgb = { ...stateRef.current.pageColorRgb }
         // ── State ──────────────────────────────────────────────────────────
         const s: any = {
             pageColor: COLORS[getActivePage() as keyof typeof COLORS] || COLORS.welcome,
-            pageColorRgb: hexToRgb(COLORS[getActivePage() as keyof typeof COLORS] || COLORS.welcome),
-            targetPageColorRgb: hexToRgb(COLORS[getActivePage() as keyof typeof COLORS] || COLORS.welcome),
-
+            pageColorRgb: hexToRgb(String(COLORS[getActivePage() as keyof typeof COLORS] || COLORS.welcome)),
+            targetPageColorRgb: hexToRgb(String(COLORS[getActivePage() as keyof typeof COLORS] || COLORS.welcome)),
 
             // Use window dimensions — background is viewport-fixed
             VW: window.innerWidth,
