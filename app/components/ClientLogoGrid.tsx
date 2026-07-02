@@ -448,12 +448,14 @@ interface Props {
     gap?: number
     logoSizePercent?: number
     triggerOnScroll?: boolean
+    onComplete?: () => void
 }
 
 export default function ClientLogoGrid({
     gap = 16,
     logoSizePercent = 70,
     triggerOnScroll = false,
+    onComplete,
 }: Props) {
     const gridRef = useRef<HTMLDivElement>(null)
     const hasAnimated = useRef(false)
@@ -577,6 +579,11 @@ export default function ClientLogoGrid({
                 const hoverColor = `hsl(${hue} 75% 62%)`
                 let lingerTimer: ReturnType<typeof setTimeout> | null = null
             })
+
+            // Fire onComplete after last logo has landed
+            const maxDelay = spreadMs + jitterMs + fadeDurMs
+            setTimeout(() => onComplete?.(), maxDelay + 300)
+
             // Document-level hover — Framer iframe blocks element-level mouse events
             const handleMouseMove = (e: MouseEvent) => {
                 grid.querySelectorAll<HTMLElement>("[data-hue]").forEach(

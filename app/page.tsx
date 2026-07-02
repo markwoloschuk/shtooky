@@ -20,6 +20,7 @@ const BODY_STYLE = {
 
 export default function Page() {
     const [interestingComplete, setInterestingComplete] = useState(false)
+    const [gridComplete, setGridComplete] = useState(false)
 
 useEffect(() => {
     window.scrollTo(0, 0)
@@ -45,9 +46,9 @@ useEffect(() => {
                     </p>
                 </ScrollFade>
                 <div style={{ height: "5vh" }} />
-                <ClientLogoGrid triggerOnScroll={true} />
+                <ClientLogoGrid triggerOnScroll={true} onComplete={() => setTimeout(() => setGridComplete(true), 300)} />
                 <div style={{ height: "6vh" }} />
-                <ScrollFade>
+               <ScrollFade enabled={gridComplete}>
                     <p style={{ ...BODY_STYLE, maxWidth: "70%" }}>
                         I've worked with some great people. Why not you?
                     </p>
