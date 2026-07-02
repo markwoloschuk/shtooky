@@ -188,7 +188,7 @@ function getFontPx(): number {
             setTimeout(
                 () => {
                     el.style.transition = [
-                        `opacity ${fadeDurationMs}ms ${TIMING.easeOut}`,
+                        `opacity ${fadeDurationMs}ms ${TIMING.linear}`,
                         `transform ${fadeDurationMs}ms ${TIMING.easeSpring}`,
                     ].join(", ")
                     el.style.opacity = "1"

@@ -1,22 +1,22 @@
 "use client"
 
-import { useEffect, useRef, useState, ReactNode } from "react"
+import { useEffect, useRef, ReactNode } from "react"
 
 interface Props {
     children: ReactNode
-    enabled?: boolean       // when false, stays invisible and ignores scroll
-    fadeInStart?: number    // px from viewport bottom where fade begins
-    fadeInEnd?: number      // px from viewport bottom where fade completes
-    fadeOutStart?: number   // rect.top where fade-out begins
-    fadeOutEnd?: number     // rect.top where fade-out completes
+    enabled?: boolean        // when false, stays invisible and ignores scroll
+    mountDelay?: number      // ms before fade-in begins once enabled and in view
+    fadeDuration?: number    // ms for opacity transition
+    fadeOutStart?: number    // rect.bottom px where fade-out begins (near top of viewport)
+    fadeOutEnd?: number      // rect.bottom px where fade-out completes
 }
 
 export default function ScrollFade({
     children,
     enabled = true,
-    fadeInStart = 250,
-    fadeInEnd = 350,
-    fadeOutStart = 80,
+    mountDelay = 0,
+    fadeDuration = 1000,
+    fadeOutStart = 250,
     fadeOutEnd = 50,
 }: Props) {
     const ref = useRef<HTMLDivElement>(null)
@@ -26,50 +26,65 @@ export default function ScrollFade({
         if (!el) return
 
         el.style.opacity = "0"
-
         if (!enabled) return
 
-function handleScroll() {
-    const rect = el!.getBoundingClientRect()
-    const viewH = window.innerHeight
+        function handleScroll() {
+            if (!el) return
+            const rect = el.getBoundingClientRect()
 
-    // Fade out only when scrolling back up — bottom nearly off top of viewport
-    if (rect.bottom < fadeOutStart) {
-        const raw = (rect.bottom - fadeOutEnd) / (fadeOutStart - fadeOutEnd)
-        el!.style.transition = "none"
-        el!.style.opacity = String(Math.max(0, Math.min(1, raw)))
-        return
-    }
+            // Already scrolled off the top — stay visible
+            if (rect.bottom < 0) {
+                el.style.transition = "none"
+                el.style.opacity = "1"
+                return
+            }
 
-    // Already fully visible — don't recalculate going down
-    if (rect.top < viewH * 0.85) {
-        el!.style.opacity = "1"
-        return
-    }
+            // Fading out — bottom edge approaching top of viewport
+            if (rect.bottom < fadeOutStart) {
+                const raw = (rect.bottom - fadeOutEnd) / (fadeOutStart - fadeOutEnd)
+                el.style.transition = "none"
+                el.style.opacity = String(Math.max(0, Math.min(1, raw)))
+                return
+            }
 
-    // Fade in from bottom
-    const distFromBottom = viewH - rect.top
-    if (distFromBottom < 0) {
-        el!.style.opacity = "0"
-        return
-    }
-    const raw = (distFromBottom - fadeInStart) / (fadeInEnd - fadeInStart)
-    el!.style.opacity = String(Math.max(0, Math.min(1, raw)))
-}
-
-window.addEventListener("scroll", handleScroll, { passive: true })
-
-        // If already in viewport on enable, fade straight to full opacity
-        el.style.transition = "opacity 1000ms linear"
-        const rect = el.getBoundingClientRect()
-        if (rect.top < window.innerHeight && rect.bottom > 0) {
+            // Fully visible — stay at 1
+            el.style.transition = "none"
             el.style.opacity = "1"
-        } else {
-            handleScroll()
         }
 
-        return () => window.removeEventListener("scroll", handleScroll)
-    }, [enabled, fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd])
+        const rect = el.getBoundingClientRect()
+        const isVisible = rect.top < window.innerHeight * 0.85
+
+        if (isVisible) {
+            // Already in viewport — fade in after delay
+            setTimeout(() => {
+                if (!el) return
+                el.style.transition = `opacity ${fadeDuration}ms linear`
+                el.style.opacity = "1"
+                window.addEventListener("scroll", handleScroll, { passive: true })
+            }, mountDelay)
+        } else {
+            } else {
+            // Off screen — wait for scroll into view
+            function check() {
+                if (!el) return
+                const r = el.getBoundingClientRect()
+                if (r.top < window.innerHeight * 0.85) {
+                    el.style.transition = `opacity ${fadeDuration}ms linear`
+                    el.style.opacity = "1"
+                    window.removeEventListener("scroll", check)
+                    setTimeout(() => {
+                        window.addEventListener("scroll", handleScroll, { passive: true })
+                    }, fadeDuration)
+                }
+            }
+            window.addEventListener("scroll", check, { passive: true })
+        }
+
+        return () => {
+            window.removeEventListener("scroll", handleScroll)
+        }
+    }, [enabled, mountDelay, fadeDuration, fadeOutStart, fadeOutEnd])
 
     return (
         <div ref={ref} style={{ width: "100%" }}>

@@ -435,7 +435,9 @@ export default function EverythingIsInteresting({ onComplete }: Props) {
         const block = blockRef.current
         if (!block) return
 
-        // ── Check if block is in viewport on mount ───────────────────────────
+// ── Check if block is in viewport on mount ───────────────────────────
+        // Defer one frame so layout has settled before measuring
+        requestAnimationFrame(() => {
         const rect = block.getBoundingClientRect()
         const inViewport = rect.top < window.innerHeight && rect.bottom > 0
 
@@ -467,8 +469,9 @@ const delays = [
             }, SCROLL_FADE.autoDelay + delays[i])
         )
     })
-    return () => timers.forEach(clearTimeout)
-}
+return () => timers.forEach(clearTimeout)
+        }
+        }) // end requestAnimationFrame
 
         // ── Off-screen: scroll-driven ────────────────────────────────────────
         function handleScroll() {
