@@ -262,6 +262,12 @@ function CACanvas({
         return () => ro.disconnect()
     }, [])
 
+useEffect(() => {
+    if (opacity >= 1) {
+        stateRef.current.proxF = 1
+    }
+}, [opacity])
+
     return (
         <div
             ref={containerRef}

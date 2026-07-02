@@ -34,13 +34,13 @@ useEffect(() => {
                 <div style={{ height: "8vh" }} />
                 <EverythingIsInteresting onComplete={() => setInterestingComplete(true)} />
                 <div style={{ height: "4vh" }} />
-                <ScrollFade enabled={interestingComplete}>
+                <ScrollFade enabled={interestingComplete} fadeOutStart={80} fadeOutEnd={-20}>
                     <p style={BODY_STYLE}>
                         This simple truth is in the heart of everything I do. I like to ask questions and think before I get my hands dirty. I want to understand all the whos and whats before I get to the hows.
                     </p>
                 </ScrollFade>
                 <div style={{ height: "3vh" }} />
-                <ScrollFade enabled={interestingComplete}>
+                <ScrollFade enabled={interestingComplete} fadeOutStart={80} fadeOutEnd={-20}>
                     <p style={BODY_STYLE}>
                         Doing that means speaking fluent executive, marketer and engineer – I aim to be the gear that connects them all together in turning out business goals.
                     </p>

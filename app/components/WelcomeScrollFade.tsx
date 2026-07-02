@@ -53,7 +53,7 @@ export default function ScrollFade({
         }
 
         const rect = el.getBoundingClientRect()
-        const isVisible = rect.top < window.innerHeight * 0.85
+        const isVisible = rect.top < window.innerHeight
 
         if (isVisible) {
             // Already in viewport — fade in after delay
@@ -61,15 +61,16 @@ export default function ScrollFade({
                 if (!el) return
                 el.style.transition = `opacity ${fadeDuration}ms linear`
                 el.style.opacity = "1"
-                window.addEventListener("scroll", handleScroll, { passive: true })
+                setTimeout(() => {
+                    window.addEventListener("scroll", handleScroll, { passive: true })
+                }, fadeDuration)
             }, mountDelay)
         } else {
-            } else {
             // Off screen — wait for scroll into view
             function check() {
                 if (!el) return
                 const r = el.getBoundingClientRect()
-                if (r.top < window.innerHeight * 0.85) {
+                if (r.top < window.innerHeight) {
                     el.style.transition = `opacity ${fadeDuration}ms linear`
                     el.style.opacity = "1"
                     window.removeEventListener("scroll", check)

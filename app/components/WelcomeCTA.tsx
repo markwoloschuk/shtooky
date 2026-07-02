@@ -3,7 +3,7 @@
 // WelcomeCTA.tsx
 // Welcome page bottom CTA links — "See the work", "Who I am", "How I think"
 // Place inside ContentColumn (76vw centered frame) — fills 100% of container width
-// Last updated: 2026-05-26
+// Last updated: 2026-07-01
 
 import { useEffect, useRef, useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -15,33 +15,32 @@ import { COLORS, TIMING, TYPE } from "./Tokens"
 
 const DEFAULTS = {
     // Type
-    fontSizeVw: 2.0, // vw — scaled from window.innerWidth
+    fontSizeVw: 2.0,
     fontWeight: 600,
-    letterSpacing: -0.01, // em
+    letterSpacing: -0.01,
 
     // Layout
-    gapPx: 220, // px — space between each text link (same between all three)
-    lineGapPx: 30, // px — space between bottom of rule and top of text
+    gapPx: 220,
+    lineGapPx: 30,
 
     // Horizontal rule
     ruleHeightPx: 0.5,
     ruleOpacity: 0.5,
-    // Rule always spans from left edge of first link to right edge of last link.
 
     // Entrance
-    fadeDurationMs: 1200, // ms — text opacity + rise
-    riseDistancePx: 12, // px — text rises up from this offset
-    staggerMs: 300, // ms — delay between each text item
-    colorOffsetMs: 1200, // ms — delay after text fades in before color begins
-    colorSettleMs: 1500, // ms — white → page color transition duration
+    fadeDurationMs: 1200,
+    riseDistancePx: 12,
+    staggerMs: 300,
+    colorOffsetMs: 1200,
+    colorSettleMs: 1500,
 
     // Hover
     hoverScale: 1.04,
-    springiness: 1.0, // 1.0 = no spring, 2.0 = very springy
-    lingerMs: 500, // ms — settle delay after mouseout
+    springiness: 1.0,
+    lingerMs: 500,
 
     // Click
-    clickFlashMs: 400, // ms — white flash on click
+    clickFlashMs: 400,
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -79,56 +78,33 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
     const rowRef = useRef<HTMLDivElement>(null)
     const textRefs = useRef<(HTMLSpanElement | null)[]>([null, null, null])
     const [fontPx, setFontPx] = useState(26)
+    const triggered = useRef(false)
+
     useEffect(() => {
         setFontPx(Math.round((DEFAULTS.fontSizeVw / 100) * window.innerWidth))
     }, [])
 
     const router = useRouter()
 
-    const lingerT = useRef<(ReturnType<typeof setTimeout> | null)[]>([
-        null,
-        null,
-        null,
-    ])
-    const clickT = useRef<(ReturnType<typeof setTimeout> | null)[]>([
-        null,
-        null,
-        null,
-    ])
-
-    // Cached text widths — set after fonts load
+    const lingerT = useRef<(ReturnType<typeof setTimeout> | null)[]>([null, null, null])
+    const clickT = useRef<(ReturnType<typeof setTimeout> | null)[]>([null, null, null])
     const ws = useRef<number[]>([0, 0, 0])
 
-    // ── font size ─────────────────────────────────────────────
-
-function getFontPx(): number {
+    function getFontPx(): number {
         return fontPx
     }
-
-    // ── layout ────────────────────────────────────────────────
-    // x0 = 0
-    // x1 = ws[0] + gap
-    // x2 = ws[0] + gap + ws[1] + gap
-    // Rule width (span mode) = x2 + ws[2]
-    // Each text span is position:absolute at its x position.
-    // Row height = text height.
 
     function layout() {
         const row = rowRef.current
         if (!row) return
         const textH = textRefs.current[0]?.offsetHeight ?? 40
-
-        // Measure text widths
         ws.current = textRefs.current.map((el) => el?.offsetWidth ?? 0)
         const [w0, w1, w2] = ws.current
         const gap = DEFAULTS.gapPx
-
         const x0 = 0
         const x1 = w0 + gap
         const x2 = w0 + gap + w1 + gap
         const totalSpan = x2 + w2
-
-        // Position each span
         const positions = [x0, x1, x2]
         textRefs.current.forEach((el, i) => {
             if (!el) return
@@ -136,41 +112,22 @@ function getFontPx(): number {
             el.style.top = "0px"
             el.style.transformOrigin = "left center"
         })
-
-        // Set row height
         row.style.height = textH + "px"
-
-        // Rule: set its own pixel width to exactly span the text links.
-        // scaleX wipe works correctly because transform-origin is left center.
-        // The wrapper has no overflow:hidden — rule width controls the span.
         const rule = ruleRef.current
-        if (rule) {
-            rule.style.width = totalSpan + "px"
-        }
+        if (rule) rule.style.width = totalSpan + "px"
     }
 
-    // ── entrance ──────────────────────────────────────────────
-
     const playEntrance = useCallback(() => {
-        const {
-            fadeDurationMs,
-            riseDistancePx,
-            staggerMs,
-            colorOffsetMs,
-            colorSettleMs,
-        } = DEFAULTS
-
+        const { fadeDurationMs, riseDistancePx, staggerMs, colorOffsetMs, colorSettleMs } = DEFAULTS
         const rule = ruleRef.current
         const ruleWrap = ruleWrapRef.current
         if (!rule || !ruleWrap) return
 
-        // Line wipe finishes as last text item arrives
         const textStartDelay = 80
         const lastItemEnd = textStartDelay + staggerMs * 2 + fadeDurationMs
 
         rule.style.transition = "none"
         rule.style.transform = "scaleX(0)"
-
         requestAnimationFrame(() =>
             requestAnimationFrame(() => {
                 rule.style.transition = `transform ${lastItemEnd}ms ${TIMING.easeOut}`
@@ -184,43 +141,33 @@ function getFontPx(): number {
             el.style.opacity = "0"
             el.style.color = "#ffffff"
             el.style.transform = `translateY(${riseDistancePx}px)`
-
-            setTimeout(
-                () => {
-                    el.style.transition = [
-                        `opacity ${fadeDurationMs}ms ${TIMING.linear}`,
-                        `transform ${fadeDurationMs}ms ${TIMING.easeSpring}`,
-                    ].join(", ")
-                    el.style.opacity = "1"
-                    el.style.transform = "translateY(0px)"
-
-                    setTimeout(() => {
-                        el.style.transition += `, color ${colorSettleMs}ms ${TIMING.easeOut}`
-                        el.style.color = LINKS[i].color
-                    }, colorOffsetMs)
-                },
-                textStartDelay + i * staggerMs
-            )
+            setTimeout(() => {
+                el.style.transition = [
+                    `opacity ${fadeDurationMs}ms linear`,
+                    `transform ${fadeDurationMs}ms ${TIMING.easeSpring}`,
+                ].join(", ")
+                el.style.opacity = "1"
+                el.style.transform = "translateY(0px)"
+                setTimeout(() => {
+                    el.style.transition += `, color ${colorSettleMs}ms ${TIMING.easeOut}`
+                    el.style.color = LINKS[i].color
+                }, colorOffsetMs)
+            }, textStartDelay + i * staggerMs)
         })
     }, [])
-
-    // ── hover + click — document-level (Framer iframe requires this) ──
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             textRefs.current.forEach((el, idx) => {
                 if (!el) return
                 const rect = el.getBoundingClientRect()
-                // Expand hit rect by hitPadH/hitPadV
                 const pad = 20
                 const inside =
                     e.clientX >= rect.left - pad &&
                     e.clientX <= rect.right + pad &&
                     e.clientY >= rect.top - pad &&
                     e.clientY <= rect.bottom + pad
-
                 const wasInside = el.dataset.hovered === "true"
-
                 if (inside && !wasInside) {
                     el.dataset.hovered = "true"
                     doIn(idx)
@@ -230,7 +177,6 @@ function getFontPx(): number {
                 }
             })
         }
-
         const handleClick = (e: MouseEvent) => {
             textRefs.current.forEach((el, idx) => {
                 if (!el) return
@@ -244,7 +190,6 @@ function getFontPx(): number {
                 if (inside) doClick(idx)
             })
         }
-
         document.addEventListener("mousemove", handleMouseMove)
         document.addEventListener("click", handleClick)
         return () => {
@@ -287,26 +232,18 @@ function getFontPx(): number {
         if (!el) return
         el.style.transition = `color ${Math.round(spd * 0.3)}ms ease`
         el.style.color = "#ffffff"
-        clickT.current[idx] = setTimeout(
-            () => {
-                el.style.transition = `color ${spd}ms ease`
-                el.style.color = LINKS[idx].color
-                setTimeout(
-                    () => {
-                       router.push(LINKS[idx].href)
-                    },
-                    Math.round(spd * 0.4)
-                )
-                clickT.current[idx] = null
-            },
-            Math.round(spd * 0.4)
-        )
+        clickT.current[idx] = setTimeout(() => {
+            el.style.transition = `color ${spd}ms ease`
+            el.style.color = LINKS[idx].color
+            setTimeout(() => {
+                router.push(LINKS[idx].href)
+            }, Math.round(spd * 0.4))
+            clickT.current[idx] = null
+        }, Math.round(spd * 0.4))
     }
 
-    // ── mount ─────────────────────────────────────────────────
-
+    // ── layout-only effect — runs once on mount ───────────────
     useEffect(() => {
-        // Apply type styles so measurement is accurate
         const fontPx = getFontPx()
         textRefs.current.forEach((el) => {
             if (!el) return
@@ -319,19 +256,11 @@ function getFontPx(): number {
             el.style.color = "#ffffff"
             el.style.transform = `translateY(${DEFAULTS.riseDistancePx}px)`
         })
-
-        // Wait for fonts, measure, then play entrance once
-        const init = () => {
-            layout()
-        }
-
         if (document.fonts?.ready) {
-            document.fonts.ready.then(init)
+            document.fonts.ready.then(layout)
         } else {
-            setTimeout(init, 300)
+            setTimeout(layout, 300)
         }
-
-        // Resize: re-measure font size and re-layout
         const onResize = () => {
             const px = getFontPx()
             textRefs.current.forEach((el) => {
@@ -340,37 +269,35 @@ function getFontPx(): number {
             requestAnimationFrame(layout)
         }
         window.addEventListener("resize", onResize)
+        return () => window.removeEventListener("resize", onResize)
+    }, [])
 
-        // Scroll fade — fires on entry, fades out on scroll away, replays on re-entry
+    // ── scroll + entrance effect — re-runs when enabled changes ──
+    useEffect(() => {
         const container = containerRef.current
-        let triggered = false
+        if (!container) return
         let resetTimer: ReturnType<typeof setTimeout> | null = null
 
-        const FADE_OUT_END = 300 // px — rect.bottom at which opacity reaches 0
+        const TRIGGER_TOP = 750
+        const FADE_RANGE = 75
 
         const onScroll = () => {
-            if (!container) return
             const rect = container.getBoundingClientRect()
             const viewH = window.innerHeight
-
-            const TRIGGER_TOP = 750
-            const FADE_RANGE = 75
             const entered = viewH - rect.top
             const scrolledAway = rect.top - TRIGGER_TOP
-            const exitOpacity = triggered
-                ? Math.max(0, Math.min(1, 1 - scrolledAway / FADE_RANGE))
-                : 0
 
-            // Fade out only when scrolling back up past it
-            if (triggered) {
+            // Fade out when scrolling back up
+            if (triggered.current) {
+                const exitOpacity = Math.max(0, Math.min(1, 1 - scrolledAway / FADE_RANGE))
                 container.style.opacity = String(exitOpacity)
             }
 
             // Reset when fully scrolled past going up
-            if (scrolledAway >= FADE_RANGE && triggered) {
+            if (scrolledAway >= FADE_RANGE && triggered.current) {
                 if (!resetTimer) {
                     resetTimer = setTimeout(() => {
-                        triggered = false
+                        triggered.current = false
                         container.style.opacity = "0"
                         if (ruleRef.current) {
                             ruleRef.current.style.transition = "none"
@@ -393,9 +320,9 @@ function getFontPx(): number {
                 }
             }
 
-            // Trigger entrance when element enters viewport from bottom
-            if (entered > 40 && !triggered && enabled) {
-                triggered = true
+            // Trigger entrance
+            if (entered > 40 && !triggered.current && enabled) {
+                triggered.current = true
                 container.style.transition = "none"
                 container.style.opacity = "1"
                 playEntrance()
@@ -405,16 +332,14 @@ function getFontPx(): number {
             }
         }
 
-window.addEventListener("scroll", onScroll, { passive: true })
+        window.addEventListener("scroll", onScroll, { passive: true })
         onScroll()
 
         return () => {
-            window.removeEventListener("resize", onResize)
             window.removeEventListener("scroll", onScroll)
+            if (resetTimer) clearTimeout(resetTimer)
         }
-    }, [playEntrance])
-
-    // ── render ────────────────────────────────────────────────
+    }, [playEntrance, enabled])
 
     return (
         <div
@@ -423,11 +348,9 @@ window.addEventListener("scroll", onScroll, { passive: true })
                 width: "100%",
                 display: "flex",
                 flexDirection: "column",
-                // Start visible — no scroll-driven opacity for the last page element
                 opacity: 0,
             }}
         >
-            {/* Horizontal rule — width set by layout() to span exactly the three links */}
             <div
                 ref={ruleWrapRef}
                 style={{
@@ -450,9 +373,6 @@ window.addEventListener("scroll", onScroll, { passive: true })
                     }}
                 />
             </div>
-
-            {/* Text links — position:relative container, spans are position:absolute */}
-            {/* Height is set by layout() after measurement */}
             <div
                 ref={rowRef}
                 style={{
@@ -464,12 +384,10 @@ window.addEventListener("scroll", onScroll, { passive: true })
                 {LINKS.map((link, i) => (
                     <span
                         key={i}
-                        ref={(el) => {
-                            textRefs.current[i] = el
-                        }}
+                        ref={(el) => { textRefs.current[i] = el }}
                         style={{
                             position: "absolute",
-                            left: 0, // overridden by layout()
+                            left: 0,
                             top: 0,
                             display: "block",
                             whiteSpace: "nowrap",
@@ -493,4 +411,3 @@ window.addEventListener("scroll", onScroll, { passive: true })
         </div>
     )
 }
-
