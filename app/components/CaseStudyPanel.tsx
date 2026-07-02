@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { TYPE } from './Tokens'
 
 const PINK = '#e0057a'
 const FADE_DUR = 2000
@@ -111,8 +112,9 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
 
   return (
     <div style={{
-      paddingLeft: 104,
-      paddingRight: 104,
+      paddingLeft: '7.2222%',
+      paddingRight: '7.2222%',
+      paddingTop: 40,
       paddingBottom: 80,
       position: 'relative',
       zIndex: 1,
@@ -123,24 +125,25 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
         gridTemplateColumns: '1fr 1fr',
         gap: '24px 30px',
         marginBottom: 28,
+        paddingTop: 20,
         opacity: blockOps[0] ?? 0,
         transition: `opacity ${FADE_DUR}ms ease`,
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'Arial, sans-serif' }}>Client</span>
-          <span style={{ fontSize: 17, color: '#fff', fontFamily: 'Arial, sans-serif' }}>{fm.client}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Client</span>
+          <span style={{ fontSize: 17, color: '#fff', fontFamily: TYPE.display }}>{fm.client}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'Arial, sans-serif' }}>Role</span>
-          <span style={{ fontSize: 17, color: '#fff', fontFamily: 'Arial, sans-serif' }}>{fm.role}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Role</span>
+          <span style={{ fontSize: 17, color: '#fff', fontFamily: TYPE.display }}>{fm.role}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'Arial, sans-serif' }}>Title</span>
-          <span style={{ fontSize: 17, color: '#fff', fontFamily: 'Arial, sans-serif' }}>{fm.title}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Title</span>
+          <span style={{ fontSize: 17, color: '#fff', fontFamily: TYPE.display }}>{fm.title}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: 'Arial, sans-serif' }}>Delivery</span>
-          <span style={{ fontSize: 17, color: '#fff', fontFamily: 'Arial, sans-serif' }}>{fm.delivery}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Delivery</span>
+          <span style={{ fontSize: 17, color: '#fff', fontFamily: TYPE.display }}>{fm.delivery}</span>
         </div>
       </div>
 
@@ -151,7 +154,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
 
         if (block.type === 'paragraph') {
           return (
-            <p key={i} style={{ ...style, fontSize: 17, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, maxWidth: 760, marginBottom: 28, fontFamily: 'Arial, sans-serif' }}>
+            <p key={i} style={{ ...style, fontSize: 17, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, maxWidth: 760, marginBottom: 28, fontFamily: TYPE.display }}>
               {parseAccents(block.content)}
             </p>
           )
@@ -159,7 +162,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
 
         if (block.type === 'pullquote') {
           return (
-            <p key={i} style={{ ...style, fontSize: 32, fontWeight: 700, lineHeight: 1.2, color: '#fff', maxWidth: 760, marginBottom: 28, fontFamily: 'Arial, sans-serif' }}>
+            <p key={i} style={{ ...style, fontSize: 32, fontWeight: 700, lineHeight: 1.2, color: '#fff', maxWidth: 760, marginBottom: 28, fontFamily: TYPE.display }}>
               {parseAccents(block.content)}
             </p>
           )
@@ -232,7 +235,7 @@ function GalleryInline({ path }: { path: string }) {
   // Gallery images are not enumerable from the client — they must be listed via an API route.
   // This renders a placeholder until the gallery API route exists.
   return (
-    <div style={{ marginBottom: 28, color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: 'Arial, sans-serif' }}>
+    <div style={{ marginBottom: 28, color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: TYPE.display }}>
       [Gallery: {path}]
     </div>
   )

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { WORK_MANIFEST } from '../data/WorkManifest'
+import { TYPE, COLORS } from './Tokens'
 
 // ── Locked animation constants (from work_carousel_v30.html) ─────────────────
 const CFG = {
@@ -44,13 +45,13 @@ const BASE_W = CW / N
 
 // ── Carousel headlines drawn on canvas ───────────────────────────────────────
 const HEADLINES = [
-  '12 Products. 1 Holiday Hook.',
-  'Time was short so we threw away the best idea.',
-  '360° of Vibes',
-  'Punching a signal through the noise.',
-  'Designing my escape from planning department jail.',
-  'Hiding a Secret in Plain Sight',
-  'It was a beautiful day, it was beautiful data.',
+  '12 products. 1 Holiday hook.',
+  'Time was short so we\nthrew away the best idea.',
+  '360° of vibes',
+  'Punching a signal\nthrough the noise.',
+  'Designing my escape from\nplanning department jail.',
+  'Hiding a secret in plain sight',
+  'It was a beautiful day,\nit was beautiful data.',
 ]
 
 // ── OKLab color helpers (from V30) ───────────────────────────────────────────
@@ -286,11 +287,11 @@ function showNav() {
     if (clipX !== undefined) { ctx.beginPath(); ctx.rect(clipX, 0, clipW, CH); ctx.clip() }
     if (translateX) ctx.translate(translateX, 0)
     ctx.globalAlpha = Math.max(0, Math.min(1, alpha))
-    ctx.font = 'bold 36px Arial'
+    ctx.font = 'bold 52px Archivo'
     ctx.fillStyle = '#fff'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'bottom'
-    const pad = 104, lineH = 44
+    const pad = 104, lineH = 55
     const totalH = lines.length * lineH
     const baseY = CH - 48 - totalH + CFG.HL_Y - rise
     lines.forEach((line, i) => ctx.fillText(line, pad, baseY + (i + 1) * lineH))
@@ -708,16 +709,16 @@ style={{ width: '100%', position: 'relative', background: '#000', overflow: 'hid
           
 </div>
       </div>
-          {/* Carousel text — resting state headline + subhead */}
+{/* Carousel text — resting state headline + subhead */}
       <div
   ref={carTextRef}
-  style={{ position: 'relative', left: 104, width: 900, pointerEvents: 'none', zIndex: 1, marginTop: 24, opacity: 0, transform: 'translateY(12px)' }}
+  style={{ position: 'absolute', top: '100%', left: '7.2222%', width: 900, pointerEvents: 'none', zIndex: 1, marginTop: 24, opacity: 0, transform: 'translateY(12px)' }}
 >
-            <p style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.15, color: '#fff', margin: '0 0 10px 0', fontFamily: 'Arial, sans-serif' }}>
-              <span style={{ display: 'block' }}>The work reveals the process.</span>
-              <span style={{ display: 'block' }}>The process reveals the person.</span>
-            </p>
-            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.65)', fontFamily: 'Arial, sans-serif', lineHeight: 1.5 }}>
+           <p style={{ fontSize: 'clamp(28px, 4vw, 52px)', fontWeight: 700, lineHeight: 1.05, letterSpacing: '-0.025em', color: '#fff', margin: '0 0 10px 0', fontFamily: TYPE.display }}>
+  <span style={{ display: 'block' }}><span style={{ color: COLORS.work }}>The work</span> reveals the process.</span>
+  <span style={{ display: 'block' }}>The process reveals <span style={{ color: COLORS.work }}>the person.</span></span>
+</p>
+            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.65)', fontFamily: TYPE.display, lineHeight: 1.5 }}>
               This is how I apply curiosity with empathy to solve creative problems.
             </p>
           </div>
