@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import HeroAnimation from "./components/HeroAnimation"
 import ScrollFade from "./components/WelcomeScrollFade"
 import EverythingIsInteresting from "./components/EverythingIsInteresting"
@@ -20,6 +20,10 @@ const BODY_STYLE = {
 
 export default function Page() {
     const [interestingComplete, setInterestingComplete] = useState(false)
+
+useEffect(() => {
+    window.scrollTo(0, 0)
+}, [])
 
     return (
         <div style={{ position: "relative", width: "100%" }}>

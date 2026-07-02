@@ -33,11 +33,11 @@ export default function ScrollFade({
             const rect = el!.getBoundingClientRect()
             const viewH = window.innerHeight
 
-            if (rect.top < fadeOutStart) {
-                const raw = (rect.top - fadeOutEnd) / (fadeOutStart - fadeOutEnd)
-                el!.style.opacity = String(Math.max(0, Math.min(1, raw)))
-                return
-            }
+if (rect.bottom < fadeOutStart) {
+    const raw = (rect.bottom - fadeOutEnd) / (fadeOutStart - fadeOutEnd)
+    el!.style.opacity = String(Math.max(0, Math.min(1, raw)))
+    return
+}
 
             const distFromBottom = viewH - rect.top
             if (distFromBottom < 0) {

@@ -43,13 +43,14 @@ const SCROLL_FADE = {
     scrollStart: 38,
     fadeZone: 120,
     lineStagger: 40,
+    autoStaggerPost: 1200,
     topMargin: 30,
     topFadeZone: 160,
     yOffset: 0,
     // Auto-fire timing (ms) when block is already in viewport on mount
-    autoStagger: 400,
+    autoStagger: 100,
     // Delay before auto-fire sequence begins
-    autoDelay: 600,
+    autoDelay: 6000,
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -272,6 +273,7 @@ function CACanvas({
                 cursor: "default",
                 pointerEvents: "auto",
                 overflow: "visible",
+                transition: "opacity 1200ms linear",
                 opacity: opacity,
             }}
         >
@@ -303,6 +305,7 @@ const TextLine = React.forwardRef<
         ref={ref}
         style={{
             opacity: opacity,
+            transition: "opacity 1200ms linear",
             fontSize: fontSize,
             fontFamily: TYPE.display,
             fontWeight: TYPE.DISPLAY.weight,
@@ -437,31 +440,35 @@ export default function EverythingIsInteresting({ onComplete }: Props) {
         const inViewport = rect.top < window.innerHeight && rect.bottom > 0
 
         if (inViewport && !autoFired.current) {
-            autoFired.current = true
-            // Auto-fire staggered sequence
-            const timers: ReturnType<typeof setTimeout>[] = []
-            ;[0, 1, 2, 3].forEach((i) => {
-                timers.push(
-                    setTimeout(() => {
-                        setLineOpacity((prev) => {
-                            const next = [...prev]
-                            next[i] = 1
-                            // Check complete after line 3 fires
-                            if (i === 3) {
-                                setTimeout(() => {
-                                    if (!completeFired.current) {
-                                        completeFired.current = true
-                                        onComplete?.()
-                                    }
-                                }, 50)
+    autoFired.current = true
+const delays = [
+    0,
+    SCROLL_FADE.autoStagger,
+    SCROLL_FADE.autoStagger + SCROLL_FADE.autoStaggerPost,
+    SCROLL_FADE.autoStagger + SCROLL_FADE.autoStaggerPost + SCROLL_FADE.autoStagger,
+]
+    const timers: ReturnType<typeof setTimeout>[] = []
+    ;[0, 1, 2, 3].forEach((i) => {
+        timers.push(
+            setTimeout(() => {
+                setLineOpacity((prev) => {
+                    const next = [...prev]
+                    next[i] = 1
+                    if (i === 3) {
+                        setTimeout(() => {
+                            if (!completeFired.current) {
+                                completeFired.current = true
+                                onComplete?.()
                             }
-                            return next
-                        })
-                    }, SCROLL_FADE.autoDelay + i * SCROLL_FADE.autoStagger)
-                )
-            })
-            return () => timers.forEach(clearTimeout)
-        }
+                        }, 50)
+                    }
+                    return next
+                })
+            }, SCROLL_FADE.autoDelay + delays[i])
+        )
+    })
+    return () => timers.forEach(clearTimeout)
+}
 
         // ── Off-screen: scroll-driven ────────────────────────────────────────
         function handleScroll() {
@@ -509,6 +516,7 @@ export default function EverythingIsInteresting({ onComplete }: Props) {
             checkComplete(opacities)
         }
 
+if (autoFired.current) return
         window.addEventListener("scroll", handleScroll, { passive: true })
         return () => window.removeEventListener("scroll", handleScroll)
     }, [onComplete])
