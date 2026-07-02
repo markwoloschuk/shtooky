@@ -72,7 +72,7 @@ function settleEase(sp: number): string {
 // COMPONENT
 // ─────────────────────────────────────────────────────────────
 
-export default function WelcomeCTA() {
+export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
     const containerRef = useRef<HTMLDivElement>(null)
     const ruleWrapRef = useRef<HTMLDivElement>(null)
     const ruleRef = useRef<HTMLHRElement>(null)
@@ -394,7 +394,7 @@ function getFontPx(): number {
             }
 
             // Trigger entrance when element enters viewport from bottom
-            if (entered > 40 && !triggered) {
+            if (entered > 40 && !triggered && enabled) {
                 triggered = true
                 container.style.transition = "none"
                 container.style.opacity = "1"
@@ -405,7 +405,8 @@ function getFontPx(): number {
             }
         }
 
-        window.addEventListener("scroll", onScroll, { passive: true })
+window.addEventListener("scroll", onScroll, { passive: true })
+        onScroll()
 
         return () => {
             window.removeEventListener("resize", onResize)

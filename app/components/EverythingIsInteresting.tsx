@@ -460,7 +460,7 @@ const delays = [
                                 completeFired.current = true
                                 onComplete?.()
                             }
-                        }, 50)
+                        }, 1000)
                     }
                     return next
                 })

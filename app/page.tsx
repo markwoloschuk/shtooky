@@ -50,11 +50,11 @@ useEffect(() => {
                 <div style={{ height: "6vh" }} />
                <ScrollFade enabled={gridComplete}>
                     <p style={{ ...BODY_STYLE, maxWidth: "70%" }}>
-                        I've worked with some great people. Why not you?
+                        I&rsquo;ve worked with some great people. Why not you?
                     </p>
                 </ScrollFade>
                 <div style={{ height: "6vh" }} />
-                <WelcomeCTA />
+                <WelcomeCTA enabled={gridComplete} />
                 <div style={{ height: "20vh" }} />
             </div>
         </div>

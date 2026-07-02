@@ -16,8 +16,8 @@ export default function ScrollFade({
     enabled = true,
     fadeInStart = 250,
     fadeInEnd = 350,
-    fadeOutStart = 150,
-    fadeOutEnd = 0,
+    fadeOutStart = 80,
+    fadeOutEnd = 50,
 }: Props) {
     const ref = useRef<HTMLDivElement>(null)
 
@@ -29,29 +29,44 @@ export default function ScrollFade({
 
         if (!enabled) return
 
-        function handleScroll() {
-            const rect = el!.getBoundingClientRect()
-            const viewH = window.innerHeight
+function handleScroll() {
+    const rect = el!.getBoundingClientRect()
+    const viewH = window.innerHeight
 
-if (rect.bottom < fadeOutStart) {
-    const raw = (rect.bottom - fadeOutEnd) / (fadeOutStart - fadeOutEnd)
+    // Fade out only when scrolling back up — bottom nearly off top of viewport
+    if (rect.bottom < fadeOutStart) {
+        const raw = (rect.bottom - fadeOutEnd) / (fadeOutStart - fadeOutEnd)
+        el!.style.transition = "none"
+        el!.style.opacity = String(Math.max(0, Math.min(1, raw)))
+        return
+    }
+
+    // Already fully visible — don't recalculate going down
+    if (rect.top < viewH * 0.85) {
+        el!.style.opacity = "1"
+        return
+    }
+
+    // Fade in from bottom
+    const distFromBottom = viewH - rect.top
+    if (distFromBottom < 0) {
+        el!.style.opacity = "0"
+        return
+    }
+    const raw = (distFromBottom - fadeInStart) / (fadeInEnd - fadeInStart)
     el!.style.opacity = String(Math.max(0, Math.min(1, raw)))
-    return
 }
 
-            const distFromBottom = viewH - rect.top
-            if (distFromBottom < 0) {
-                el!.style.opacity = "0"
-                return
-            }
-            const raw = (distFromBottom - fadeInStart) / (fadeInEnd - fadeInStart)
-            el!.style.opacity = String(Math.max(0, Math.min(1, raw)))
+window.addEventListener("scroll", handleScroll, { passive: true })
+
+        // If already in viewport on enable, fade straight to full opacity
+        el.style.transition = "opacity 1000ms linear"
+        const rect = el.getBoundingClientRect()
+        if (rect.top < window.innerHeight && rect.bottom > 0) {
+            el.style.opacity = "1"
+        } else {
+            handleScroll()
         }
-
-        window.addEventListener("scroll", handleScroll, { passive: true })
-
-        // Run once on enable in case element is already in viewport
-        handleScroll()
 
         return () => window.removeEventListener("scroll", handleScroll)
     }, [enabled, fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd])
