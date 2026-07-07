@@ -819,8 +819,9 @@ useEffect(() => {
         left: 0,
         right: 0,
         height: 180,
+        // background gradient behind navbar - .95 is the opacity
         background:
-            "linear-gradient(to bottom,rgba(13,13,13,0.82) 0%,transparent 100%)",
+            "linear-gradient(to bottom,rgba(13,13,13,1) 0%,transparent 100%)",
         pointerEvents: "none",
         zIndex: 39,
         mixBlendMode: "multiply",
