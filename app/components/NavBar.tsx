@@ -848,6 +848,7 @@ useEffect(() => {
                     position: "fixed",
                     // Adjust spacing here
                     top: "2.4vw",
+                    // set navbar to be left or right side here
                     left: "2.5vw",
                     zIndex: 40,
                     pointerEvents: "auto",
