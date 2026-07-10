@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Lottie from 'lottie-react';
 import { getColumn, NAV } from './Tokens';
 
@@ -255,7 +255,13 @@ export default function ThinkOpenAnimation() {
 
   // Fire once, driven by the animation's own actual frame position — not a
   // guessed ms delay — so it stays correct if the animation is retimed.
-  const handleEnterFrame = (e: { currentTime: number }) => {
+  // Typed off Lottie's own onEnterFrame prop rather than a hand-rolled
+  // shape: lottie-react's real event union includes several event types
+  // (and `undefined`) that don't carry currentTime at all — that mismatch
+  // is exactly what the build's typecheck caught.
+  type EnterFrameHandler = NonNullable<ComponentProps<typeof Lottie>['onEnterFrame']>;
+  const handleEnterFrame: EnterFrameHandler = (e) => {
+    if (!e || !('currentTime' in e)) return;
     if (!burstFiredRef.current && e.currentTime >= CONFIG.BURST_FRAME) {
       burstFiredRef.current = true;
       if (burstGroupRef.current) {
