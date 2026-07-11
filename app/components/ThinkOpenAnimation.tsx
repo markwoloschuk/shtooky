@@ -11,22 +11,25 @@ export const CONFIG = {
   NATIVE_W: 1440,         // comp width, px — the animation's own coordinate space
   NATIVE_H: 440,          // comp height, px
 
-  SCALE: 0.75,            // rendered size as a fraction of the 76% content column's width
-  ANCHOR_X: 500,           // px, within the comp — the point that stays pinned in place
-  ANCHOR_Y: 248.84,        // px, within the comp — was 220 (see note below)
-  Y_NUDGE: 0,              // small manual px offset on top of the anchor's vertical placement
+  // The artwork does NOT fill the full 440px native height — measured via
+  // svg.getBBox() in DevTools. These two values are where the visible text
+  // actually starts/ends within the comp; everything below uses them
+  // directly to place content, rather than reserving space for the full
+  // (mostly empty) 440px comp and then trying to correct for it.
+  CONTENT_TOP_Y: 135.12,    // px, native — artwork's measured top edge
+  CONTENT_BOTTOM_Y: 362.56, // px, native — artwork's measured bottom edge
 
-  // The 220 above was the comp's geometric vertical midline — never a
-  // deliberate choice, just half of 440. Measured via svg.getBBox() in
-  // DevTools, the artwork's real bounds are y=135.12 to y=362.56 — its
-  // own true center is 248.84. Anchoring on 220 left more empty space
-  // above the text (135.12px) than below it (77.44px), which is why the
-  // top gap looked oversized even after the bottom gap got fixed.
-  // Anchoring on the artwork's real center splits it evenly instead.
-  CONTENT_TOP_Y: 135.12,    // px — artwork's measured top edge
-  CONTENT_BOTTOM_Y: 362.56, // px — artwork's measured bottom edge, read by ThinkBlurb.tsx
-  TOP_MARGIN: 150,        // px — breathing room BELOW the fixed nav, not from the page's true top (nav is position:fixed, out of flow)
+  SCALE: 0.75,            // rendered size as a fraction of the 76% content column's width
+  ANCHOR_X: 500,          // px, within the comp — the point that stays pinned to the
+                           // content column's left edge (parts of the animation bleed
+                           // off the comp's left side, so this isn't the comp's edge)
   SAFE_LEFT_INSET: 0,     // vw — true anchor-pinned-to-edge position; confirmed no clipping issue
+
+  // Direct vertical placement — no reserved box, no anchor-percentage math.
+  // This is the actual gap from the nav's bottom edge to the artwork's
+  // real visible top (CONTENT_TOP_Y, not the comp's edge). Move this
+  // number directly if the top spacing ever looks wrong.
+  GAP_ABOVE_TEXT: 90,     // px
 
   // Burst origin — the dot of the "i", within the comp's own coordinate space
   BURST_X: 621,
@@ -69,13 +72,13 @@ export const CONFIG = {
   PARTICLE_GLOW: 5,                // px, native — box-shadow blur radius
 };
 
-// Anchor expressed as a % of the comp's own box — this is what makes the
-// placement scale-independent. translate() percentages resolve against the
-// TRANSFORMED ELEMENT'S OWN size, not its parent's, so shifting by
-// -ANCHOR_X_PCT/-ANCHOR_Y_PCT always lands the anchor point at the box's
-// left/top (0,0) regardless of what SCALE currently is.
+// X anchor, expressed as a % of the comp's own box — this is what makes
+// horizontal placement scale-independent. translate() percentages resolve
+// against the TRANSFORMED ELEMENT'S OWN size, not its parent's, so
+// shifting by -ANCHOR_X_PCT always lands the anchor point at the column's
+// left edge regardless of what SCALE currently is. (No vertical equivalent
+// anymore — see CONFIG.GAP_ABOVE_TEXT.)
 const ANCHOR_X_PCT = (CONFIG.ANCHOR_X / CONFIG.NATIVE_W) * 100;
-const ANCHOR_Y_PCT = (CONFIG.ANCHOR_Y / CONFIG.NATIVE_H) * 100;
 
 // Burst placement as a % of the comp box — resolves fine as a plain
 // percentage since its containing block (the inner comp box) has a real,
@@ -113,6 +116,13 @@ export default function ThinkOpenAnimation() {
 
   const col = getColumn();
   const pxToVw = (col.vw * CONFIG.SCALE) / CONFIG.NATIVE_W;
+
+  // Vertical placement, derived directly from the artwork's real bounds —
+  // reuses the same pxToVw conversion the burst/particle system already
+  // uses, rather than a separate formula.
+  const contentHeightNative = CONFIG.CONTENT_BOTTOM_Y - CONFIG.CONTENT_TOP_Y;
+  const renderedContentHeightVw = contentHeightNative * pxToVw;
+  const artworkTopOffsetVw = CONFIG.CONTENT_TOP_Y * pxToVw;
 
   useEffect(() => {
     let cancelled = false;
@@ -268,8 +278,7 @@ export default function ThinkOpenAnimation() {
   // guessed ms delay — so it stays correct if the animation is retimed.
   // Typed off Lottie's own onEnterFrame prop rather than a hand-rolled
   // shape: lottie-react's real event union includes several event types
-  // (and `undefined`) that don't carry currentTime at all — that mismatch
-  // is exactly what the build's typecheck caught.
+  // (and `undefined`) that don't carry currentTime at all.
   type EnterFrameHandler = NonNullable<ComponentProps<typeof Lottie>['onEnterFrame']>;
   const handleEnterFrame: EnterFrameHandler = (e) => {
     if (!e || !('currentTime' in e)) return;
@@ -287,29 +296,29 @@ export default function ThinkOpenAnimation() {
 
   return (
     <div
-      data-debug="think-outer"
       style={{
         position: 'relative',
         width: `${col.vw}vw`,
-        margin: `${NAV.height + CONFIG.TOP_MARGIN}px auto 0`,
-        aspectRatio: `${CONFIG.NATIVE_W} / ${CONFIG.NATIVE_H}`,
+        marginTop: `${NAV.height + CONFIG.GAP_ABOVE_TEXT}px`,
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        // Height matches the artwork's own real rendered size — not the
+        // full comp — so there's no reserved dead space to correct for.
+        height: `${renderedContentHeightVw}vw`,
         overflow: 'visible',
       }}
     >
-<div
-        data-debug="think-inner"
+      <div
         style={{
           position: 'absolute',
           left: `${CONFIG.SAFE_LEFT_INSET}vw`,
-          // 50% + Y_NUDGE, not just Y_NUDGE: the 50% is what makes the
-          // translateY(-50%) below actually centered vertically in the
-          // reserved box (classic top:50%/translate(-50%) pairing).
-          // Y_NUDGE was always meant as a fine-tune on top of that
-          // center point, not the box's whole vertical position.
-          top: `calc(50% + ${CONFIG.Y_NUDGE}px)`,
+          // Pulls the full comp up so the artwork's real top edge
+          // (CONTENT_TOP_Y) lands exactly at this wrapper's own y=0 —
+          // direct, no percentage-anchor math.
+          top: `${-artworkTopOffsetVw}vw`,
           width: `${CONFIG.SCALE * 100}%`,
           aspectRatio: `${CONFIG.NATIVE_W} / ${CONFIG.NATIVE_H}`,
-          transform: `translate(-${ANCHOR_X_PCT}%, -${ANCHOR_Y_PCT}%)`,
+          transform: `translateX(-${ANCHOR_X_PCT}%)`,
         }}
       >
         <Lottie
