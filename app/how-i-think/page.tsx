@@ -1,15 +1,11 @@
 "use client"
 
-import ThinkOpenAnimation from '../components/ThinkOpenAnimation';
-import ThinkBlurb from '../components/ThinkBlurb';
-import ThinkGrid from '../components/ThinkGrid';
+import ThinkPageController from '../components/ThinkPageController';
 
 export default function Page() {
   return (
     <div>
-      <ThinkOpenAnimation />
-      <ThinkBlurb />
-      <ThinkGrid />
+      <ThinkPageController />
     </div>
   );
 }

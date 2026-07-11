@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { TYPE } from './Tokens'
+import { TYPE, COLORS } from './Tokens'
 
-const PINK = '#e0057a'
+//const PINK = '#e0057a'
+const PINK = COLORS.work
 const FADE_DUR = 2000
 const FADE_OFFSET = 25
 

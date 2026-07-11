@@ -1,16 +1,23 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getColumn } from './Tokens';
+import { getColumn, COLORS } from './Tokens';
+
 
 // ── Tunable constants ────────────────────────────────────────────────────
-const CONFIG = {
+export const CONFIG = {
   GAP_ABOVE_GRID: 40,    // px — direct gap below the blurb.
   GAP: 6,                // px — card gap, locked v28 default
   TITLE_SIZE: 25,         // px — locked v28 default
   OVERLAY_DARKEN: 0.85,   // locked v28 default
   HOVER_SPEED: 500,       // ms — locked v28 default
-  HOVER_SCALE: 1.10,      // locked v28 default (mockup's --hover-scale)
-  ACCENT: '#D6DE23',      // COLORS.thinking
+  HOVER_SCALE: 1.10,      // locked v28 default (mockup's --hover-scale) —
+                           // also read by ThinkPageController to seed the
+                           // open transition's starting zoom
+  //ACCENT: '#D6DE23',      // COLORS.thinking — also used by ThinkPageController
+ACCENT: COLORS.thinking,
+
+
+                           // for the cut-tag color and close button
 
   FADE_DELAY_MS: 4500,    // starts once the blurb's own fade finishes (currently 3500)
   FADE_DURATION_MS: 1000, // matches the blurb's fade duration
@@ -22,11 +29,11 @@ const CONFIG = {
 // since the grid isn't scaled down, it fills the content column directly.
 const NATIVE_W = 1440;
 
-// Locked v28 default layout — "Bento — Interleaved". Hand-authored, not
-// procedurally generated (per the project's locked design principle).
+// Locked v28 default layout — "Bento — Interleaved". Kept for reference/
+// future use.
 const BENTO_INTERLEAVED = {
   rows: '480fr 480fr 360fr 360fr',
-  totalHeight: 480 + 480 + 360 + 360, // 1680 native units
+  totalHeight: 480 + 480 + 360 + 360,
   areas: [
     'a a a a a a b b b c c c',
     'd d d d e e e e e e e e',
@@ -34,6 +41,19 @@ const BENTO_INTERLEAVED = {
     'h h h h i i i i j j j j',
   ],
 };
+
+// Active default — every row is 3-across or 4-across, none wider.
+const BENTO_COMPACT = {
+  rows: '360fr 480fr 360fr',
+  totalHeight: 360 + 480 + 360,
+  areas: [
+    'a a a b b b c c c d d d',
+    'e e e e f f f f g g g g',
+    'h h h h i i i i j j j j',
+  ],
+};
+
+const ACTIVE_LAYOUT = BENTO_COMPACT;
 
 const IMAGE_PATH = '/images/how-i-think';
 const IMAGE_COUNT = 10; // ThinkGrid_01.jpg through ThinkGrid_10.jpg, all 1920×1080
@@ -45,19 +65,27 @@ function imageSrc(i: number): string {
 
 const CARD_LETTERS = 'abcdefghij';
 
-// Placeholder copy, ported directly from grid-mockup.html — stand-ins
-// until real photography/titles are in.
-const TITLES = [
-  'Sincerity as the\nsoul of design', 'Seeing with\nyour heart', 'Be a zoom lens',
-  'WYSIWYG?', 'Design is a\nconversation', 'Paper is cheap', "Iterate but\ndon't thrash",
-  'Done is better\nthan perfect', 'Consistency\ncreates connection', 'An uncomfortable hug?',
+// Single source of truth for card content — title (grid overlay), tag/
+// subtitle/excerpt (open detail view, read by ThinkPageController). Ported
+// 1:1 from grid-mockup.html's titles/tags/subtitles/excerpts arrays,
+// index-matched.
+export const CARD_DATA = [
+  { title: 'Sincerity as the\nsoul of design', tag: 'On intention', subtitle: 'Make every decision mean something', excerpt: 'Every choice — every color, font, line, edge — should carry intent.' },
+  { title: 'Seeing with\nyour heart', tag: 'On empathy', subtitle: 'Empathy is the lens that focuses design', excerpt: 'The empathy lens is what helps you see the emotional hooks and where they can be placed.' },
+  { title: 'Be a zoom lens', tag: 'On scale', subtitle: 'Relish the details but paint a bigger picture', excerpt: 'A designer who only sees pixels misses the point. A designer who only sees the picture misses the craft.' },
+  { title: 'WYSIWYG?', tag: 'On perspective', subtitle: 'What you see depends on where you stand', excerpt: 'Two people looking at the same design see different things — informed by their experience, expertise, agenda.' },
+  { title: 'Design is a\nconversation', tag: 'On dialogue', subtitle: "The brief starts the conversation, it doesn't end it", excerpt: 'Good design is never a monologue.' },
+  { title: 'Paper is cheap', tag: 'On iteration', subtitle: 'Lo-fi exploration leads to hi-fi results', excerpt: 'The faster you can be wrong, the sooner you can be right.' },
+  { title: "Iterate but\ndon't thrash", tag: 'On rhythm', subtitle: 'Patience is a creative skill, so is knowing when to move on', excerpt: 'Iteration without convergence is thrashing. The skill is recognizing the difference.' },
+  { title: 'Done is better\nthan perfect', tag: 'On shipping', subtitle: 'Creative work is never finished, only abandoned', excerpt: 'Perfectionism is often fear with a thesaurus. Done is the only thing the world ever sees.' },
+  { title: 'Consistency\ncreates connection', tag: 'On systems', subtitle: 'A shared language makes design speak more clearly', excerpt: "A system isn't a cage — it's a vocabulary." },
+  { title: 'An uncomfortable hug?', tag: 'On change', subtitle: 'Embracing AI requires faith in change', excerpt: "The hug is uncomfortable. It's still a hug." },
 ];
 
 /*
 // Deterministic placeholder image generator, ported directly from
-// grid-mockup.html's placeholderSrc() — same seeded gradient + checker
-// pattern, so this reads identically to the locked mockup until real
-// photography replaces it.
+// grid-mockup.html's placeholderSrc() — no longer used now that real
+// photography is in, kept only for reference.
 function placeholderSrc(seed: number): string {
   const hue = (seed * 47) % 360;
   const hue2 = (hue + 35) % 360;
@@ -82,10 +110,24 @@ function placeholderSrc(seed: number): string {
 }
 */
 
-export default function ThinkGrid() {
+interface ThinkGridProps {
+  onCardClick: (index: number) => void;
+  registerCardRef: (index: number, el: HTMLDivElement | null) => void;
+  registerHoleFillRef: (index: number, el: HTMLDivElement | null) => void;
+  hiddenIndex: number; // -1 when nothing is open
+  locked: boolean;      // true while a card is opening/open/closing — suppresses hover
+}
+
+export default function ThinkGrid({
+  onCardClick,
+  registerCardRef,
+  registerHoleFillRef,
+  hiddenIndex,
+  locked,
+}: ThinkGridProps) {
   const col = getColumn();
   const nativeToVw = col.vw / NATIVE_W;
-  const gridHeightVw = BENTO_INTERLEAVED.totalHeight * nativeToVw;
+  const gridHeightVw = ACTIVE_LAYOUT.totalHeight * nativeToVw;
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -117,10 +159,17 @@ export default function ThinkGrid() {
           display: block;
           transition: transform ${CONFIG.HOVER_SPEED}ms ease;
         }
+        .think-hole-fill {
+          position: absolute;
+          inset: 0;
+          background: #1a1a1a;
+          opacity: 0;
+          pointer-events: none;
+        }
         .think-card .think-overlay {
           position: absolute;
           inset: 0;
-          background: rgba(0,0,0,0);
+          background: rgba(13,13,13,0);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -150,22 +199,42 @@ export default function ThinkGrid() {
           opacity: 1;
           transform: translateY(0);
         }
+        /* While a card is opening/open/closing, suppress hover on every
+           card — matches grid-mockup.html's #grid.locked rules. */
+        .think-grid.locked .think-card:hover .think-overlay { background: rgba(13,13,13,0); }
+        .think-grid.locked .think-card:hover .think-title { opacity: 0; transform: translateY(8px); }
+        .think-grid.locked .think-card:hover img { transform: none; }
       `}</style>
       <div
+        className={locked ? 'think-grid locked' : 'think-grid'}
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(12, 1fr)',
-          gridTemplateRows: BENTO_INTERLEAVED.rows,
-          gridTemplateAreas: BENTO_INTERLEAVED.areas.map((row) => `"${row}"`).join(' '),
+          gridTemplateRows: ACTIVE_LAYOUT.rows,
+          gridTemplateAreas: ACTIVE_LAYOUT.areas.map((row) => `"${row}"`).join(' '),
           height: `${gridHeightVw}vw`,
           gap: `${CONFIG.GAP}px`,
         }}
       >
         {CARD_LETTERS.split('').map((letter, i) => (
-          <div key={letter} className="think-card" style={{ gridArea: letter }}>
-            <img src={imageSrc(i)} alt="" />
-            <div className="think-overlay">
-              <div className="think-title">{TITLES[i % TITLES.length]}</div>
+          <div
+            key={letter}
+            className="think-card"
+            style={{ gridArea: letter }}
+            ref={(el) => registerCardRef(i, el)}
+            onClick={() => onCardClick(i)}
+          >
+            <img
+              src={imageSrc(i)}
+              alt=""
+              style={i === hiddenIndex ? { opacity: 0 } : undefined}
+            />
+            <div className="think-hole-fill" ref={(el) => registerHoleFillRef(i, el)} />
+            <div
+              className="think-overlay"
+              style={i === hiddenIndex ? { opacity: 0 } : undefined}
+            >
+              <div className="think-title">{CARD_DATA[i % CARD_DATA.length].title}</div>
             </div>
           </div>
         ))}
