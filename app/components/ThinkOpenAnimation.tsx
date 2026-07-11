@@ -5,15 +5,26 @@ import Lottie from 'lottie-react';
 import { getColumn, NAV } from './Tokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
-const CONFIG = {
+export const CONFIG = {
   ANIMATION_PATH: '/animations/thinking-open.json',
   LOOP: false,           // plays once on load/reload, parks on the last frame
   NATIVE_W: 1440,         // comp width, px — the animation's own coordinate space
   NATIVE_H: 440,          // comp height, px
+
   SCALE: 0.75,            // rendered size as a fraction of the 76% content column's width
-  ANCHOR_X: 500,          // px, within the comp — the point that stays pinned in place
-  ANCHOR_Y: 220,          // px, within the comp
-  Y_NUDGE: 0,             // small manual px offset on top of the anchor's vertical placement
+  ANCHOR_X: 500,           // px, within the comp — the point that stays pinned in place
+  ANCHOR_Y: 248.84,        // px, within the comp — was 220 (see note below)
+  Y_NUDGE: 0,              // small manual px offset on top of the anchor's vertical placement
+
+  // The 220 above was the comp's geometric vertical midline — never a
+  // deliberate choice, just half of 440. Measured via svg.getBBox() in
+  // DevTools, the artwork's real bounds are y=135.12 to y=362.56 — its
+  // own true center is 248.84. Anchoring on 220 left more empty space
+  // above the text (135.12px) than below it (77.44px), which is why the
+  // top gap looked oversized even after the bottom gap got fixed.
+  // Anchoring on the artwork's real center splits it evenly instead.
+  CONTENT_TOP_Y: 135.12,    // px — artwork's measured top edge
+  CONTENT_BOTTOM_Y: 362.56, // px — artwork's measured bottom edge, read by ThinkBlurb.tsx
   TOP_MARGIN: 150,        // px — breathing room BELOW the fixed nav, not from the page's true top (nav is position:fixed, out of flow)
   SAFE_LEFT_INSET: 0,     // vw — true anchor-pinned-to-edge position; confirmed no clipping issue
 
@@ -276,6 +287,7 @@ export default function ThinkOpenAnimation() {
 
   return (
     <div
+      data-debug="think-outer"
       style={{
         position: 'relative',
         width: `${col.vw}vw`,
@@ -284,11 +296,17 @@ export default function ThinkOpenAnimation() {
         overflow: 'visible',
       }}
     >
-      <div
+<div
+        data-debug="think-inner"
         style={{
           position: 'absolute',
           left: `${CONFIG.SAFE_LEFT_INSET}vw`,
-          top: CONFIG.Y_NUDGE,
+          // 50% + Y_NUDGE, not just Y_NUDGE: the 50% is what makes the
+          // translateY(-50%) below actually centered vertically in the
+          // reserved box (classic top:50%/translate(-50%) pairing).
+          // Y_NUDGE was always meant as a fine-tune on top of that
+          // center point, not the box's whole vertical position.
+          top: `calc(50% + ${CONFIG.Y_NUDGE}px)`,
           width: `${CONFIG.SCALE * 100}%`,
           aspectRatio: `${CONFIG.NATIVE_W} / ${CONFIG.NATIVE_H}`,
           transform: `translate(-${ANCHOR_X_PCT}%, -${ANCHOR_Y_PCT}%)`,
