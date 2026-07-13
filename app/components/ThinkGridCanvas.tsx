@@ -807,7 +807,7 @@ if (bandCanvasRef.current && mode.current !== 'grid') {
     }}>
       {/* TEMPORARY debug HUD — remove once the open/close mechanic is
           confirmed solid. Shows live state so bugs can be reported as
-          exact numbers instead of visual impressions. */}
+          exact numbers instead of visual impressions. 
       <div
         id="think-debug-hud"
         style={{
@@ -816,7 +816,7 @@ if (bandCanvasRef.current && mode.current !== 'grid') {
           fontSize: 11, padding: '8px 10px', lineHeight: 1.5, pointerEvents: 'none',
           whiteSpace: 'pre',
         }}
-      />
+      />*/}
       <div ref={wrapRef} id="think-wrap" style={{ width: '100%', position: 'relative', overflow: 'hidden' }}>
         <div ref={stageRef} id="think-stage" style={{ width: NATIVE_W, height: TOTAL_H, transformOrigin: '0 0', position: 'absolute', top: 0, left: 0 }}>
           <canvas
