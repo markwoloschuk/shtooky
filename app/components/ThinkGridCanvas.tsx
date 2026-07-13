@@ -524,45 +524,41 @@ function closeCard() {
           }
         }
       }
-      // ── Band title — independent timeline ──────────────────────────
-      // Triggered geometrically: starts when the card's animated shape
-      // reaches the title's final position (matching mockup's
-      // triggerTitle logic), plus the tunable delay. This prevents the
-      // title from fading in before it would be visible through the mask.
-      if (m === 'opening' || m === 'fullview') {
-        if (bandTitleStart.current === 0) {
-          // Check if card geometry has reached the title region.
-          // Title sits at ~90% of band height (posRect.h * 0.9), left ~7.2%.
-          // Card must be wide enough and tall enough to expose it.
-          const canvas = bandCanvasRef.current;
-          if (canvas) {
-            const s = canvas.width / NATIVE_W;
-            const ep = easeIO(openProg.current);
-            const from = fromRectRef.current;
-            const bandH = canvas.width * (BAND_HEIGHT / NATIVE_W);
-            const curX = lerp(from.x, 0, ep);
-            const curY = lerp(from.y, 0, ep);
-            const curW = lerp(from.w, canvas.width, ep);
-            const curH = lerp(from.h, bandH, ep);
-            const titleLeftX = 0.072222 * canvas.width;
-            const titleRevealY = bandH * 0.9;
-            if (curX <= titleLeftX && (curX + curW) >= canvas.width * 0.95 && (curY + curH) >= titleRevealY) {
-              bandTitleStart.current = now + 100; // 100ms delay after geometric trigger
-            }
-          }
-          // Safety: if we've reached fullview, force-trigger
-          if (m === 'fullview' && bandTitleStart.current === 0) bandTitleStart.current = now;
-        }
-        if (bandTitleStart.current > 0) {
-          const elapsed = now - bandTitleStart.current;
-          if (elapsed > 0) bandTitleProg.current = clamp(elapsed / 1000, 0, 1);
-        }
-      } else if (m === 'closing') {
-        bandTitleProg.current = clamp(bandTitleProg.current - dt / 300, 0, 1);
-      }
-
       render();
       renderBand();
+    }
+
+    // ── Band title — independent timeline (runs in opening/fullview/closing) ──
+    // Triggered geometrically: starts when the card's animated shape
+    // reaches the title's final position (matching mockup's
+    // triggerTitle logic), plus the tunable delay. This prevents the
+    // title from fading in before it would be visible through the mask.
+    if (m === 'opening' || m === 'fullview') {
+      if (bandTitleStart.current === 0) {
+        const canvas = bandCanvasRef.current;
+        if (canvas) {
+          const ep = easeIO(openProg.current);
+          const from = fromRectRef.current;
+          const bandH = canvas.width * (BAND_HEIGHT / NATIVE_W);
+          const curX = lerp(from.x, 0, ep);
+          const curY = lerp(from.y, 0, ep);
+          const curW = lerp(from.w, canvas.width, ep);
+          const curH = lerp(from.h, bandH, ep);
+          const titleLeftX = 0.072222 * canvas.width;
+          const titleRevealY = bandH * 0.9;
+          if (curX <= titleLeftX && (curX + curW) >= canvas.width * 0.95 && (curY + curH) >= titleRevealY) {
+            bandTitleStart.current = now + 100;
+          }
+        }
+        if (m === 'fullview' && bandTitleStart.current === 0) bandTitleStart.current = now;
+      }
+      if (bandTitleStart.current > 0) {
+        const elapsed = now - bandTitleStart.current;
+        if (elapsed > 0) bandTitleProg.current = clamp(elapsed / 1000, 0, 1);
+      }
+      renderBand();
+    } else if (m === 'closing') {
+      bandTitleProg.current = clamp(bandTitleProg.current - dt / 300, 0, 1);
     }
 
     rafRef.current = requestAnimationFrame(tick);
