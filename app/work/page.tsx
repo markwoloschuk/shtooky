@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import WorkCarousel from '../components/WorkCarousel'
-import CaseStudyPanel from '../components/CaseStudyPanel'
+import CaseStudyPanel from '../components/WorkCaseStudyPanel'
 import { WORK_MANIFEST } from '../data/WorkManifest'
 
 const NAV_BTN_SIZE = 32
