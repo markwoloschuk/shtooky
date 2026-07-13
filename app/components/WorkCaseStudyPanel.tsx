@@ -68,7 +68,7 @@ function parseMd(raw: string): ParsedCase {
 }
 
 interface Props {
-  caseFile: string | null   // e.g. 'case01'
+  caseFile: string | null   // e.g. 'WorkCase01'
   caseIdx: number | null    // 0-based index, used for gallery path
   visible: boolean
 }

@@ -9,7 +9,7 @@
 import { useEffect, useRef } from "react"
 import { COLORS, TYPE } from "./Tokens"
 import { CONTENT as ABOUT_CONTENT, SPACING as ABOUT_SPACING } from "../data/AboutContent"
-import { CONTENT as CONTACT_CONTENT, SPACING as CONTACT_SPACING } from "../data/ContactContent"
+import { CONTENT as CONTACT_CONTENT, SPACING as CONTACT_SPACING } from "../data/TalkContent"
 import {
     useSequence,
     unlock,
