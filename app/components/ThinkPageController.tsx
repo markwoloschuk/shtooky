@@ -61,7 +61,7 @@ export default function ThinkPageController() {
             left: '0',
             right: '0',
             margin: '0 auto',
-            zIndex: 55,
+            zIndex: 15,
             maxHeight: `calc(100vh - ${bandTopCalc} - 48px)`,
             overflowY: 'auto' as const,
             paddingBottom: '24px',
@@ -107,19 +107,18 @@ export default function ThinkPageController() {
 
       {cardOpen && createPortal(
         <div style={{
-          position: 'fixed', bottom: '48px', right: '32px', zIndex: 60,
+          position: 'fixed', bottom: '48px', right: '32px', zIndex: 45,
           display: 'flex', gap: '8px',
         }}>
           <button
             onClick={() => stepRef.current(-1)}
             style={{
-              background: 'rgba(255,255,255,0.12)', border: 'none', width: '32px', height: '32px',
+              background: '#D6DE23', border: 'none', width: '32px', height: '32px',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-              backdropFilter: 'blur(8px)',
             }}
           >
             <svg viewBox="0 0 100 100" style={{ width: '14px', height: '14px' }}>
-              <polyline points="60,20 35,50 60,80" fill="none" stroke="#fff" strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" />
+              <polyline points="60,20 35,50 60,80" fill="none" stroke="#0d0d0d" strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
           <button
@@ -137,13 +136,12 @@ export default function ThinkPageController() {
           <button
             onClick={() => stepRef.current(1)}
             style={{
-              background: 'rgba(255,255,255,0.12)', border: 'none', width: '32px', height: '32px',
+              background: '#D6DE23', border: 'none', width: '32px', height: '32px',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-              backdropFilter: 'blur(8px)',
             }}
           >
             <svg viewBox="0 0 100 100" style={{ width: '14px', height: '14px' }}>
-              <polyline points="40,20 65,50 40,80" fill="none" stroke="#fff" strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" />
+              <polyline points="40,20 65,50 40,80" fill="none" stroke="#0d0d0d" strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>,

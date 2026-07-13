@@ -366,16 +366,19 @@ useEffect(() => {
     // here (nothing draws over it) since the band canvas shows it
     // instead, portaled independently of this shrinking container.
     if (ep < 0.999) {
-      const colOp = ep * CFG.COL_OPACITY;
       for (let i = 0; i < N; i++) {
         if (i === oi) continue;
         const r = cellToScreen(LAYOUT[i]);
+        // Two-phase fade: image stays while color grows (0→0.6),
+        // then everything fades to nothing together (0.6→1).
+        const fadeAll = ep < 0.6 ? 1 : 1 - (ep - 0.6) / 0.4;
         ctx.save();
-        ctx.globalAlpha = 1 - ep;
+        ctx.globalAlpha = fadeAll;
         drawCardAt(ctx, i, r, 1, 0);
-        // Color overlay — cells lerp to palette colors as they fade out
+        // Color overlay — grows over the image, then fades with it
+        const colOp = ep * CFG.COL_OPACITY;
         if (colOp > 0) {
-          ctx.globalAlpha = colOp;
+          ctx.globalAlpha = fadeAll * colOp;
           ctx.fillStyle = cellColors.current[i];
           ctx.fillRect(r.x, r.y, r.w, r.h);
         }
@@ -548,6 +551,7 @@ document.documentElement.style.overflowX = 'hidden';
       cellColors.current[j] = pickColor(CFG.COL_RANGE);
     }
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
     updateHitLayer();
     onOpenRef.current(i);
   }
@@ -654,6 +658,7 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
             requestAnimationFrame(() => {
               document.documentElement.style.overflowX = '';
               document.body.style.overflow = '';
+              document.documentElement.style.overflow = '';
             });
 
             bandTitleProg.current = 0;
@@ -832,7 +837,7 @@ if (bandCanvasRef.current && mode.current !== 'grid') {
             position: 'absolute',
             top: `${bandDocYRef.current}px`,
             left: 0,
-            zIndex: 50,
+            zIndex: 10,
             cursor: 'pointer',
             // Clip so the closing card sinks back into the grid rather
             // than flying over the footer. Top clip is relative to the
