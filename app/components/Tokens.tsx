@@ -9,6 +9,8 @@
 //             NAV.height added (measured 87px at desktop).
 //             DEBUG.visibility flag added.
 
+"use client"
+
 // ─── DEBUG ───────────────────────────────────────────────────────────────────
 
 export const DEBUG = {
@@ -385,6 +387,45 @@ const VISIBILITY_TIERS = {
 export function getVisibility() {
     return VISIBILITY_TIERS[getBreakpoint()]
 }
+
+// ─── BREAKPOINT-AWARE HOOKS (SSR-safe) ──────────────────────────────────────
+// getColumn()/getType()/getVisibility() read window.innerWidth directly,
+// which doesn't exist during server rendering — getBreakpoint() falls back
+// to "desktop" there. If a component calls them plainly during render, the
+// server-rendered HTML (always desktop-tier) can permanently disagree with
+// what the client computes on first paint, and React does not repair that
+// mismatch. useBreakpoint() fixes this the same way the project already
+// handles getActivePage(): start at the safe SSR-matching default, then
+// correct via useEffect once we're actually in the browser.
+import { useEffect, useState } from "react"
+
+export function useBreakpoint(): "mobile" | "tablet" | "desktop" {
+    const [breakpoint, setBreakpoint] = useState<"mobile" | "tablet" | "desktop">("desktop")
+
+    useEffect(() => {
+        function update() {
+            setBreakpoint(getBreakpoint())
+        }
+        update()
+        window.addEventListener("resize", update)
+        return () => window.removeEventListener("resize", update)
+    }, [])
+
+    return breakpoint
+}
+
+export function useColumn() {
+    return COLUMN_TIERS[useBreakpoint()]
+}
+export function useType() {
+    return TYPE_TIERS[useBreakpoint()]
+}
+export function useVisibility() {
+    return VISIBILITY_TIERS[useBreakpoint()]
+}
+
+
+
 
 // ─── BACKGROUND ──────────────────────────────────────────────────────────────
 

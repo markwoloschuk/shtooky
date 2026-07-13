@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getColumn } from './Tokens';
+import { useColumn } from './Tokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 const CONFIG = {
@@ -20,7 +20,7 @@ const CONFIG = {
 };
 
 export default function ThinkBlurb() {
-  const col = getColumn();
+  const col = useColumn();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {

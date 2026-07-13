@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getColumn, COLORS } from './Tokens';
-
+import { useColumn } from './Tokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 export const CONFIG = {
@@ -13,10 +12,7 @@ export const CONFIG = {
   HOVER_SCALE: 1.10,      // locked v28 default (mockup's --hover-scale) —
                            // also read by ThinkPageController to seed the
                            // open transition's starting zoom
-  //ACCENT: '#D6DE23',      // COLORS.thinking — also used by ThinkPageController
-ACCENT: COLORS.thinking,
-
-
+  ACCENT: '#D6DE23',      // COLORS.thinking — also used by ThinkPageController
                            // for the cut-tag color and close button
 
   FADE_DELAY_MS: 4500,    // starts once the blurb's own fade finishes (currently 3500)
@@ -125,7 +121,7 @@ export default function ThinkGrid({
   hiddenIndex,
   locked,
 }: ThinkGridProps) {
-  const col = getColumn();
+  const col = useColumn();
   const nativeToVw = col.vw / NATIVE_W;
   const gridHeightVw = ACTIVE_LAYOUT.totalHeight * nativeToVw;
   const [visible, setVisible] = useState(false);

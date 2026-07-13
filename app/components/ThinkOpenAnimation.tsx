@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Lottie from 'lottie-react';
-import { getColumn, NAV } from './Tokens';
+import { useColumn, NAV } from './Tokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 export const CONFIG = {
@@ -114,7 +114,7 @@ export default function ThinkOpenAnimation() {
   const particleRAF = useRef<number | null>(null);
   const lastFrameTime = useRef(0);
 
-  const col = getColumn();
+  const col = useColumn();
   const pxToVw = (col.vw * CONFIG.SCALE) / CONFIG.NATIVE_W;
 
   // Vertical placement, derived directly from the artwork's real bounds —

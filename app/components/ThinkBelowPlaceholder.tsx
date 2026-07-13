@@ -1,6 +1,6 @@
 'use client';
 
-import { getColumn } from './Tokens';
+import { useColumn } from './Tokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 const CONFIG = {
@@ -9,7 +9,7 @@ const CONFIG = {
 };
 
 export default function ThinkBelowPlaceholder() {
-  const col = getColumn();
+  const col = useColumn();
 
   return (
     <div
