@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useColumn } from './Tokens';
 import ThinkOpenAnimation from './ThinkOpenAnimation';
 import ThinkBlurb from './ThinkBlurb';
@@ -12,6 +13,7 @@ export default function ThinkPageController() {
   const [cardOpen, setCardOpen] = useState(false);
   const [openIdx, setOpenIdx] = useState(-1);
   const closeRef = useRef<() => void>(() => {});
+  const stepRef = useRef<(dir: number) => void>(() => {});
 
   // Passed down to ThinkGridCanvas, which now owns the actual timing of
   // this block's space-collapse (snapping it at the same instant as its
@@ -23,6 +25,7 @@ export default function ThinkPageController() {
   function handleOpen(idx: number) { setCardOpen(true); setOpenIdx(idx); }
   function handleClose() { setCardOpen(false); }
   function handleRegisterControls(step: (dir: number) => void, close: () => void) {
+    stepRef.current = step;
     closeRef.current = close;
   }
 
@@ -58,7 +61,10 @@ export default function ThinkPageController() {
             left: '0',
             right: '0',
             margin: '0 auto',
-            zIndex: 100,
+            zIndex: 55,
+            maxHeight: `calc(100vh - ${bandTopCalc} - 48px)`,
+            overflowY: 'auto' as const,
+            paddingBottom: '24px',
           } : {
             margin: '56px auto 0',
           }),
@@ -99,20 +105,49 @@ export default function ThinkPageController() {
         <ThinkBelowPlaceholder />
       </div>
 
-      {cardOpen && (
-        <button
-          onClick={() => closeRef.current()}
-          style={{
-            position: 'fixed', bottom: '32px', right: '32px', zIndex: 200,
-            background: '#D6DE23', border: 'none', width: '32px', height: '32px',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-          }}
-        >
-          <svg viewBox="0 0 100 100" style={{ width: '16px', height: '16px' }}>
-            <line x1="25" y1="25" x2="75" y2="75" stroke="#0d0d0d" strokeWidth={10} strokeLinecap="round" />
-            <line x1="75" y1="25" x2="25" y2="75" stroke="#0d0d0d" strokeWidth={10} strokeLinecap="round" />
-          </svg>
-        </button>
+      {cardOpen && createPortal(
+        <div style={{
+          position: 'fixed', bottom: '48px', right: '32px', zIndex: 60,
+          display: 'flex', gap: '8px',
+        }}>
+          <button
+            onClick={() => stepRef.current(-1)}
+            style={{
+              background: 'rgba(255,255,255,0.12)', border: 'none', width: '32px', height: '32px',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            <svg viewBox="0 0 100 100" style={{ width: '14px', height: '14px' }}>
+              <polyline points="60,20 35,50 60,80" fill="none" stroke="#fff" strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <button
+            onClick={() => closeRef.current()}
+            style={{
+              background: '#D6DE23', border: 'none', width: '32px', height: '32px',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+            }}
+          >
+            <svg viewBox="0 0 100 100" style={{ width: '16px', height: '16px' }}>
+              <line x1="25" y1="25" x2="75" y2="75" stroke="#0d0d0d" strokeWidth={10} strokeLinecap="round" />
+              <line x1="75" y1="25" x2="25" y2="75" stroke="#0d0d0d" strokeWidth={10} strokeLinecap="round" />
+            </svg>
+          </button>
+          <button
+            onClick={() => stepRef.current(1)}
+            style={{
+              background: 'rgba(255,255,255,0.12)', border: 'none', width: '32px', height: '32px',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            <svg viewBox="0 0 100 100" style={{ width: '14px', height: '14px' }}>
+              <polyline points="40,20 65,50 40,80" fill="none" stroke="#fff" strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>,
+        document.body
       )}
     </div>
   );

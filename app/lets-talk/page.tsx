@@ -7,7 +7,7 @@
 
 import { useEffect } from "react"
 import { unlock, reset } from "../components/SequenceController"
-import RippleNetwork from "../components/RippleNetwork"
+import RippleNetwork from "../components/TalkRippleNetwork"
 import TextBlock from "../components/TextBlock"
 
 export default function LetsTalk() {

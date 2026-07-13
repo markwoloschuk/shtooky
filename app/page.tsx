@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import HeroAnimation from "./components/HeroAnimation"
+import HeroAnimation from "./components/WelcomeHeroAnimation"
 import ScrollFade from "./components/WelcomeScrollFade"
-import EverythingIsInteresting from "./components/EverythingIsInteresting"
-import ClientLogoGrid from "./components/ClientLogoGrid"
+import EverythingIsInteresting from "./components/WelcomeEverythingIsInteresting"
+import ClientLogoGrid from "./components/WelcomeClientLogoGrid"
 import WelcomeCTA from "./components/WelcomeCTA"
 import { TYPE } from "./components/Tokens"
 

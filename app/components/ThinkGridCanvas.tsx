@@ -47,6 +47,8 @@ const CFG = {
   FADE_DELAY_MS: 4500,
   FADE_DURATION_MS: 1000,
   TRANSITION_DURATION: 750,
+  COL_RANGE: 0.40,
+  COL_OPACITY: 1.00,
 };
 
 const IMAGE_PATH = '/images/how-i-think';
@@ -72,10 +74,62 @@ export const CARD_DATA = [
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 function clamp(v: number, a: number, b: number) { return Math.max(a, Math.min(b, v)); }
 function easeIO(t: number) { t = clamp(t, 0, 1); return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
-// Title ease — matches mockup's strength-parameterized curves (AE keyframe
-// influence idea: higher strength = more pronounced deceleration/acceleration)
 function titleEaseOut(t: number, strength = 6) { return 1 - Math.pow(1 - clamp(t, 0, 1), strength); }
 function titleEaseIn(t: number, strength = 6) { return Math.pow(clamp(t, 0, 1), strength); }
+
+// ── OKLab color helpers (ported from WorkCarousel) ───────────────────────
+function sL(c: number) { const v = c / 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+function lS(v: number) { return Math.round(255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055)); }
+function toOk(r: number, g: number, b: number): [number, number, number] {
+  const l = sL(r), m = sL(g), s = sL(b);
+  const l2 = Math.pow(0.4122214708 * l + 0.5363325363 * m + 0.0514459929 * s, 1 / 3);
+  const m2 = Math.pow(0.2119034982 * l + 0.6806995451 * m + 0.1073969566 * s, 1 / 3);
+  const s2 = Math.pow(0.0883024619 * l + 0.2817188376 * m + 0.6299787005 * s, 1 / 3);
+  return [0.2104542553 * l2 + 0.793617785 * m2 - 0.0040720468 * s2, 1.9779984951 * l2 - 2.428592205 * m2 + 0.4505937099 * s2, 0.0259040371 * l2 + 0.7827717662 * m2 - 0.808675766 * s2];
+}
+function frOk(L: number, a: number, b: number): [number, number, number] {
+  const l2 = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m2 = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s2 = L - 0.0894841775 * a - 1.291485548 * b;
+  const l = l2 * l2 * l2, m = m2 * m2 * m2, s = s2 * s2 * s2;
+  return [
+    Math.max(0, Math.min(255, lS(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s))),
+    Math.max(0, Math.min(255, lS(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s))),
+    Math.max(0, Math.min(255, lS(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s))),
+  ];
+}
+function lerpOk(a: [number, number, number], b: [number, number, number], t: number): [number, number, number] {
+  const la = toOk(...a), lb = toOk(...b);
+  return frOk(la[0] + (lb[0] - la[0]) * t, la[1] + (lb[1] - la[1]) * t, la[2] + (lb[2] - la[2]) * t);
+}
+// Think page palette — yellowgreen base, spreading through the site palette
+const PAGE_BASE: [number, number, number] = [214, 222, 35];
+const PAGE_ADJ: [number, number, number][] = [[0, 173, 238], [136, 81, 152]];
+const PAGE_FAR: [number, number, number][] = [[235, 0, 139], [250, 175, 64]];
+function buildPalette(rf: number) {
+  const p: [number, number, number][] = [PAGE_BASE];
+  if (rf > 0) { const t = Math.min(1, rf * 2); for (const c of PAGE_ADJ) p.push(lerpOk(PAGE_BASE, c, 0.15 + t * 0.7)); }
+  if (rf > 0.5) { const t = (rf - 0.5) * 2; for (const c of PAGE_FAR) p.push(lerpOk(PAGE_BASE, c, 0.15 + t * 0.7)); }
+  return p;
+}
+function pickColor(rf: number) {
+  const p = buildPalette(rf);
+  const c = p[Math.floor(Math.random() * p.length)];
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+// ── Vignette — bottom-darkening gradient (matches WorkCarousel) ──────────
+function drawVignette(ctx: CanvasRenderingContext2D, rect: Rect) {
+  const gradY = rect.y + rect.h * 0.6;
+  const vg = ctx.createLinearGradient(0, gradY, 0, rect.y + rect.h);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.85)');
+  ctx.save();
+  ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+  ctx.fillStyle = vg;
+  ctx.fillRect(rect.x, gradY, rect.w, rect.h - gradY + rect.y);
+  ctx.restore();
+}
 
 interface Rect { x: number; y: number; w: number; h: number; }
 
@@ -190,6 +244,7 @@ const bandDocYRef = useRef(0);
 
   const fromRectRef = useRef<Rect>({ x: 0, y: 0, w: 0, h: 0 });
   const [bandMounted, setBandMounted] = useState(false);
+  const [gridVisible, setGridVisible] = useState(false);
 
   const gridInsetRef = useRef({ offset: 0, scale: 1 });
   function cellToScreen(rect: Rect): Rect {
@@ -233,7 +288,7 @@ useEffect(() => {
   // measurement of wherever the page currently happens to be scrolled to
   // (mockup's viewportFrame.scrollTop equivalent) — the band renders
   // AT that position, it never scrolls anything TO that position.
-  const mode = useRef<'grid' | 'opening' | 'closing' | 'fullview'>('grid');
+  const mode = useRef<'grid' | 'opening' | 'closing' | 'fullview' | 'nav'>('grid');
   const openIdx = useRef(-1);
   const openProg = useRef(0);
   // Gates progress advancement until bandY has actually been measured
@@ -244,6 +299,18 @@ useEffect(() => {
   // 1000ms rise on open; 300ms drop on close, doesn't follow card motion)
   const bandTitleProg = useRef(0);
   const bandTitleStart = useRef(0); // timestamp when title anim begins (after delay)
+
+  // ── Nav (prev/next) — horizontal push between cards ────────────────────
+  const navFromIdx = useRef(-1);
+  const navToIdx = useRef(-1);
+  const navDir = useRef(0);     // +1 = next (push left), -1 = prev (push right)
+  const navProg = useRef(0);
+  const navSwapped = useRef(false);
+  const NAV_DUR = 650;
+  const OUT_TRAVEL = 0.35;
+
+  // Color overlay — each cell gets a random palette color at open time
+  const cellColors = useRef<string[]>(Array(N).fill(''));
 
   const drawCardAt = useCallback((ctx: CanvasRenderingContext2D, i: number, rect: Rect, zm: number, dk: number) => {
     ctx.save();
@@ -280,14 +347,14 @@ useEffect(() => {
     }
 
     const oi = openIdx.current;
-    const ep = easeIO(m === 'fullview' ? 1 : openProg.current);
+    const ep = easeIO(m === 'fullview' || m === 'nav' ? 1 : openProg.current);
     // Smooth, continuous recede — the header slides fully out of view by
     // its own height, the grid slides up to close the gap behind it (its
     // own height PLUS the 40px margin that used to sit below the
     // header). Pure transform, no layout/reflow, same ep driving the
     // card's own growth — this is what eliminates the jump, in either
     // direction, since nothing here is an instant snap anymore.
-    if (m !== 'fullview') {
+    if (m !== 'fullview' && m !== 'nav') {
       const totalShift = headerNaturalHRef.current + 40;
       if (headerRef?.current) headerRef.current.style.transform = `translateY(${-headerNaturalHRef.current * ep}px)`;
       if (outerRef.current) outerRef.current.style.transform = `translateY(${-totalShift * ep}px)`;
@@ -299,11 +366,19 @@ useEffect(() => {
     // here (nothing draws over it) since the band canvas shows it
     // instead, portaled independently of this shrinking container.
     if (ep < 0.999) {
+      const colOp = ep * CFG.COL_OPACITY;
       for (let i = 0; i < N; i++) {
         if (i === oi) continue;
+        const r = cellToScreen(LAYOUT[i]);
         ctx.save();
         ctx.globalAlpha = 1 - ep;
-        drawCardAt(ctx, i, cellToScreen(LAYOUT[i]), 1, 0);
+        drawCardAt(ctx, i, r, 1, 0);
+        // Color overlay — cells lerp to palette colors as they fade out
+        if (colOp > 0) {
+          ctx.globalAlpha = colOp;
+          ctx.fillStyle = cellColors.current[i];
+          ctx.fillRect(r.x, r.y, r.w, r.h);
+        }
         ctx.restore();
       }
     }
@@ -326,25 +401,72 @@ useEffect(() => {
     const oi = openIdx.current;
     if (oi < 0) return;
     const m = mode.current;
+    const bandH = canvas.width * (BAND_HEIGHT / NATIVE_W);
+    const to: Rect = { x: 0, y: 0, w: canvas.width, h: bandH };
+    const s = canvas.width / NATIVE_W;
+
+    // ── Nav mode — horizontal push between two cards ───────────────────
+    if (m === 'nav') {
+      const ep = easeIO(navProg.current);
+      const nd = navDir.current;
+      const nf = navFromIdx.current;
+      const nt = navToIdx.current;
+      const absOutShift = OUT_TRAVEL * to.w * ep;
+      const absInShift = to.w * (1 - ep);
+
+      // Outgoing card — slides partially out
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, to.w, to.h); ctx.clip();
+      const outX = nd > 0 ? -absOutShift : absOutShift;
+      drawCardAt(ctx, nf, { x: outX, y: 0, w: to.w, h: to.h }, 1, 0);
+      drawVignette(ctx, { x: outX, y: 0, w: to.w, h: to.h });
+      ctx.restore();
+
+      // Incoming card — slides in from opposite side, on top
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, to.w, to.h); ctx.clip();
+      const inX = nd > 0 ? absInShift : -absInShift;
+      drawCardAt(ctx, nt, { x: inX, y: 0, w: to.w, h: to.h }, 1, 0);
+      drawVignette(ctx, { x: inX, y: 0, w: to.w, h: to.h });
+      ctx.restore();
+
+      // Outgoing title — fades out + slides opposite to nav direction
+      const titleOutAlpha = clamp(1 - ep * 2.5, 0, 1); // gone by ~40%
+      if (titleOutAlpha > 0) {
+        const titleOutSlide = -nd * 30 * s * (1 - titleOutAlpha);
+        ctx.save();
+        ctx.translate(titleOutSlide, 0);
+        drawBandTitle(ctx, to, to, CARD_DATA[nf % CARD_DATA.length].title, titleOutAlpha, s, 0);
+        ctx.restore();
+      }
+
+      // Incoming title — fades in + slides from nav direction (after swap)
+      const rawTP = bandTitleProg.current;
+      const tp = titleEaseOut(rawTP);
+      if (tp > 0) {
+        const titleInSlide = nd * 30 * s * (1 - tp);
+        ctx.save();
+        ctx.translate(titleInSlide, 0);
+        drawBandTitle(ctx, to, to, CARD_DATA[nt % CARD_DATA.length].title, tp, s, 0);
+        ctx.restore();
+      }
+      return;
+    }
+
+    // ── Open / close / fullview — single card growing/shrinking ────────
     const ep = easeIO(m === 'fullview' ? 1 : openProg.current);
     const from = fromRectRef.current;
-// Band fills just the top portion of the (now taller) canvas — not
-    // the whole thing. Canvas is viewport-height so the starting card
-    // position is never clipped; the band itself is still band-height.
-    const bandH = canvas.width * (BAND_HEIGHT / NATIVE_W);
-    const to: Rect = { x: 0, y: 0, w: canvas.width, h: bandH };    const cur: Rect = {
+    const cur: Rect = {
       x: lerp(from.x, to.x, ep), y: lerp(from.y, to.y, ep),
       w: lerp(from.w, to.w, ep), h: lerp(from.h, to.h, ep),
     };
     drawCardAt(ctx, oi, cur, 1, 0);
+    drawVignette(ctx, cur);
     // Title — fixed at final position, clipped to current card shape.
-    // Matches mockup's architecture: title never moves with the card,
-    // it just becomes visible through the growing image.
     const isClosing = mode.current === 'closing';
     const rawTP = bandTitleProg.current;
     const tp = isClosing ? titleEaseIn(rawTP) : titleEaseOut(rawTP);
-    const s = canvas.width / NATIVE_W;
-    const riseNative = isClosing ? 20 : 30; // spec: 30px rise open, 20px close
+    const riseNative = isClosing ? 20 : 30;
     const riseOffset = (1 - tp) * riseNative * s;
     drawBandTitle(ctx, cur, to, CARD_DATA[oi % CARD_DATA.length].title, tp, s, riseOffset);
   }, [drawCardAt]);
@@ -421,13 +543,17 @@ document.documentElement.style.overflowX = 'hidden';
     bandTitleProg.current = 0;
     bandTitleStart.current = 0;
     hovIdx.current = -1;
-    for (let j = 0; j < N; j++) { targetZoom.current[j] = 1; targetDarken.current[j] = 0; targetTitleA.current[j] = 0; }
+    for (let j = 0; j < N; j++) {
+      targetZoom.current[j] = 1; targetDarken.current[j] = 0; targetTitleA.current[j] = 0;
+      cellColors.current[j] = pickColor(CFG.COL_RANGE);
+    }
+    document.body.style.overflow = 'hidden';
     updateHitLayer();
     onOpenRef.current(i);
   }
 
 function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
-    if (mode.current !== 'fullview') return;
+    if (mode.current !== 'fullview' && mode.current !== 'nav') return;
     // Only close if click is within the band's visible area — the canvas
     // is viewport-height for animation room, but the band itself is much shorter.
     if (e && bandCanvasRef.current) {
@@ -443,6 +569,19 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     // Fire immediately so detail text starts fading out NOW, not after
     // the card finishes traveling back to its cell.
     onCloseRef.current();
+  }
+
+  function stepCard(dir: number) {
+    if (mode.current !== 'fullview') return;
+    navFromIdx.current = openIdx.current;
+    navToIdx.current = (openIdx.current + dir + N) % N;
+    navDir.current = dir;
+    navProg.current = 0;
+    navSwapped.current = false;
+    // Reset title for the incoming card
+    bandTitleProg.current = 0;
+    bandTitleStart.current = 0;
+    mode.current = 'nav';
   }
 
   const tick = useCallback((now: number) => {
@@ -514,6 +653,7 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
             // while it's still mounted causes a scrollbar flash.
             requestAnimationFrame(() => {
               document.documentElement.style.overflowX = '';
+              document.body.style.overflow = '';
             });
 
             bandTitleProg.current = 0;
@@ -531,10 +671,6 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     }
 
     // ── Band title — independent timeline (runs in opening/fullview/closing) ──
-    // Triggered geometrically: starts when the card's animated shape
-    // reaches the title's final position (matching mockup's
-    // triggerTitle logic), plus the tunable delay. This prevents the
-    // title from fading in before it would be visible through the mask.
     if (m === 'opening' || m === 'fullview') {
       if (bandTitleStart.current === 0) {
         const canvas = bandCanvasRef.current;
@@ -561,6 +697,37 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
       renderBand();
     } else if (m === 'closing') {
       bandTitleProg.current = clamp(bandTitleProg.current - dt / 300, 0, 1);
+    }
+
+    // ── Nav — horizontal push between cards ──────────────────────────────
+    if (m === 'nav') {
+      const sp = clamp(dt / NAV_DUR * 2.2, 0, 1);
+      navProg.current = lerp(navProg.current, 1, sp);
+
+      // Swap content at ~50% — update openIdx, trigger incoming title
+      if (navProg.current >= 0.5 && !navSwapped.current) {
+        navSwapped.current = true;
+        openIdx.current = navToIdx.current;
+        // Incoming title: start immediately (no geometric trigger during nav),
+        // shorter duration (350ms vs 1000ms for initial open)
+        bandTitleStart.current = now;
+        onOpenRef.current(navToIdx.current);
+      }
+
+      // Drive incoming title during nav (same mechanism as open, but faster)
+      if (navSwapped.current && bandTitleStart.current > 0) {
+        const elapsed = now - bandTitleStart.current;
+        if (elapsed > 0) bandTitleProg.current = clamp(elapsed / 350, 0, 1);
+      }
+
+      // Settle
+      if (navProg.current > 0.994) {
+        navProg.current = 1;
+        openIdx.current = navToIdx.current;
+        bandTitleProg.current = 1;
+        mode.current = 'fullview';
+      }
+      renderBand();
     }
 
     rafRef.current = requestAnimationFrame(tick);
@@ -610,7 +777,7 @@ if (bandCanvasRef.current && mode.current !== 'grid') {
     window.addEventListener('resize', scaleStage);
     scaleStage();
 
-    onRegisterControls(() => {}, closeCard);
+    onRegisterControls(stepCard, closeCard);
     updateHitLayer();
     rafRef.current = requestAnimationFrame(tick);
 
@@ -621,8 +788,18 @@ if (bandCanvasRef.current && mode.current !== 'grid') {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick, render, updateHitLayer, col.vw, col.marginVw]);
 
+  // Grid fade-in on page load — uses CFG timing (4.5s delay, 1s fade)
+  useEffect(() => {
+    const t = setTimeout(() => setGridVisible(true), CFG.FADE_DELAY_MS);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
-    <div ref={outerRef} style={{ width: '100%', marginTop: '40px' }}>
+    <div ref={outerRef} style={{
+      width: '100%', marginTop: '40px',
+      opacity: gridVisible ? 1 : 0,
+      transition: `opacity ${CFG.FADE_DURATION_MS}ms ease`,
+    }}>
       {/* TEMPORARY debug HUD — remove once the open/close mechanic is
           confirmed solid. Shows live state so bugs can be reported as
           exact numbers instead of visual impressions. */}
@@ -655,7 +832,7 @@ if (bandCanvasRef.current && mode.current !== 'grid') {
             position: 'absolute',
             top: `${bandDocYRef.current}px`,
             left: 0,
-            zIndex: 150,
+            zIndex: 50,
             cursor: 'pointer',
             // Clip so the closing card sinks back into the grid rather
             // than flying over the footer. Top clip is relative to the

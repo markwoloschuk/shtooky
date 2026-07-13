@@ -7,8 +7,8 @@
 
 import { useEffect } from "react"
 import { unlock } from "../components/SequenceController"
-import SkillsSphere from "../components/SkillsSphere"
-import VennDiagram from "../components/VennDiagram"
+import SkillsSphere from "../components/WhoSkillsSphere"
+import VennDiagram from "../components/WhoVennDiagram"
 import TextBlock from "../components/TextBlock"
 
 export default function WhoIAm() {
