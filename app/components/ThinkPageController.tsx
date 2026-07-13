@@ -69,21 +69,24 @@ export default function ThinkPageController() {
             <div style={{
               fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
               color: '#D6DE23', marginBottom: '10px',
-              opacity: cardOpen ? 1 : 0, transition: 'opacity 650ms ease',
+              opacity: cardOpen ? 1 : 0,
+              transition: `opacity ${cardOpen ? '650ms' : '300ms'} ease`,
               transitionDelay: cardOpen ? '0ms' : '0ms',
             }}>
               {data.tag}
             </div>
             <div style={{
               fontSize: '22px', fontWeight: 700, color: '#fff', marginBottom: '14px', maxWidth: '640px',
-              opacity: cardOpen ? 1 : 0, transition: 'opacity 650ms ease',
+              opacity: cardOpen ? 1 : 0,
+              transition: `opacity ${cardOpen ? '650ms' : '300ms'} ease`,
               transitionDelay: cardOpen ? '25ms' : '0ms',
             }}>
               {data.subtitle}
             </div>
             <div style={{
               fontSize: '16px', lineHeight: 1.6, color: 'rgba(255,255,255,0.65)', maxWidth: '620px',
-              opacity: cardOpen ? 1 : 0, transition: 'opacity 650ms ease',
+              opacity: cardOpen ? 1 : 0,
+              transition: `opacity ${cardOpen ? '650ms' : '300ms'} ease`,
               transitionDelay: cardOpen ? '50ms' : '0ms',
             }}>
               {data.excerpt}

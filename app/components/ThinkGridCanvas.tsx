@@ -438,12 +438,11 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     // starts traveling back — same pairing logic as the height-snap.
     if (wrapRef.current) wrapRef.current.style.height = `${TOTAL_H * scaleRef.current}px`;
     if (spacerRef.current) spacerRef.current.style.height = '0px';
-    // Header never had its height/margin removed (see above), so there's
-    // nothing to restore here — it's already at its natural layout size,
-    // just still transformed offscreen from the open. The closing
-    // animation in render() will smoothly bring the transform back to 0.
     mode.current = 'closing';
     updateHitLayer();
+    // Fire immediately so detail text starts fading out NOW, not after
+    // the card finishes traveling back to its cell.
+    onCloseRef.current();
   }
 
   const tick = useCallback((now: number) => {
@@ -524,7 +523,6 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
               targetZoom.current[j] = 1; targetDarken.current[j] = 0; targetTitleA.current[j] = 0;
             }
             updateHitLayer();
-            onCloseRef.current();
           }
         }
       }
