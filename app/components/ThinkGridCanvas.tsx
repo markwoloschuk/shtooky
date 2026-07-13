@@ -137,7 +137,7 @@ interface Props {
   onOpen: (idx: number) => void;
   onClose: () => void;
   onRegisterControls: (step: (dir: number) => void, close: () => void) => void;
-  headerRef?: React.RefObject<HTMLDivElement>;
+  headerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 function drawImageCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement | undefined, rect: Rect) {
