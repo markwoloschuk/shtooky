@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useColumn } from './Tokens';
 import ThinkOpenAnimation from './ThinkOpenAnimation';
 import ThinkBlurb from './ThinkBlurb';
-import ThinkGridCanvas, { CARD_DATA } from './ThinkGridCanvas';
+import ThinkGridCanvas, { CARD_DATA, BAND_HEIGHT, NATIVE_W } from './ThinkGridCanvas';
 import ThinkBelowPlaceholder from './ThinkBelowPlaceholder';
 
 export default function ThinkPageController() {
@@ -19,7 +19,6 @@ export default function ThinkPageController() {
   // still just follows cardOpen normally — only its height/space is
   // ref-driven now.
   const headerRef = useRef<HTMLDivElement>(null);
-  const detailRef = useRef<HTMLDivElement>(null);
 
   function handleOpen(idx: number) { setCardOpen(true); setOpenIdx(idx); }
   function handleClose() { setCardOpen(false); }
@@ -28,6 +27,9 @@ export default function ThinkPageController() {
   }
 
   const data = openIdx >= 0 ? CARD_DATA[openIdx % CARD_DATA.length] : null;
+  // Band height as a CSS calc — responsive, no window measurement needed.
+  // 480/1440 = 33.333...vw, matching the band canvas's own sizing.
+  const bandTopCalc = `calc(${(BAND_HEIGHT / NATIVE_W) * 100}vw + 56px)`;
 
   return (
     <div>
@@ -41,18 +43,25 @@ export default function ThinkPageController() {
         onClose={handleClose}
         onRegisterControls={handleRegisterControls}
         headerRef={headerRef}
-        detailRef={detailRef}
       />
 
-      {/* Detail text — same transform as the grid so it stays 56px
-          below the band during the recede motion. Staggered fade per
-          element, matching mockup's cut-body timing (650ms, 25ms offsets). */}
+      {/* Detail text — fixed-positioned when open so it always sits 56px
+          below the band regardless of scroll position (matching mockup's
+          cutBody.style.top = bandY + BAND_HEIGHT + 56). */}
       <div
-        ref={detailRef}
         style={{
           width: `${col.vw}vw`,
-          margin: '56px auto 0',
           pointerEvents: cardOpen ? 'auto' : 'none',
+          ...(cardOpen ? {
+            position: 'fixed' as const,
+            top: bandTopCalc,
+            left: '0',
+            right: '0',
+            margin: '0 auto',
+            zIndex: 100,
+          } : {
+            margin: '56px auto 0',
+          }),
         }}
       >
         {data && (

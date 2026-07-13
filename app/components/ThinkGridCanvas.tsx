@@ -36,7 +36,8 @@ const LAYOUT = [
 ];
 const TOTAL_H = row4Y + ROW4_H;
 const N = LAYOUT.length;
-const BAND_HEIGHT = 480;
+export const BAND_HEIGHT = 480;
+export { NATIVE_W };
 
 const CFG = {
   HOVER_SPEED: 500,
@@ -83,7 +84,6 @@ interface Props {
   onClose: () => void;
   onRegisterControls: (step: (dir: number) => void, close: () => void) => void;
   headerRef?: React.RefObject<HTMLDivElement>;
-  detailRef?: React.RefObject<HTMLDivElement>;
 }
 
 function drawImageCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement | undefined, rect: Rect) {
@@ -164,7 +164,7 @@ function drawBandTitle(
   ctx.restore();
 }
 
-export default function ThinkGridCanvas({ onOpen, onClose, onRegisterControls, headerRef, detailRef }: Props) {
+export default function ThinkGridCanvas({ onOpen, onClose, onRegisterControls, headerRef }: Props) {
   const col = useColumn();
 
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -291,7 +291,6 @@ useEffect(() => {
       const totalShift = headerNaturalHRef.current + 40;
       if (headerRef?.current) headerRef.current.style.transform = `translateY(${-headerNaturalHRef.current * ep}px)`;
       if (outerRef.current) outerRef.current.style.transform = `translateY(${-totalShift * ep}px)`;
-      if (detailRef?.current) detailRef.current.style.transform = `translateY(${-totalShift * ep}px)`;
     }
 
     // The growing/shrinking card itself is drawn on the SEPARATE band
@@ -427,8 +426,14 @@ document.documentElement.style.overflowX = 'hidden';
     onOpenRef.current(i);
   }
 
-function closeCard() {
+function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     if (mode.current !== 'fullview') return;
+    // Only close if click is within the band's visible area — the canvas
+    // is viewport-height for animation room, but the band itself is much shorter.
+    if (e && bandCanvasRef.current) {
+      const bandH = bandCanvasRef.current.width * (BAND_HEIGHT / NATIVE_W);
+      if (e.nativeEvent.offsetY > bandH) return;
+    }
     // Restore full grid height + collapse the spacer BEFORE the card
     // starts traveling back — same pairing logic as the height-snap.
     if (wrapRef.current) wrapRef.current.style.height = `${TOTAL_H * scaleRef.current}px`;
@@ -504,7 +509,6 @@ function closeCard() {
 
             if (headerRef?.current) headerRef.current.style.transform = 'none';
             if (outerRef.current) outerRef.current.style.transform = 'none';
-            if (detailRef?.current) detailRef.current.style.transform = 'none';
             // Delay overflowX restore by one frame — setBandMounted(false)
             // is async (React), so the full-width canvas is still in the
             // DOM for one more frame after this runs. Restoring overflow
