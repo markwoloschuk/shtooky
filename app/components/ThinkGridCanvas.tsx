@@ -376,9 +376,10 @@ useEffect(() => {
         ctx.globalAlpha = fadeAll;
         drawCardAt(ctx, i, r, 1, 0);
         // Color overlay — grows over the image, then fades with it
-        const colOp = ep * CFG.COL_OPACITY;
+const colOp = ep * CFG.COL_OPACITY;
         if (colOp > 0) {
           ctx.globalAlpha = fadeAll * colOp;
+          ctx.globalCompositeOperation = 'multiply';
           ctx.fillStyle = cellColors.current[i];
           ctx.fillRect(r.x, r.y, r.w, r.h);
         }

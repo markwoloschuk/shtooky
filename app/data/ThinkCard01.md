@@ -1,6 +1,10 @@
 [title] 
 Sincerity is the soul of design
 
+[card_image]
+
+
+
 [narrowtitle]
 Sincerity is the[br]
 soul of design

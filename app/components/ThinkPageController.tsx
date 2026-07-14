@@ -107,7 +107,7 @@ export default function ThinkPageController() {
 
       {cardOpen && createPortal(
         <div style={{
-          position: 'fixed', bottom: '48px', right: '32px', zIndex: 45,
+          position: 'fixed', bottom: '84px', right: '32px', zIndex: 45,
           display: 'flex', gap: '8px',
         }}>
           <button
