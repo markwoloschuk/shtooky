@@ -1,22 +1,33 @@
 ---
-title: A not so comfortable hug?
-narrowtitle: An not so[br]comfortable hug?
+title: Turn and face the strange
+narrowtitle: Turn and face[br]the strange
 subtitle: Embracing AI requires faith in change.
 imagePath: /images/think/10/
 ---
 
 [paragraph]
-Every generation of creative tools has felt like a threat at the moment it arrived. Desktop publishing was going to make designers obsolete. Stock photography was going to kill original illustration. The internet was going to end print. None of those things happened the way the fear described. What happened instead was that the practice changed shape — some things got easier, some got harder, some entirely new things became possible that weren't before. AI is the same pattern. It's just more intense, and faster.
-
-[paragraph]
-The fear isn't irrational. These tools genuinely do what I do — or something that looks like what I do — and they do it at a speed I can't match. They generate options in seconds that used to take days. They can learn a visual style from a handful of examples and replicate it indefinitely. If your value was in producing competent visual output quickly and consistently, that value has genuinely been compressed. That's a real thing. Denying it doesn't help.
+Let me tell you about every tool transition I've ever made. It starts with reluctance. The old tool works. You're fast in it. Your fingers know where everything lives. Then someone shows you a new thing and it's impressive but also — you'd have to start over. You'd be slow again. You'd make beginner mistakes. You'd lose the mastery you spent years building.
 
 [pullquote]
-The hug is uncomfortable.[br]
-It's <still> a hug.
+Lose in the short-term
+gain in the long-term
 
 [paragraph]
-What hasn't been compressed is judgment. Knowing which option to pick and why. Understanding what the work needs to do and whether this particular piece of it is doing it. Reading the room well enough to know what will land and what will fall flat. Having the experience to push past the first plausible answer toward the true one. The tools can generate. They don't yet know what matters, to whom, and why it matters now. That still requires a person.
+Then you make the switch anyway. And for a while, you're worse. But then come new capability – new possibility. It happened to me with editing software. Avid to Media 100. Media 100 to Final Cut. Final Cut to Premiere. Each time, a period of lost fluency. Each time, a cost. Each time… worth it.
 
 [paragraph]
-I use these tools. I find them genuinely useful and genuinely strange — sometimes simultaneously. The discomfort is real and probably appropriate. Any tool that has this much capability and this many unresolved questions deserves some wariness. But the alternative to the uncomfortable hug isn't no hug — it's being left behind by people who were willing to figure out how to make it work. Change has always been the price of staying relevant. This round is just a bigger invoice.
+AI is the current version of this conversation, and it's bigger than any of the others. I’m embracing the chance, but sometimes it’s an uncomfortable hug. The disruption is real – and it’s ongoing. But so is the growth. 
+
+[paragraph]
+The capability gap between what AI can do versus what it could do is changing faster than anything I’ve navigated before. And so is my own journey. I’m along for the ride – suddenly I too can do more than ever before.I've made this trade enough times to know how it goes. You give up short-term mastery. You gain long-term possibility. 
+
+[pullquote]
+AI augments capability
+it doesn’t replace it.
+
+[paragraph]
+This entire site was built through collaboration with Claude and Chat GPT. I have very little knowledge or understanding of web development – but together we’ve produced some sophisticated code that would have been impossible for me to even consider in the past. That’s truly empowering.
+
+[paragraph]
+Every new tool asks something before it gives anything back. The discomfort is temporary. The capability isn't.
+

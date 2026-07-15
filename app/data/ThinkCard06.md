@@ -6,17 +6,20 @@ imagePath: /images/think/06/
 ---
 
 [paragraph]
-There's a specific kind of paralysis that comes from opening a polished tool too early. The software is beautiful. Every element snaps to a grid. The default type already looks considered. You feel like the work should match the container, so you start making things that look finished before they're actually thought through. The tool's precision becomes a trap — you stop exploring and start decorating.
+I can't draw; not really. My last art class was in 8th grade. But the first design tool I always reach for is something to write with. Not because I'm a retro-grouch or luddite, it's because you can express ANY idea on paper, even if it's poorly drawn.
 
 [paragraph]
-A pencil and a piece of paper don't care what they look like. That's the whole point. Rough work invites honest feedback because it doesn't signal that decisions have been made. It says: this is a thought, not a finished thing. The faster you can get that thought into the world — ugly, unpolished, functionally communicative and nothing more — the faster you can find out if it's worth pursuing. The faster you can be wrong, the sooner you can be right.
+When you don't know what you're building, why not choose the least expensive materials and the fastest process? Fidelity is something you earn. A lo-fi sketch is a better way to explore options without wasting anyone's time or money. A rough idea on paper is a suggestion instead of a plan. It invites critique and rapid iteration. Every wrong answer you find cheaply is one that didn't prove more costly.
 
 [pullquote]
-Rough on purpose[br]
-is faster than <refined> by accident.
+Don’t waste your
+client’s money or time
 
 [paragraph]
-I spent years watching people spend two days building a comp that no one could give honest feedback on because it looked too finished to argue with. The same idea, hand-drawn in twenty minutes on a whiteboard, would have gotten the "actually, the whole thing is pointing in the wrong direction" conversation in the first meeting instead of the third. The time saved wasn't in the drawing. It was in the permission to be honest that the roughness created.
+There's a thing that happens when you show someone a polished comp too early. They stop seeing the idea and start reacting to the execution. The font is wrong. The color isn't quite right. You spend the next hour defending choices that were never meant to be permanent, because they looked permanent. A rough sketch doesn't have that problem.
 
 [paragraph]
-Lo-fi isn't a step you skip when you get good enough. The best creative people I've worked with sketch more, not less, as they get more experienced. They've learned that the expensive mistake isn't drawing something ugly. It's committing too early to something beautiful. Paper is cheap. Rethinking a polished deck at 11pm the night before a presentation is not.
+Whether it's a mind-map, a rough logo sketch, or quick and dirty storyboards, it's all about getting things "write" so we don't get them wrong. Getting to a destination with a shiny final polish is the reward for having put in the cheap work first.
+
+[paragraph]
+Fidelity isn't where ideas begin. It's where good ideas end up.
