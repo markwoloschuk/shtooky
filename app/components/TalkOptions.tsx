@@ -1,0 +1,277 @@
+"use client"
+
+// TalkOptions.tsx
+// app/components/
+// Three single-line toggles — Contact / Location / Resume — sitting
+// between the RippleNetwork intro and the body paragraphs on the Let's
+// Talk page. One open at a time (accordion), content grows/shrinks in
+// normal document flow directly below its own label — no portal, no
+// document-position tracking, unlike the Think card mechanic. Closer in
+// spirit to ThinkCasePanel's block fade-in than anything canvas-based.
+
+import { useState, useRef, useEffect } from "react"
+import { COLORS, TYPE } from "./Tokens"
+
+const ACCENT = COLORS.contact
+
+// ── Tunable constants ───────────────────────────────────────────────────
+const CONFIG = {
+    LABEL_FONT_SIZE: 22,
+    LABEL_GAP: 40,          // gap between the three label rows
+    ROW_GAP_TOP: 16,        // space between a label and its open content
+    ROW_GAP_BOTTOM: 40,     // space after open content, before next label
+    TRANSITION_MS: 450,
+}
+
+const RESUME_PATH = "/Mark_Woloschuk_Resume.pdf"
+const MAP_PLACEHOLDER = "/images/talk/map_placeholder.jpg"
+
+type PanelKey = "contact" | "location" | "resume"
+
+// ── Collapsible wrapper — height-animates via measured scrollHeight,
+// same "measure then transition" approach as CSS-grid-free height
+// animation requires (grid-template-rows: 0fr/1fr would be simpler but
+// this keeps timing explicit and consistent with the rest of the site's
+// JS-driven transitions rather than mixing in a CSS-only technique). ──
+function Collapsible({ open, children }: { open: boolean; children: React.ReactNode }) {
+    const innerRef = useRef<HTMLDivElement>(null)
+    const [height, setHeight] = useState(0)
+
+    useEffect(() => {
+        const el = innerRef.current
+        if (!el) return
+        if (open) {
+            setHeight(el.scrollHeight)
+        } else {
+            setHeight(0)
+        }
+    }, [open, children])
+
+    return (
+        <div
+            style={{
+                height,
+                overflow: "hidden",
+                transition: `height ${CONFIG.TRANSITION_MS}ms ease`,
+            }}
+        >
+            <div ref={innerRef}>
+                <div
+                    style={{
+                        opacity: open ? 1 : 0,
+                        transition: `opacity ${CONFIG.TRANSITION_MS}ms ease`,
+                        paddingTop: CONFIG.ROW_GAP_TOP,
+                        paddingBottom: CONFIG.ROW_GAP_BOTTOM,
+                    }}
+                >
+                    {children}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ── Label row — the always-visible single-line toggle ──────────────────
+function OptionLabel({
+    label,
+    active,
+    onClick,
+}: {
+    label: string
+    active: boolean
+    onClick: () => void
+}) {
+    return (
+        <button
+            onClick={onClick}
+            style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                fontFamily: TYPE.display,
+                fontSize: CONFIG.LABEL_FONT_SIZE,
+                fontWeight: 700,
+                color: active ? ACCENT : COLORS.white,
+                transition: `color ${CONFIG.TRANSITION_MS}ms ease`,
+            }}
+        >
+            <span
+                style={{
+                    display: "inline-block",
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    background: ACCENT,
+                    opacity: active ? 1 : 0.35,
+                    transition: `opacity ${CONFIG.TRANSITION_MS}ms ease`,
+                    flexShrink: 0,
+                }}
+            />
+            {label}
+        </button>
+    )
+}
+
+// ── Contact form ─────────────────────────────────────────────────────────
+function ContactForm() {
+    const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
+    const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" })
+
+    function update(field: keyof typeof form) {
+        return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+            setForm((f) => ({ ...f, [field]: e.target.value }))
+    }
+
+    async function handleSubmit(e: React.FormEvent) {
+        e.preventDefault()
+        setStatus("sending")
+        try {
+            const res = await fetch("/api/contact", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(form),
+            })
+            if (!res.ok) throw new Error("Request failed")
+            setStatus("sent")
+        } catch {
+            setStatus("error")
+        }
+    }
+
+    const fieldStyle: React.CSSProperties = {
+        width: "100%",
+        background: "transparent",
+        border: "none",
+        borderBottom: `1px solid rgba(255,255,255,0.25)`,
+        color: COLORS.white,
+        fontFamily: TYPE.display,
+        fontSize: 16,
+        padding: "10px 0",
+        outline: "none",
+    }
+
+    if (status === "sent") {
+        return (
+            <p style={{ fontFamily: TYPE.display, color: COLORS.white, fontSize: 17, maxWidth: 500 }}>
+                Thanks — message sent. I'll get back to you soon.
+            </p>
+        )
+    }
+
+    return (
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 500 }}>
+            <input required placeholder="Name" value={form.name} onChange={update("name")} style={fieldStyle} />
+            <input required type="email" placeholder="Email" value={form.email} onChange={update("email")} style={fieldStyle} />
+            <input required placeholder="Subject" value={form.subject} onChange={update("subject")} style={fieldStyle} />
+            <textarea required placeholder="Message" value={form.message} onChange={update("message")} rows={5} style={{ ...fieldStyle, resize: "vertical" as const }} />
+            <button
+                type="submit"
+                disabled={status === "sending"}
+                style={{
+                    alignSelf: "flex-start",
+                    background: ACCENT,
+                    border: "none",
+                    color: COLORS.white,
+                    fontFamily: TYPE.display,
+                    fontWeight: 700,
+                    fontSize: 15,
+                    padding: "12px 28px",
+                    cursor: status === "sending" ? "default" : "pointer",
+                    opacity: status === "sending" ? 0.6 : 1,
+                }}
+            >
+                {status === "sending" ? "Sending…" : "Send"}
+            </button>
+            {status === "error" && (
+                <p style={{ fontFamily: TYPE.display, color: "rgba(255,255,255,0.6)", fontSize: 14 }}>
+                    Something went wrong — mind trying again?
+                </p>
+            )}
+        </form>
+    )
+}
+
+// ── Location — placeholder image for now; swap for the zoom animation
+// once that prototype's finished, same slot. ──────────────────────────
+function LocationPanel() {
+    return (
+        <div style={{ maxWidth: 760 }}>
+            <div style={{ position: "relative", paddingBottom: "56.25%", background: COLORS.dark, overflow: "hidden" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                    src={MAP_PLACEHOLDER}
+                    alt="San Francisco Bay Area"
+                    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                />
+            </div>
+        </div>
+    )
+}
+
+// ── Resume — viewable inline (native browser PDF render) + downloadable ─
+function ResumePanel() {
+    return (
+        <div style={{ maxWidth: 760 }}>
+            <div style={{ marginBottom: 16 }}>
+                <a
+                    href={RESUME_PATH}
+                    download
+                    style={{
+                        fontFamily: TYPE.display,
+                        fontWeight: 700,
+                        fontSize: 15,
+                        color: ACCENT,
+                        textDecoration: "none",
+                    }}
+                >
+                    Download PDF ↓
+                </a>
+            </div>
+            <div style={{ height: "70vh", background: COLORS.dark }}>
+                <iframe
+                    src={RESUME_PATH}
+                    style={{ width: "100%", height: "100%", border: "none" }}
+                    title="Mark Woloschuk — Resume"
+                />
+            </div>
+        </div>
+    )
+}
+
+// ── Top-level accordion ──────────────────────────────────────────────────
+export default function TalkOptions() {
+    const [open, setOpen] = useState<PanelKey | null>(null)
+
+    function toggle(key: PanelKey) {
+        setOpen((prev) => (prev === key ? null : key))
+    }
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ marginBottom: CONFIG.LABEL_GAP }}>
+                <OptionLabel label="Contact" active={open === "contact"} onClick={() => toggle("contact")} />
+                <Collapsible open={open === "contact"}>
+                    <ContactForm />
+                </Collapsible>
+            </div>
+
+            <div style={{ marginBottom: CONFIG.LABEL_GAP }}>
+                <OptionLabel label="Location" active={open === "location"} onClick={() => toggle("location")} />
+                <Collapsible open={open === "location"}>
+                    <LocationPanel />
+                </Collapsible>
+            </div>
+
+            <div>
+                <OptionLabel label="Resume" active={open === "resume"} onClick={() => toggle("resume")} />
+                <Collapsible open={open === "resume"}>
+                    <ResumePanel />
+                </Collapsible>
+            </div>
+        </div>
+    )
+}

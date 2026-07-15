@@ -1,6 +1,6 @@
 ---
-title: Respect your audience
-narrowtitle: Respect your audience
+title: Fight for the users
+narrowtitle: Fight for[br]the users
 subtitle: Find the emotional core of the problem[br]and how it connects to the user
 imagePath: /images/think/11/
 ---
@@ -29,7 +29,7 @@ what they like
 As designers we must remember to satisfy the needs and taste of our audience over our own. Ideally we can find a venn overlap where our tastes meet – this is the core philosophy behind my DJ practice. I like to play music that I like to dance to and that OTHERS like to dance to. My job is to 
 
 [paragraph]
-In the 1982 film Tron there’s a line that’s always stuck with me, “Tron fights for the users.” In the film it's software battling software for control, but in design it's a reminder of our responsibility. Fight for your users. Respect their time. Respect their intelligence. Respect their taste. Respect their frustrations.
+In the 1982 film Tron there’s a line that’s always stuck with me, “Tron fights for the users.” In the film it's software battling software for control, but in design it's a reminder of our responsibility to respect the users. Respect their time. Respect their intelligence. Respect their taste. Respect their frustrations.
 
 [paragraph]
 Good design isn't self-expression. It's understanding.
