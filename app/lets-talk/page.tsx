@@ -9,8 +9,10 @@ import { useEffect } from "react"
 import { unlock, reset } from "../components/SequenceController"
 import RippleNetwork from "../components/TalkRippleNetwork"
 import TextBlock from "../components/TextBlock"
+import { useColumn } from "../components/Tokens"
 
 export default function LetsTalk() {
+    const col = useColumn()
     reset()
     unlock(1)
 
@@ -28,7 +30,7 @@ export default function LetsTalk() {
         >
             <div
                 style={{
-                    width: "76%",
+                    width: `${col.vw}vw`,
                     marginLeft: "auto",
                     marginRight: "auto",
                 }}

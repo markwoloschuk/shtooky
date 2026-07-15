@@ -90,7 +90,7 @@ const COLUMN_TIERS = {
     },
     mobile: {
         // TODO: tune for mobile
-        vw: 94,
+        vw: 90,
         marginVw: 3,
         bodyColPct: 100,
         referenceW: 390,

@@ -10,10 +10,12 @@ import { unlock } from "../components/SequenceController"
 import SkillsSphere from "../components/WhoSkillsSphere"
 import VennDiagram from "../components/WhoVennDiagram"
 import TextBlock from "../components/TextBlock"
+import { useColumn } from "../components/Tokens"
 
 export default function WhoIAm() {
+    const col = useColumn()
     unlock(1)
-    
+
     useEffect(() => {
         window.scrollTo(0, 0)
     }, [])
@@ -43,10 +45,10 @@ export default function WhoIAm() {
             {/* ── 2vh spacer ── */}
             <div style={{ height: "2vh" }} />
 
-            {/* ── 76% content column ── */}
+            {/* ── content column ── */}
             <div
                 style={{
-                    width: "76%",
+                    width: `${col.vw}vw`,
                     marginLeft: "auto",
                     marginRight: "auto",
                     display: "flex",
