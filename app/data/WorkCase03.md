@@ -1,5 +1,5 @@
 ---
-title: 360° of Vibes
+title: Flexport Winter Release 2026
 client: Flexport
 role: Creative Director
 delivery: Live Software Launch

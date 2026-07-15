@@ -1,5 +1,5 @@
 ---
-title: Designing my escape from planning department jail.
+title: 490 Duboce Ave. Gate
 client: Personal
 role: Designer / Project Manager
 delivery: Custom Architectural Fabrication

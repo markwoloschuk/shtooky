@@ -1,8 +1,8 @@
 ---
-title: Time was short so we threw away the best idea.
+title: HP Business Jet Launch
 client: HP
-role: Co-Director / Editor
-delivery: Product Launch Film
+role: Creative Director
+delivery: Product Launch Video
 ---
 
 [paragraph]

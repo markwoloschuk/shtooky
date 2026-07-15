@@ -1,7 +1,7 @@
 ---
-title: It was a beautiful day, it was beautiful data.
+title: Wedding Infogrphics
 client: Personal
-role: Designer / Host
+role: Designer
 delivery: Custom Infographic Series
 ---
 

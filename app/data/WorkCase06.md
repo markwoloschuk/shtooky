@@ -1,6 +1,6 @@
 ---
-title: Hiding a Secret in Plain Sight
-client: Cycling Event Organizer
+title: Enduro III Poster
+client: SuperPro Productions
 role: Designer / Data Wrangler
 delivery: Event Poster
 ---

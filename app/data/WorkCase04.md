@@ -1,6 +1,6 @@
 ---
-title: Punching a signal through the noise.
-client: HP
+title: HP Rock On Care
+client: HP 
 role: Creative Director
 delivery: Tradeshow Experience
 ---

@@ -5,12 +5,14 @@ import { createPortal } from 'react-dom'
 import WorkCarousel from '../components/WorkCarousel'
 import CaseStudyPanel from '../components/WorkCaseStudyPanel'
 import { WORK_MANIFEST } from '../data/WorkManifest'
+import { useColumn } from '../components/Tokens'
 
 const NAV_BTN_SIZE = 32
 const SYM_PCT = 0.50
 const STROKE_W = 1
 
 export default function WorkPage() {
+  const col = useColumn()
   const [activeIdx, setActiveIdx] = useState<number | null>(null)
   const [mounted, setMounted] = useState(false)
   const navRef = useRef<HTMLDivElement>(null)
@@ -45,11 +47,13 @@ export default function WorkPage() {
             closeRef.current = close
           }}
         />
-        <CaseStudyPanel
-          caseFile={manifest?.contentFile ?? null}
-          caseIdx={activeIdx}
-          visible={activeIdx !== null}
-        />
+        <div style={{ width: `${col.vw}vw`, marginLeft: 'auto', marginRight: 'auto' }}>
+          <CaseStudyPanel
+            caseFile={manifest?.contentFile ?? null}
+            caseIdx={activeIdx}
+            visible={activeIdx !== null}
+          />
+        </div>
       </div>
 
       {/* Nav buttons — portalled to body to escape stacking context */}

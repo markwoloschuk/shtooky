@@ -1,7 +1,7 @@
 ---
-title: 12 Products. 1 Holiday Hook.
+title: Microoft Store 12 Days of Deals
 client: Microsoft Store
-role: Creative Director
+role: Co-Director / Writer
 delivery: 12 Product Videos
 ---
 
