@@ -11,7 +11,7 @@ import { COLORS, TYPE } from "./Tokens"
 
 const HEIGHT = 350
 const PLAY_DELAY = 0
-const TEXT_DELAY = 1000
+export const TEXT_DELAY = 1000
 const playOnce = true
 
 // ─── SCROLL FADE ─────────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ const SCROLL_FADE = {
 
 // ─── TEXT ANIMATION ───────────────────────────────────────────────────────────
 
-const TIMING = {
+export const TIMING = {
     duration: 1750,
     pushY: 20,
     pushX: 0,
@@ -35,7 +35,7 @@ const TIMING = {
     highlightColor: COLORS.contact,
 }
 
-const CHUNKS = [
+export const CHUNKS = [
     {
         text: "Thanks for visiting",
         line: 1,

@@ -32,7 +32,7 @@ function getPageData(page: string) {
 
 // ─── Scroll fade tuning ───────────────────────────────────────────────────────
 
-const SCROLL_FADE = {
+export const SCROLL_FADE = {
     fadeInStart: 200,
     fadeInEnd: 350,
     fadeOutStart: 250,

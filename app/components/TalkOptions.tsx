@@ -11,6 +11,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { COLORS, TYPE } from "./Tokens"
+import { useSequence, unlock } from "./SequenceController"
 
 const ACCENT = COLORS.contact
 
@@ -21,6 +22,14 @@ const CONFIG = {
     ROW_GAP_TOP: 16,        // space between a label and its open content
     ROW_GAP_BOTTOM: 40,     // space after open content, before next label
     TRANSITION_MS: 450,
+
+    // Reveal — this block's own fade-in once seq 2 unlocks (after id1's
+    // fade finishes). REVEAL_DELAY_MS is a deliberate beat so it doesn't
+    // land the instant id1 finishes; REVEAL_FADE_MS is the actual fade
+    // duration, and doubles as the real number the next unlock (seq 3,
+    // the remaining paragraphs) chains off of — not a separate guess.
+    REVEAL_DELAY_MS: 200,
+    REVEAL_FADE_MS: 900,
 }
 
 const RESUME_PATH = "/Mark_Woloschuk_Resume.pdf"
@@ -245,13 +254,38 @@ function ResumePanel() {
 // ── Top-level accordion ──────────────────────────────────────────────────
 export default function TalkOptions() {
     const [open, setOpen] = useState<PanelKey | null>(null)
+    const revealed = useSequence(2)
+    const [visible, setVisible] = useState(false)
+    const firedNextRef = useRef(false)
+
+    useEffect(() => {
+        if (!revealed) return
+        const showTimer = setTimeout(() => setVisible(true), CONFIG.REVEAL_DELAY_MS)
+        // Chains off the real fade duration below (REVEAL_FADE_MS), not a
+        // separately guessed number — same value drives both the CSS
+        // transition and this unlock.
+        const nextTimer = setTimeout(() => {
+            if (firedNextRef.current) return
+            firedNextRef.current = true
+            unlock(3)
+        }, CONFIG.REVEAL_DELAY_MS + CONFIG.REVEAL_FADE_MS)
+        return () => { clearTimeout(showTimer); clearTimeout(nextTimer) }
+    }, [revealed])
 
     function toggle(key: PanelKey) {
         setOpen((prev) => (prev === key ? null : key))
     }
 
     return (
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        <div
+            style={{
+                display: "flex",
+                flexDirection: "column",
+                opacity: visible ? 1 : 0,
+                transition: `opacity ${CONFIG.REVEAL_FADE_MS}ms ease`,
+                pointerEvents: visible ? "auto" : "none",
+            }}
+        >
             <div style={{ marginBottom: CONFIG.LABEL_GAP }}>
                 <OptionLabel label="Contact" active={open === "contact"} onClick={() => toggle("contact")} />
                 <Collapsible open={open === "contact"}>

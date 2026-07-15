@@ -1,98 +1,78 @@
-'use client'
+"use client"
 
-import { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
-import WorkCarousel from '../components/WorkCarousel'
-import CaseStudyPanel from '../components/WorkCaseStudyPanel'
-import { WORK_MANIFEST } from '../data/WorkManifest'
-import { useColumn } from '../components/Tokens'
+// lets-talk/page.tsx
+// app/lets-talk/
+// Let's Talk page — full layout
+// v03 — 2026-07-15 — real sequential reveal: RippleNetwork's text
+// overlay finishes -> unlock id1 (blurb) -> id1's own fade finishes ->
+// unlock seq 2 (TalkOptions) -> TalkOptions' own fade finishes -> it
+// unlocks seq 3 (remaining paragraphs, ids 3-4) itself.
+//
+// Both waits below are computed from the real constants that already
+// drive those animations (TalkRippleNetwork's TEXT_DELAY/CHUNKS/TIMING,
+// TextBlock's SCROLL_FADE), not freshly guessed numbers. TalkOptions
+// chains its own next step internally off its own real fade duration —
+// see TalkOptions.tsx.
 
-const NAV_BTN_SIZE = 32
-const SYM_PCT = 0.50
-const STROKE_W = 1
+import { useEffect } from "react"
+import { unlock, reset } from "../components/SequenceController"
+import RippleNetwork, { TEXT_DELAY, CHUNKS, TIMING } from "../components/TalkRippleNetwork"
+import TextBlock, { SCROLL_FADE } from "../components/TextBlock"
+import TalkOptions from "../components/TalkOptions"
+import { useColumn } from "../components/Tokens"
 
-export default function WorkPage() {
-  const col = useColumn()
-  const [activeIdx, setActiveIdx] = useState<number | null>(null)
-  const [mounted, setMounted] = useState(false)
-  const navRef = useRef<HTMLDivElement>(null)
-  const stepRef = useRef<((dir: number) => void) | null>(null)
-  const closeRef = useRef<(() => void) | null>(null)
+// Real completion time of RippleNetwork's one-shot text overlay —
+// last chunk's own delay + its animation duration, on top of the
+// overlay's own start delay.
+const RIPPLE_TEXT_DONE_MS =
+    TEXT_DELAY + CHUNKS[CHUNKS.length - 1].delay + TIMING.duration
 
-  useEffect(() => { setMounted(true) }, [])
+// Real completion time of id1's fade once seq 1 unlocks — mountIndex
+// is 0 for a single-paragraph TextBlock call, so paragraphStagger
+// doesn't factor in.
+const ID1_FADE_DONE_MS = SCROLL_FADE.mountDelay + SCROLL_FADE.mountFadeIn
 
-  function handleOpen(idx: number) {
-    setActiveIdx(idx)
-    const n = navRef.current; if (!n) return
-    n.style.opacity = '1'; n.style.transform = 'scale(1)'; n.style.pointerEvents = 'auto'
-  }
+export default function LetsTalk() {
+    const col = useColumn()
 
-  function handleClose() {
-    setActiveIdx(null)
-    const n = navRef.current; if (!n) return
-    n.style.opacity = '0'; n.style.transform = 'scale(0.85)'; n.style.pointerEvents = 'none'
-  }
+    useEffect(() => {
+        reset()
+        window.scrollTo(0, 0)
 
-  const manifest = activeIdx !== null ? WORK_MANIFEST[activeIdx] : null
+        const t1 = setTimeout(() => unlock(1), RIPPLE_TEXT_DONE_MS)
+        const t2 = setTimeout(
+            () => unlock(2),
+            RIPPLE_TEXT_DONE_MS + ID1_FADE_DONE_MS
+        )
+        // seq 3 (the remaining paragraphs) is unlocked by TalkOptions
+        // itself, once ITS OWN reveal fade finishes — see TalkOptions.tsx.
 
-  return (
-    <>
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        <WorkCarousel
-          onOpen={handleOpen}
-          onClose={handleClose}
-          activeIdx={activeIdx}
-          onRegisterControls={(step, close) => {
-            stepRef.current = step
-            closeRef.current = close
-          }}
-        />
-        <div style={{ width: `${col.vw}vw`, marginLeft: 'auto', marginRight: 'auto' }}>
-          <CaseStudyPanel
-            caseFile={manifest?.contentFile ?? null}
-            caseIdx={activeIdx}
-            visible={activeIdx !== null}
-          />
+        return () => { clearTimeout(t1); clearTimeout(t2) }
+    }, [])
+
+    return (
+        <div
+            style={{
+                paddingTop: "11vh",
+                paddingBottom: "18vh",
+            }}
+        >
+            <div
+                style={{
+                    width: `${col.vw}vw`,
+                    marginLeft: "auto",
+                    marginRight: "auto",
+                }}
+            >
+                <RippleNetwork />
+                <div style={{ marginTop: "-80px" }}>
+                    <TextBlock page="contact" ids="1" />
+                    <div style={{ marginTop: "2.2em", marginBottom: "2.2em" }}>
+                        <TalkOptions />
+                    </div>
+                    <TextBlock page="contact" ids="3-4" />
+                </div>
+            </div>
         </div>
-      </div>
-
-      {/* Nav buttons — portalled to body to escape stacking context */}
-      {mounted && createPortal(<div
-        ref={navRef}
-        style={{
-          position: 'fixed', bottom: 84, right: 32,
-          display: 'flex', gap: 8, zIndex: 9999,
-          pointerEvents: 'none', opacity: 0,
-          transform: 'scale(0.85)',
-          transition: 'opacity 500ms ease, transform 500ms ease',
-        }}
-      >
-        <button
-          onClick={e => { e.stopPropagation(); stepRef.current?.(-1) }}
-          style={{ width: NAV_BTN_SIZE, height: NAV_BTN_SIZE, background: '#e0057a', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, pointerEvents: 'auto' }}
-        >
-          <svg viewBox="0 0 100 100" style={{ width: NAV_BTN_SIZE * SYM_PCT, height: NAV_BTN_SIZE * SYM_PCT, display: 'block', overflow: 'visible' }}>
-            <polyline points="65,20 35,50 65,80" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth={STROKE_W} vectorEffect="non-scaling-stroke" />
-          </svg>
-        </button>
-        <button
-          onClick={e => { e.stopPropagation(); closeRef.current?.() }}
-          style={{ width: NAV_BTN_SIZE, height: NAV_BTN_SIZE, background: '#e0057a', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, pointerEvents: 'auto' }}
-        >
-          <svg viewBox="0 0 100 100" style={{ width: NAV_BTN_SIZE * SYM_PCT, height: NAV_BTN_SIZE * SYM_PCT, display: 'block', overflow: 'visible' }}>
-            <line x1="25" y1="25" x2="75" y2="75" stroke="#fff" strokeLinecap="round" strokeWidth={STROKE_W} vectorEffect="non-scaling-stroke" />
-            <line x1="75" y1="25" x2="25" y2="75" stroke="#fff" strokeLinecap="round" strokeWidth={STROKE_W} vectorEffect="non-scaling-stroke" />
-          </svg>
-        </button>
-        <button
-          onClick={e => { e.stopPropagation(); stepRef.current?.(1) }}
-          style={{ width: NAV_BTN_SIZE, height: NAV_BTN_SIZE, background: '#e0057a', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, pointerEvents: 'auto' }}
-        >
-          <svg viewBox="0 0 100 100" style={{ width: NAV_BTN_SIZE * SYM_PCT, height: NAV_BTN_SIZE * SYM_PCT, display: 'block', overflow: 'visible' }}>
-            <polyline points="35,20 65,50 35,80" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth={STROKE_W} vectorEffect="non-scaling-stroke" />
-          </svg>
-        </button>
-      </div>, document.body)}
-    </>
-  )
+    )
 }
