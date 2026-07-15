@@ -17,11 +17,11 @@ const ACCENT = COLORS.contact
 
 // ── Tunable constants ───────────────────────────────────────────────────
 const CONFIG = {
-    LABEL_FONT_SIZE: 22,
-    LABEL_GAP: 40,          // gap between the three label rows
+    LABEL_FONT_SIZE: 30,
+    LABEL_GAP: 100,          // gap between the three label rows
     ROW_GAP_TOP: 16,        // space between a label and its open content
     ROW_GAP_BOTTOM: 40,     // space after open content, before next label
-    TRANSITION_MS: 450,
+    TRANSITION_MS: 500,
 
     // Reveal — this block's own fade-in once seq 2 unlocks (after id1's
     // fade finishes). REVEAL_DELAY_MS is a deliberate beat so it doesn't
@@ -80,7 +80,9 @@ function Collapsible({ open, children }: { open: boolean; children: React.ReactN
     )
 }
 
-// ── Label row — the always-visible single-line toggle ──────────────────
+// ── Label — the always-visible single-line toggle. Purple always (not
+// just when active) per Mark's request — opacity is what now signals
+// which one's open, instead of a color swap. ────────────────────────────
 function OptionLabel({
     label,
     active,
@@ -94,9 +96,6 @@ function OptionLabel({
         <button
             onClick={onClick}
             style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
                 background: "none",
                 border: "none",
                 padding: 0,
@@ -104,22 +103,11 @@ function OptionLabel({
                 fontFamily: TYPE.display,
                 fontSize: CONFIG.LABEL_FONT_SIZE,
                 fontWeight: 700,
-                color: active ? ACCENT : COLORS.white,
-                transition: `color ${CONFIG.TRANSITION_MS}ms ease`,
+                color: ACCENT,
+                opacity: active ? 1 : 0.65,
+                transition: `opacity ${CONFIG.TRANSITION_MS}ms ease`,
             }}
         >
-            <span
-                style={{
-                    display: "inline-block",
-                    width: 10,
-                    height: 10,
-                    borderRadius: "50%",
-                    background: ACCENT,
-                    opacity: active ? 1 : 0.35,
-                    transition: `opacity ${CONFIG.TRANSITION_MS}ms ease`,
-                    flexShrink: 0,
-                }}
-            />
             {label}
         </button>
     )
@@ -208,7 +196,7 @@ function ContactForm() {
 // once that prototype's finished, same slot. ──────────────────────────
 function LocationPanel() {
     return (
-        <div style={{ maxWidth: 760 }}>
+        <div style={{ width: "100%" }}>
             <div style={{ position: "relative", paddingBottom: "56.25%", background: COLORS.dark, overflow: "hidden" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -224,7 +212,7 @@ function LocationPanel() {
 // ── Resume — viewable inline (native browser PDF render) + downloadable ─
 function ResumePanel() {
     return (
-        <div style={{ maxWidth: 760 }}>
+        <div style={{ width: "100%" }}>
             <div style={{ marginBottom: 16 }}>
                 <a
                     href={RESUME_PATH}
@@ -240,7 +228,7 @@ function ResumePanel() {
                     Download PDF ↓
                 </a>
             </div>
-            <div style={{ height: "70vh", background: COLORS.dark }}>
+            <div style={{ width: "100%", height: "70vh", background: COLORS.dark }}>
                 <iframe
                     src={RESUME_PATH}
                     style={{ width: "100%", height: "100%", border: "none" }}
@@ -286,26 +274,17 @@ export default function TalkOptions() {
                 pointerEvents: visible ? "auto" : "none",
             }}
         >
-            <div style={{ marginBottom: CONFIG.LABEL_GAP }}>
+            <div style={{ display: "flex", gap: CONFIG.LABEL_GAP }}>
                 <OptionLabel label="Contact" active={open === "contact"} onClick={() => toggle("contact")} />
-                <Collapsible open={open === "contact"}>
-                    <ContactForm />
-                </Collapsible>
-            </div>
-
-            <div style={{ marginBottom: CONFIG.LABEL_GAP }}>
-                <OptionLabel label="Location" active={open === "location"} onClick={() => toggle("location")} />
-                <Collapsible open={open === "location"}>
-                    <LocationPanel />
-                </Collapsible>
-            </div>
-
-            <div>
                 <OptionLabel label="Resume" active={open === "resume"} onClick={() => toggle("resume")} />
-                <Collapsible open={open === "resume"}>
-                    <ResumePanel />
-                </Collapsible>
+                <OptionLabel label="Location" active={open === "location"} onClick={() => toggle("location")} />
             </div>
+
+            <Collapsible open={open !== null}>
+                {open === "contact" && <ContactForm />}
+                {open === "resume" && <ResumePanel />}
+                {open === "location" && <LocationPanel />}
+            </Collapsible>
         </div>
     )
 }
