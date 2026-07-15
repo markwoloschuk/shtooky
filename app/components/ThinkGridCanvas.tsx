@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useColumn, NAV } from './Tokens';
+import { useColumn, NAV, COLORS, TYPE } from './Tokens';
+import { THINK_GRID, coverImageFor, offsetFor } from '../data/ThinkManifest';
 
 // ── Layout — 13 cells, native units on a 1440-wide reference canvas ────────
+// adjust gap value here 6 is current setting
 const NATIVE_W = 1440;
 const GAP = 6;
 
@@ -51,12 +53,10 @@ const CFG = {
   COL_OPACITY: 1.00,
 };
 
-const IMAGE_PATH = '/images/how-i-think';
-const IMAGE_COUNT = 10;
-function imageSrc(i: number): string {
-  const n = String((i % IMAGE_COUNT) + 1).padStart(2, '0');
-  return `${IMAGE_PATH}/ThinkGrid_${n}.jpg`;
-}
+// Cover images now resolve through the manifest — THINK_GRID maps
+// each bento slot to a card number, coverImageFor() resolves that
+// number to its flat-folder cover path. See ThinkManifest.ts.
+
 
 export const CARD_DATA = [
   { title: 'Sincerity as the\nsoul of design', tag: 'On intention', subtitle: 'Make every decision mean something', excerpt: 'Every choice — every color, font, line, edge — should carry intent.' },
@@ -131,6 +131,43 @@ function drawVignette(ctx: CanvasRenderingContext2D, rect: Rect) {
   ctx.restore();
 }
 
+// ── Scroll lock — blocks scroll INPUT (wheel, touch-drag, keyboard)
+// without ever touching CSS overflow. The scrollbar track stays
+// permanently visible ('scroll' set once in globals.css) — locking
+// input instead of hiding the track means no layout-width flash from
+// the track appearing/disappearing during open/close transitions.
+let scrollLockActive = false;
+const SCROLL_KEYS = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ']);
+function preventWheel(e: WheelEvent) { e.preventDefault(); }
+function preventTouchMove(e: TouchEvent) { e.preventDefault(); }
+function preventScrollKeys(e: KeyboardEvent) { if (SCROLL_KEYS.has(e.key)) e.preventDefault(); }
+function lockScroll() {
+  if (scrollLockActive) return;
+  scrollLockActive = true;
+  window.addEventListener('wheel', preventWheel, { passive: false });
+  window.addEventListener('touchmove', preventTouchMove, { passive: false });
+  window.addEventListener('keydown', preventScrollKeys, { passive: false });
+}
+function unlockScroll() {
+  if (!scrollLockActive) return;
+  scrollLockActive = false;
+  window.removeEventListener('wheel', preventWheel);
+  window.removeEventListener('touchmove', preventTouchMove);
+  window.removeEventListener('keydown', preventScrollKeys);
+}
+
+// ── Scroll floor — fullview/nav need the page to scroll NORMALLY
+// downward through the detail text, so lockScroll()'s full input-block
+// (right for opening/closing) is wrong here. But once unlockScroll()
+// released input on reaching fullview, nothing stopped scrollY from
+// going ABOVE bandDocYRef — that's the "can scroll above the open card"
+// bug. A passive 'scroll' listener that snaps back the instant scrollY
+// dips below the floor is a one-directional version of the same
+// "instant restore, not an animation driver" pattern closeCard()
+// already uses for its own scrollTo, rather than a second full-block
+// authority competing with normal scroll.
+
+
 interface Rect { x: number; y: number; w: number; h: number; }
 
 interface Props {
@@ -138,6 +175,7 @@ interface Props {
   onClose: () => void;
   onRegisterControls: (step: (dir: number) => void, close: () => void) => void;
   headerRef?: React.RefObject<HTMLDivElement | null>;
+  onBandPositioned?: (docY: number) => void;
 }
 
 function drawImageCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement | undefined, rect: Rect) {
@@ -164,8 +202,8 @@ function drawTitleBlock(ctx: CanvasRenderingContext2D, rect: Rect, title: string
   ctx.rect(rect.x, rect.y, rect.w, rect.h);
   ctx.clip();
   ctx.globalAlpha = alpha;
-  ctx.font = `700 ${size}px Archivo`;
-  ctx.fillStyle = '#fff';
+  ctx.font = `700 ${size}px ${TYPE.display}`;
+  ctx.fillStyle = COLORS.white;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   const lines = title.split('\n');
@@ -204,8 +242,8 @@ function drawBandTitle(
   const padL = 104 * scale;
   const lineH = 55 * scale;
   const padB = 28 * scale; // Work carousel: CH(480) - 48 + HL_Y(20) = 452 → 28 from bottom
-  ctx.font = `700 ${fontSize}px Archivo`;
-  ctx.fillStyle = '#fff';
+  ctx.font = `700 ${fontSize}px ${TYPE.display}`;
+  ctx.fillStyle = COLORS.white;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
   const lines = title.split('\n');
@@ -218,8 +256,8 @@ function drawBandTitle(
   ctx.restore();
 }
 
-export default function ThinkGridCanvas({ onOpen, onClose, onRegisterControls, headerRef }: Props) {
-  const col = useColumn();
+export default function ThinkGridCanvas({ onOpen, onClose, onRegisterControls, headerRef, onBandPositioned }: Props) {
+    const col = useColumn();
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const outerRef = useRef<HTMLDivElement>(null);
@@ -242,16 +280,49 @@ const bandDocYRef = useRef(0);
   const gridDocTopRef = useRef(0);
   const gridDocBottomRef = useRef(99999);
 
+  // Scroll floor — needs bandDocYRef, so it's a per-instance ref-backed
+  // pair rather than the module-level lockScroll()/unlockScroll(). See
+  // the comment above unlockScroll() for why this exists separately.
+  const scrollFloorHandlerRef = useRef<(() => void) | null>(null);
+  function enableScrollFloor() {
+    if (scrollFloorHandlerRef.current) return;
+    const handler = () => {
+      if (window.scrollY < bandDocYRef.current) {
+        window.scrollTo(0, bandDocYRef.current);
+      }
+    };
+    scrollFloorHandlerRef.current = handler;
+    window.addEventListener('scroll', handler, { passive: true });
+  }
+  function disableScrollFloor() {
+    if (scrollFloorHandlerRef.current) {
+      window.removeEventListener('scroll', scrollFloorHandlerRef.current);
+      scrollFloorHandlerRef.current = null;
+    }
+  }
+
   const fromRectRef = useRef<Rect>({ x: 0, y: 0, w: 0, h: 0 });
   const [bandMounted, setBandMounted] = useState(false);
   const [gridVisible, setGridVisible] = useState(false);
 
-  const gridInsetRef = useRef({ offset: 0, scale: 1 });
+const gridInsetRef = useRef({ offset: 0, scale: 1 });
   function cellToScreen(rect: Rect): Rect {
     const { offset, scale } = gridInsetRef.current;
     return { x: offset + rect.x * scale, y: rect.y, w: rect.w * scale, h: rect.h };
   }
 
+  // Analytic version of the live-DOM measurement openCard() does —
+  // needed because the grid is collapsed (no hit-test divs) during
+  // fullview/nav, so a cell's rect can't be read from the DOM at that
+  // point. Same math, same coordinate system (band-canvas-local,
+  // relative to bandDocYRef), just derived instead of measured.
+  function computeCellRect(i: number): Rect {
+    const raw = cellToScreen(LAYOUT[i]);
+    const s = scaleRef.current;
+    const docY = gridDocTopRef.current + raw.y * s;
+    return { x: raw.x * s, y: docY - bandDocYRef.current, w: raw.w * s, h: raw.h * s };
+  }
+  
   // Sizing the band canvas in openCard() itself isn't reliable — after a
   // full close, the portal unmounts it, so on the NEXT open,
   // bandCanvasRef.current is still null at the moment openCard() runs
@@ -271,10 +342,12 @@ useEffect(() => {
 
   const imgsRef = useRef<HTMLImageElement[]>([]);
   const hovIdx = useRef(-1);
-  const onOpenRef = useRef(onOpen);
+const onOpenRef = useRef(onOpen);
   const onCloseRef = useRef(onClose);
+  const onBandPositionedRef = useRef(onBandPositioned);
   onOpenRef.current = onOpen;
   onCloseRef.current = onClose;
+  onBandPositionedRef.current = onBandPositioned;
 
   const zoom = useRef(new Array(N).fill(1));
   const darken = useRef(new Array(N).fill(0));
@@ -337,10 +410,11 @@ useEffect(() => {
     ctx.clearRect(0, 0, NATIVE_W, TOTAL_H);
 
     const m = mode.current;
-    if (m === 'grid') {
+if (m === 'grid') {
       for (let i = 0; i < N; i++) {
         const screenRect = cellToScreen(LAYOUT[i]);
         drawCardAt(ctx, i, screenRect, zoom.current[i], darken.current[i]);
+        drawVignette(ctx, screenRect);
         drawTitleBlock(ctx, screenRect, CARD_DATA[i % CARD_DATA.length].title, titleA.current[i], CFG.TITLE_SIZE);
       }
       return;
@@ -366,7 +440,8 @@ useEffect(() => {
     // here (nothing draws over it) since the band canvas shows it
     // instead, portaled independently of this shrinking container.
     if (ep < 0.999) {
-      for (let i = 0; i < N; i++) {
+
+for (let i = 0; i < N; i++) {
         if (i === oi) continue;
         const r = cellToScreen(LAYOUT[i]);
         // Two-phase fade: image stays while color grows (0→0.6),
@@ -375,8 +450,9 @@ useEffect(() => {
         ctx.save();
         ctx.globalAlpha = fadeAll;
         drawCardAt(ctx, i, r, 1, 0);
+        drawVignette(ctx, r);
         // Color overlay — grows over the image, then fades with it
-const colOp = ep * CFG.COL_OPACITY;
+        const colOp = ep * CFG.COL_OPACITY;
         if (colOp > 0) {
           ctx.globalAlpha = fadeAll * colOp;
           ctx.globalCompositeOperation = 'multiply';
@@ -385,6 +461,10 @@ const colOp = ep * CFG.COL_OPACITY;
         }
         ctx.restore();
       }
+
+
+
+
     }
   }, [drawCardAt]);
 
@@ -518,7 +598,8 @@ const colOp = ep * CFG.COL_OPACITY;
     // always ends up at the top of the page once collapsed, contradicting
     // wherever bandY said the band should be).
 bandDocYRef.current = window.scrollY;
-    const wrapRect = wrapRef.current?.getBoundingClientRect();
+    onBandPositionedRef.current?.(bandDocYRef.current);
+        const wrapRect = wrapRef.current?.getBoundingClientRect();
     if (wrapRect) {
       gridDocTopRef.current = wrapRect.top + window.scrollY;
       gridDocBottomRef.current = gridDocTopRef.current + wrapRect.height;
@@ -538,6 +619,7 @@ bandDocYRef.current = window.scrollY;
     }
 
 document.documentElement.style.overflowX = 'hidden';
+    document.body.style.overflowX = 'hidden';
     setBandMounted(true);
 
     mode.current = 'opening';
@@ -551,9 +633,8 @@ document.documentElement.style.overflowX = 'hidden';
       targetZoom.current[j] = 1; targetDarken.current[j] = 0; targetTitleA.current[j] = 0;
       cellColors.current[j] = pickColor(CFG.COL_RANGE);
     }
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    updateHitLayer();
+        lockScroll();
+        updateHitLayer();
     onOpenRef.current(i);
   }
 
@@ -565,7 +646,14 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
       const bandH = bandCanvasRef.current.width * (BAND_HEIGHT / NATIVE_W);
       if (e.nativeEvent.offsetY > bandH) return;
     }
-    // Restore full grid height + collapse the spacer BEFORE the card
+    // Snap back to exactly where the page was when this card was
+    // opened — instant, not animated — then re-lock scroll for the
+    // shrink animation. The user may have scrolled anywhere while
+    // reading; the shrink assumes the cell is back at its real
+    window.scrollTo(0, bandDocYRef.current);
+    disableScrollFloor();
+    lockScroll();
+        // Restore full grid height + collapse the spacer BEFORE the card
     // starts traveling back — same pairing logic as the height-snap.
     if (wrapRef.current) wrapRef.current.style.height = `${TOTAL_H * scaleRef.current}px`;
     if (spacerRef.current) spacerRef.current.style.height = '0px';
@@ -575,7 +663,6 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     // the card finishes traveling back to its cell.
     onCloseRef.current();
   }
-
   function stepCard(dir: number) {
     if (mode.current !== 'fullview') return;
     navFromIdx.current = openIdx.current;
@@ -594,6 +681,23 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     const dt = Math.min(now - prevTime.current, 50);
     prevTime.current = now;
     const m = mode.current;
+
+// Keep the canvas's actual clickable/hoverable region matched to
+    // what's visibly drawn. In fullview it's locked to just the band
+    // height — otherwise the canvas's full window.innerHeight hit-box
+    // silently swallows scroll/click input meant for the detail-text
+    // column underneath. During opening/closing the card can be
+    // anywhere along its travel path, so keep the looser grid-bound clip.
+    const bandCanvas = bandCanvasRef.current;
+    if (bandCanvas) {
+      const bandHpx = bandCanvas.width * (BAND_HEIGHT / NATIVE_W);
+      if (m === 'fullview' || m === 'nav') {
+        bandCanvas.style.clipPath = `inset(0px 0px ${Math.max(0, bandCanvas.height - bandHpx)}px 0px)`;
+      } else {
+        const bottomInset = Math.max(0, bandDocYRef.current + window.innerHeight - gridDocBottomRef.current);
+        bandCanvas.style.clipPath = `inset(0px 0px ${bottomInset}px 0px)`;
+      }
+    }
 
     const sp = clamp(dt / (CFG.HOVER_SPEED * 0.45), 0, 1);
     let dirty = false;
@@ -615,7 +719,7 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
         const sp2 = clamp(dt / CFG.TRANSITION_DURATION * 2.2, 0, 1);
         const target = m === 'opening' ? 1 : 0;
         openProg.current = lerp(openProg.current, target, sp2);
-        if (Math.abs(openProg.current - target) < 0.006) {
+if (Math.abs(openProg.current - target) < 0.006) {
           openProg.current = target;
           if (m === 'opening') {
             mode.current = 'fullview';
@@ -633,13 +737,23 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
             // stage.top shift removed — the band no longer lives inside
             // stage's clipped/scaled coordinate system at all, so there's
             // nothing here that needs realigning with it anymore.
-// Header stays at its natural height, just transformed
+            // Header stays at its natural height, just transformed
             // offscreen — don't actually remove its layout space, because
             // doing so shortens the page and invalidates the band's
             // document-coordinate position (which was computed from
-            // scrollY before the page got shorter).            updateHitLayer();
-} else {
-            mode.current = 'grid';
+            // scrollY before the page got shorter).
+            updateHitLayer();
+            // Growth animation is done — release the scroll lock so the
+            // page (and the band riding along in it) scrolls normally.
+            // Only vertical overflow is released; overflowX stays locked
+            // until full close, same as before.
+            unlockScroll();
+            // Now that free scroll is allowed, keep it from going
+            // ABOVE the band — the "open cards are the top of the
+            // page" invariant.
+            enableScrollFloor();
+            } else {
+                        mode.current = 'grid';
             openIdx.current = -1;
             // Redraw the grid FIRST (with the card back in its cell)
             // BEFORE unmounting the band — otherwise there's a frame gap
@@ -658,10 +772,9 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
             // while it's still mounted causes a scrollbar flash.
             requestAnimationFrame(() => {
               document.documentElement.style.overflowX = '';
-              document.body.style.overflow = '';
-              document.documentElement.style.overflow = '';
+              document.body.style.overflowX = '';
             });
-
+            unlockScroll();
             bandTitleProg.current = 0;
             bandTitleStart.current = 0;
             for (let j = 0; j < N; j++) {
@@ -711,15 +824,20 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
       navProg.current = lerp(navProg.current, 1, sp);
 
       // Swap content at ~50% — update openIdx, trigger incoming title
-      if (navProg.current >= 0.5 && !navSwapped.current) {
+if (navProg.current >= 0.5 && !navSwapped.current) {
         navSwapped.current = true;
         openIdx.current = navToIdx.current;
+        // Keep fromRectRef in sync with whichever card is actually
+        // open — without this, closing after a nav step shrinks back
+        // into the ORIGINALLY opened card's cell, not the current
+        // one (the intermittent wrong-slot-then-pop bug).
+        fromRectRef.current = computeCellRect(navToIdx.current);
         // Incoming title: start immediately (no geometric trigger during nav),
         // shorter duration (350ms vs 1000ms for initial open)
         bandTitleStart.current = now;
         onOpenRef.current(navToIdx.current);
       }
-
+      
       // Drive incoming title during nav (same mechanism as open, but faster)
       if (navSwapped.current && bandTitleStart.current > 0) {
         const elapsed = now - bandTitleStart.current;
@@ -756,9 +874,9 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
   }, [render, renderBand, updateHitLayer]);
 
   useEffect(() => {
-    imgsRef.current = Array.from({ length: N }, (_, i) => {
+imgsRef.current = Array.from({ length: N }, (_, i) => {
       const img = new Image();
-      img.src = imageSrc(i);
+      img.src = coverImageFor(THINK_GRID[i]);
       img.onload = () => render();
       return img;
     });
@@ -787,10 +905,15 @@ if (bandCanvasRef.current && mode.current !== 'grid') {
     updateHitLayer();
     rafRef.current = requestAnimationFrame(tick);
 
-    return () => {
+return () => {
       window.removeEventListener('resize', scaleStage);
       cancelAnimationFrame(rafRef.current);
+      document.documentElement.style.overflowX = '';
+      document.body.style.overflowX = '';
+      unlockScroll();
+      disableScrollFloor();
     };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick, render, updateHitLayer, col.vw, col.marginVw]);
 
@@ -831,7 +954,7 @@ if (bandCanvasRef.current && mode.current !== 'grid') {
       </div>
       <div ref={spacerRef} style={{ height: 0 }} />
 {bandMounted && createPortal(
-        <canvas
+<canvas
           ref={bandCanvasRef}
           onClick={closeCard}
           style={{
@@ -840,11 +963,6 @@ if (bandCanvasRef.current && mode.current !== 'grid') {
             left: 0,
             zIndex: 10,
             cursor: 'pointer',
-            // Clip so the closing card sinks back into the grid rather
-            // than flying over the footer. Top clip is relative to the
-            // canvas's own top edge; bottom clip limits how far below
-            // the band the card can be seen — the grid's bottom edge.
-            clipPath: `inset(0px 0px ${Math.max(0, bandDocYRef.current + window.innerHeight - gridDocBottomRef.current)}px 0px)`,
           }}
         />,
         document.body

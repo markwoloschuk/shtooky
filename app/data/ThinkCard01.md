@@ -1,29 +1,31 @@
-[title] 
-Sincerity is the soul of design
-
-[card_image]
-
-
-
-[narrowtitle]
-Sincerity is the[br]
-soul of design
-
-[subtitle]
-Make every decision mean something.
+---
+title: Ours is to reason why
+narrowtitle: Ours is to[br]reason why
+subtitle: Make every decision <mean> something.
+imagePath: /images/think/01/
+---
 
 [paragraph]
-There's a version of design that's really just decoration wearing a suit. It looks purposeful. It has a grid. Someone picked the fonts carefully. But underneath, nothing means anything — the choices were made because they looked right, not because they were right. That's the failure mode I try hardest to avoid.
-
-[paragraph]
-Sincere design is more effective design. Not because sincerity is a virtue — though it is — but because every element that means what it says is an element doing its job. Nothing is coasting. Nothing is there because it looked good in the comp. The typeface carries the tone. The color earns its place. The layout reflects the hierarchy of ideas, not the hierarchy of what was easiest to arrange.
-
-[paragraph]
-I once got a brief to make a product launch video for something genuinely strange and new. The brief told me to sell it like something familiar. I could have done that — and it would have been fine. Competent. Forgettable. Instead I pushed for the true story, the weird story, the one that actually reflected what the thing was. That version was more interesting because it was more honest.
+Sometimes, a seemingly attractive design is just decoration in a nice suit. It looks purposeful. It has a grid – pretty colors - nice fonts. But underneath, nothing means anything — the choices were made because they looked right, not because they were right.
 
 [pullquote]
-Decoration performs.[br] 
-Design <means> it.
+I <try> very hard[br]
+not to do this.
 
 [paragraph]
+When we design with meaning we bring purpose to our choices. Every decision answers a question. Why this typeface? Why this color? Why this animation? Why this headline? If you can't explain a choice beyond "it looked cool," you probably haven't justified it yet.
+
+[pullquote]
+<Design>, don't decorate.
+
+[paragraph]
+I love making stickers – they're like the mini-cupcakes of the design world – small, fun and tasty. But even with a small canvas, the bigger rules still apply. Every element has to earn its place because there's room for only so many choices. We can lard them up with creative sprinkles, but too many might obscure the message we hope to deliver. Less is, most often, actually more.
+
+[paragraph]
+And it's just as true when the canvas is truly large. I've designed for large screens in Times Square, Las Vegas and even for tech billboards along the 101. Large scale media needs to be simple – in both copy and visual content. Pixels are free – attention isn't.
+
 The difference isn't always visible at first glance. But it's always felt. Audiences are better than we give them credit for — they can sense when something was made with intention and when it was made to fill a space. Sincerity is what separates the two. It's not a style. It's a decision you make before you open the software.
+
+[pullquote]
+Have a reaon[br]
+for <every> choice

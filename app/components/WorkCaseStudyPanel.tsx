@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { TYPE, COLORS } from './Tokens'
 
-//const PINK = '#e0057a'
 const PINK = COLORS.work
 const FADE_DUR = 2000
 const FADE_OFFSET = 25
@@ -228,7 +227,7 @@ function toEmbed(url: string) {
 }
 
 const navBtnStyle: React.CSSProperties = {
-  background: '#e0057a', border: 'none', color: '#fff', fontSize: 20,
+  background: PINK, border: 'none', color: COLORS.white, fontSize: 20,
   width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
 }
 

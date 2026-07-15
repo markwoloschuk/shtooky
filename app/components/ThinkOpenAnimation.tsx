@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Lottie from 'lottie-react';
-import { useColumn, NAV } from './Tokens';
+import { useColumn, NAV, COLORS } from './Tokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 export const CONFIG = {
@@ -361,7 +361,7 @@ export default function ThinkOpenAnimation() {
                 left: 0,
                 top: 0,
                 borderRadius: '50%',
-                background: '#fff',
+                background: COLORS.white,
                 opacity: 0,
                 pointerEvents: 'none',
               }}
