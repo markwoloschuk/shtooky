@@ -1,10 +1,13 @@
 "use client"
 
-// HeroAnimation.tsx — shtooky.com
-// Combines OpeningAnimation and WelcomeTagline into a single self-sizing component.
-// Measures its own width and sets height as a ratio — no fixed px needed.
-// Place inside ContentColumn. Set width 100%, no fixed height needed.
-// \u2019 will give you an apostrophe
+// HeroAnimationTwoLine.tsx — shtooky.com
+// Two-line variant of HeroAnimation for narrow viewports.
+// Line 1 (static): "I'm a creative"
+// Line 2 (carousel): cycles single-word/short titles, resolves to "problem solver"
+// Shares the same crossfade + color-settle mechanics as HeroAnimation.tsx.
+// NOTE: color helpers (rgbToHsl/hslToRgb/colorToWhite/etc.) are duplicated here,
+// not yet shared — deferred bonus item: extract into a shared module once both
+// files' color math is fully settled.
 
 import { useEffect, useRef, useState } from "react"
 import { TYPE, COLORS, TIMING } from "./Tokens"
@@ -12,54 +15,54 @@ import { TYPE, COLORS, TIMING } from "./Tokens"
 // ─── TUNING ──────────────────────────────────────────────────────────────────
 
 const CFG = {
-    FADE_DUR: 1500,
+    FADE_DUR: 1500,        // line 1 static entrance fade
     TRAVEL_PX: 70,
-    DELAY_MS: 50,
+    DELAY_MS: 50,          // line 2 carousel start offset, relative to line 1
     CAR_DUR: 2100,
     REACH_START: 80,
     REACH_END: 50,
-    // SHIFT_DUR: 2000,  ← remove
-    COLOR_SETTLE_DELAY: 80,   // ms after crossfade fully completes before color starts moving
-    COLOR_SETTLE_DUR: 1200,    // ms for the color-to-white transition itself
-    NUM_ENTRIES: 10,
-    TAGLINE_DELAY: 2050,
+    COLOR_SETTLE_DELAY: 80,
+    COLOR_SETTLE_DUR: 1200,
+    NUM_ENTRIES: 8,        // pool has 14 unique words — tune how many cycle through
+    LINE_GAP: 0.00000000000000000000000000000000000000000000000000000000000001,        // gap between line 1 and line 2, as a fraction of lineH — tune by eye
+    TAGLINE_DELAY: 2050,   // same starting point as HeroAnimation.tsx — may need nudging
     TAGLINE_DUR: 1500,
     TAGLINE_Y: 10,
 }
 
 const SCROLL_FADE = {
-    fadeStart: 170, // scrollY where fade-out begins
-    fadeEnd: 340, // scrollY where fade-out completes
+    fadeStart: 170,
+    fadeEnd: 340,
 }
 
-const RATIO = 0.12 // height = width × RATIO — adjust to taste
+const RATIO = 0.22 // height = width × RATIO — starting point for 2-line + tagline, tune by eye
 
 // ─── CONTENT ─────────────────────────────────────────────────────────────────
 
+const LINE1 = "I\u2019m a creative"
+
 const POOL = [
-    "thoughtful designer",
-    "visual storyteller",
-    "design thinker",
-    "pixel sculptor",
-    "motion craftsperson",
+    "designer",
+    "storyteller",
+    "thinker",
+    "observer",
+    "director",
+    "documentarian",
+    "photographer",
+    "writer",
+    "pixel pusher",
+    "motion artist",
+    "idea generator",
     "brand builder",
-    "idea machine",
-    "detail observer",
     "light chaser",
     "color lover",
-    "narrative architect",
-    "lateral thinker",
-    "documentarian",
-    "general specialist",
-    "curious cat",
-    "sincere director",
 ]
-const FINAL = "creative problem solver"
+const FINAL = "problem solver"
 
 const TAGLINES = [
     "I like to make things, but even more I like to figure out what they should be.",
     "I\u2019ve got empathy for clients AND their audience. It gets us on the same page.",
-    "I ask a lot of questions at the start. It prevents a lot of problems at the end.",
+    "I ask a lot of questions at the start. It prevents a lot of problems in the end.",
     "I\u2019ve shipped some great ideas – but also improved some less great ones.",
     "I zoom between details and big picture so I don\u2019t get lost in either.",
     "From concept to completion — or any stop along the way.",
@@ -98,18 +101,6 @@ function rgbStr(c: [number, number, number]): string {
     return `rgb(${c[0]},${c[1]},${c[2]})`
 }
 
-function lerpRgb(
-    a: [number, number, number],
-    b: [number, number, number],
-    t: number
-): [number, number, number] {
-    return [
-        Math.round(a[0] + (b[0] - a[0]) * t),
-        Math.round(a[1] + (b[1] - a[1]) * t),
-        Math.round(a[2] + (b[2] - a[2]) * t),
-    ]
-}
-
 function rgbToHsl(rgb: [number, number, number]): [number, number, number] {
     const r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255
     const max = Math.max(r, g, b), min = Math.min(r, g, b)
@@ -145,26 +136,18 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
     ]
 }
 
-function colorToWhite(color: [number, number, number], t: number): [number, number, number] {
-    const [h, s, l] = rgbToHsl(color)
-    const lT = easeOutQuart(t)   // lightness climbs fast — brightens early
-    const sT = Math.pow(t, 2.2) // saturation holds, only falls late
-    const newL = l + (1 - l) * lT
-    const newS = s * (1 - sT)
-    return hslToRgb(h, newS, newL)
-}
-
-
-function buildColors(n: number): [number, number, number][] {
-    const s = Math.floor(Math.random() * NG) / (NG - 1)
-    return Array.from({ length: n }, (_, i) =>
-        gradientAt(s + i * (1 / (NG - 1)))
-    )
-}
-
 function easeOutQuart(t: number): number {
     t = Math.min(t, 1)
     return 1 - Math.pow(1 - t, 4)
+}
+
+function colorToWhite(color: [number, number, number], t: number): [number, number, number] {
+    const [h, s, l] = rgbToHsl(color)
+    const lT = easeOutQuart(t)
+    const sT = Math.pow(t, 2.2)
+    const newL = l + (1 - l) * lT
+    const newS = s * (1 - sT)
+    return hslToRgb(h, newS, newL)
 }
 
 function easeInOutCubic(t: number): number {
@@ -200,7 +183,7 @@ function measureText(
 const FONT_DISPLAY = TYPE.display
 const WHITE_RGB: [number, number, number] = [255, 255, 255]
 
-export default function HeroAnimation({
+export default function HeroAnimationTwoLine({
     autoPlay = true,
 }: {
     autoPlay?: boolean
@@ -217,8 +200,8 @@ export default function HeroAnimation({
         let hasResolved = false
         let resolvedNCar = 0
         let resolvedColors: [number, number, number][] = []
+        let resolvedLineH = 0
 
-        // ── ResizeObserver — sets component height ──────────────────────────
         const resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const w = entry.contentRect.width
@@ -228,27 +211,21 @@ export default function HeroAnimation({
         resizeObserver.observe(wrap)
 
         // ── DOM elements ────────────────────────────────────────────────────
-        const stage = document.createElement("div")
-        const staticEl = document.createElement("span")
+        const line1El = document.createElement("div")
         const carouselAnchor = document.createElement("div")
+        const finalEl = document.createElement("div")
         const slotOuter = document.createElement("div")
         const slotTrack = document.createElement("div")
-        const finalEl = document.createElement("div")
         const taglineEl = document.createElement("div")
 
         function buildDOM() {
             wrap.innerHTML = ""
 
-            // Opening animation stage
-            stage.style.cssText = `
+            line1El.textContent = LINE1
+            line1El.style.cssText = `
                 position: absolute;
-                overflow: visible;
                 left: 0;
                 top: 0;
-                transform: none;
-                display: flex;
-                align-items: flex-start;
-                gap: 0.3em;
                 font-family: ${FONT_DISPLAY};
                 font-weight: ${TYPE.OPENING.weight};
                 letter-spacing: ${TYPE.OPENING.tracking}em;
@@ -256,12 +233,22 @@ export default function HeroAnimation({
                 white-space: nowrap;
                 pointer-events: none;
             `
-            wrap.appendChild(stage)
+            wrap.appendChild(line1El)
 
-            staticEl.textContent = "I\u2019m a"
-            stage.appendChild(staticEl)
+            carouselAnchor.style.cssText = `
+                position: absolute;
+                left: 0;
+                top: 0;
+                font-family: ${FONT_DISPLAY};
+                font-weight: ${TYPE.OPENING.weight};
+                letter-spacing: ${TYPE.OPENING.tracking}em;
+                white-space: nowrap;
+                pointer-events: none;
+            `
+            wrap.appendChild(carouselAnchor)
 
- finalEl.style.cssText = `
+            // finalEl sits BENEATH slotOuter (stacking-order fix — see HeroAnimation.tsx)
+            finalEl.style.cssText = `
                 position: absolute;
                 left: 0;
                 top: 0;
@@ -271,13 +258,7 @@ export default function HeroAnimation({
                 pointer-events: none;
                 will-change: transform;
             `
-
-            carouselAnchor.style.cssText = `
-                display: inline-block;
-                vertical-align: top;
-                position: relative;
-            `
-            stage.appendChild(carouselAnchor)
+            carouselAnchor.appendChild(finalEl)
 
             slotOuter.style.cssText = `
                 display: block;
@@ -293,11 +274,7 @@ export default function HeroAnimation({
             `
             slotOuter.appendChild(slotTrack)
 
-            carouselAnchor.appendChild(finalEl)
-
-            // Tagline
-            const tagline =
-                TAGLINES[Math.floor(Math.random() * TAGLINES.length)]
+            const tagline = TAGLINES[Math.floor(Math.random() * TAGLINES.length)]
             taglineEl.textContent = tagline
             taglineEl.style.cssText = `
                 position: absolute;
@@ -317,12 +294,7 @@ export default function HeroAnimation({
             wrap.appendChild(taglineEl)
         }
 
-        function setMask(
-            outerH: number,
-            lH: number,
-            padding: number,
-            reach: number
-        ) {
+        function setMask(outerH: number, lH: number, padding: number, reach: number) {
             const c = lH
             const t0 = Math.max(0, c - lH / 2 - reach)
             const t1 = c - lH / 2
@@ -334,104 +306,85 @@ export default function HeroAnimation({
         }
 
         function calcLayout() {
-            const fontSize = Math.round(
-                window.innerWidth * (TYPE.OPENING.sizeVw / 100)
-            )
+            const fontSize = Math.round(window.innerWidth * (TYPE.OPENING.sizeVw / 100))
             const fontSizeStr = fontSize + "px"
-            const lineH = measureText(
-                "A",
-                fontSizeStr,
-                FONT_DISPLAY,
-                TYPE.OPENING.weight
-            ).h
+            const lineH = measureText("A", fontSizeStr, FONT_DISPLAY, TYPE.OPENING.weight).h
             const scale = fontSize / 34
             const travelPx = Math.round(CFG.TRAVEL_PX * scale)
             const reachStart = Math.round(CFG.REACH_START * scale)
             const reachEnd = Math.round(CFG.REACH_END * scale)
-            const carSeq = shuffle(POOL).slice(
-                0,
-                Math.max(4, CFG.NUM_ENTRIES - 1)
-            )
+            const carSeq = shuffle(POOL).slice(0, Math.max(3, CFG.NUM_ENTRIES - 1))
             const nCar = carSeq.length
-            const allColors = buildColors(nCar + 1)
+            const allColors = (() => {
+                const s = Math.floor(Math.random() * NG) / (NG - 1)
+                return Array.from({ length: nCar + 1 }, (_, i) =>
+                    gradientAt(s + i * (1 / (NG - 1)))
+                )
+            })()
             let maxW = 0
             ;[...carSeq, FINAL].forEach((p) => {
-                const { w } = measureText(
-                    p,
-                    fontSizeStr,
-                    FONT_DISPLAY,
-                    TYPE.OPENING.weight
-                )
+                const { w } = measureText(p, fontSizeStr, FONT_DISPLAY, TYPE.OPENING.weight)
                 if (w > maxW) maxW = w
             })
             const padding = Math.max(travelPx, lineH + reachStart + 4)
-            return {
-                fontSize,
-                fontSizeStr,
-                lineH,
-                travelPx,
-                reachStart,
-                reachEnd,
-                carSeq,
-                nCar,
-                allColors,
-                maxW,
-                padding,
-            }
+            const capH = Math.round(lineH * 0.76)
+            const lineGap = Math.round(capH * CFG.LINE_GAP)
+            return { fontSize, fontSizeStr, lineH, capH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding, lineGap }
         }
 
-        function positionTagline(lineH: number) {
-            // Sits just below the opening text line
+        function positionTagline(capH: number, lineGap: number) {
             const gap = 5
-            const capH = Math.round(lineH * 0.76)
-            taglineEl.style.top = capH + gap + "px"
+            taglineEl.style.top = capH + lineGap + capH + gap + "px"
         }
 
         function applyResolvedState(
             fontSizeStr: string,
             lineH: number,
+            capH: number,
+            lineGap: number,
             padding: number,
             maxW: number,
-            nCar: number,
-            colors: [number, number, number][]
+            nCar: number
         ) {
-            stage.style.fontSize = fontSizeStr
-            staticEl.style.cssText = `opacity:1;transform:translateY(0);display:inline-block;white-space:nowrap;`
+            line1El.style.fontSize = fontSizeStr
+            line1El.style.cssText += `opacity:1;transform:translateY(0);`
+
+            carouselAnchor.style.fontSize = fontSizeStr
+            carouselAnchor.style.top = capH + lineGap + "px"
+
             const outerH = lineH + padding * 2
             slotOuter.style.height = outerH + "px"
             slotOuter.style.width = maxW + "px"
             slotOuter.style.opacity = "0"
             slotOuter.style.maskImage = "none"
             ;(slotOuter.style as any).webkitMaskImage = "none"
+
             finalEl.style.fontSize = fontSizeStr
             finalEl.style.lineHeight = lineH + "px"
             finalEl.style.top = "0px"
             finalEl.style.opacity = "1"
             finalEl.style.color = "rgb(255,255,255)"
             finalEl.textContent = FINAL
-            positionTagline(lineH)
+
+            positionTagline(capH, lineGap)
         }
 
         function play() {
-            const {
-                fontSizeStr,
-                lineH,
-                travelPx,
-                reachStart,
-                reachEnd,
-                carSeq,
-                nCar,
-                allColors,
-                maxW,
-                padding,
-            } = calcLayout()
+            const { fontSizeStr, lineH, capH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding, lineGap } = calcLayout()
 
             resolvedNCar = nCar
             resolvedColors = allColors
+            resolvedLineH = lineH
             const finalColor = allColors[nCar]
 
-            stage.style.fontSize = fontSizeStr
-            staticEl.style.cssText = `opacity:0;transform:translateY(${travelPx}px);display:inline-block;white-space:nowrap;`
+            // Line 1
+            line1El.style.fontSize = fontSizeStr
+            line1El.style.cssText += `opacity:0;transform:translateY(${travelPx}px);`
+
+            // Line 2 (carousel)
+            carouselAnchor.style.fontSize = fontSizeStr
+            carouselAnchor.style.top = capH + lineGap + "px"
+
             const outerH = lineH + padding * 2
             slotOuter.style.height = outerH + "px"
             slotOuter.style.width = maxW + "px"
@@ -458,7 +411,7 @@ export default function HeroAnimation({
             finalEl.style.opacity = "0"
             finalEl.textContent = FINAL
 
-            positionTagline(lineH)
+            positionTagline(capH, lineGap)
 
             const t0 = performance.now()
 
@@ -466,11 +419,13 @@ export default function HeroAnimation({
                 if (!running) return
                 const elapsed = now - t0
 
+                // Line 1 fade/rise
                 const lp = Math.min(elapsed / CFG.FADE_DUR, 1)
                 const le = easeOutQuart(lp)
-                staticEl.style.opacity = le.toFixed(4)
-                staticEl.style.transform = `translateY(${(CFG.TRAVEL_PX * (1 - le)).toFixed(2)}px)`
+                line1El.style.opacity = le.toFixed(4)
+                line1El.style.transform = `translateY(${(CFG.TRAVEL_PX * (1 - le)).toFixed(2)}px)`
 
+                // Line 2 carousel
                 const ct = Math.max(0, elapsed - CFG.DELAY_MS)
                 const cp = Math.min(ct / CFG.CAR_DUR, 1)
                 const ce = easeOutQuart(cp)
@@ -482,22 +437,22 @@ export default function HeroAnimation({
                 const reach = reachStart + (reachEnd - reachStart) * ce
                 setMask(outerH, lineH, padding, reach)
 
-const fadeT = Math.max(0, (cp - 0.5) / 0.5)
-const fadeE = easeInOutCubic(fadeT)
-slotOuter.style.opacity = (1 - fadeE).toFixed(4)
-finalEl.style.opacity = cp >= 0.5 ? "1" : "0"
+                // Crossfade — finalEl solid underneath, slotOuter fades away on top
+                const fadeT = Math.max(0, (cp - 0.5) / 0.5)
+                const fadeE = easeInOutCubic(fadeT)
+                slotOuter.style.opacity = (1 - fadeE).toFixed(4)
+                finalEl.style.opacity = cp >= 0.5 ? "1" : "0"
 
-const settleElapsed = Math.max(0, ct - CFG.CAR_DUR - CFG.COLOR_SETTLE_DELAY)
-const colorP = Math.min(settleElapsed / CFG.COLOR_SETTLE_DUR, 1)
-finalEl.style.color = rgbStr(
-    colorToWhite(finalColor, colorP)
-)
+                // Color settle — only begins once crossfade is fully resolved
+                const settleElapsed = Math.max(0, ct - CFG.CAR_DUR - CFG.COLOR_SETTLE_DELAY)
+                const colorP = Math.min(settleElapsed / CFG.COLOR_SETTLE_DUR, 1)
+                finalEl.style.color = rgbStr(colorToWhite(finalColor, colorP))
 
-if (lp < 1 || cp < 1 || colorP < 1) {
+                if (lp < 1 || cp < 1 || colorP < 1) {
                     rafId = requestAnimationFrame(frame)
                 } else {
-                    staticEl.style.opacity = "1"
-                    staticEl.style.transform = "translateY(0)"
+                    line1El.style.opacity = "1"
+                    line1El.style.transform = "translateY(0)"
                     slotOuter.style.opacity = "0"
                     finalEl.style.top = "0px"
                     finalEl.style.opacity = "1"
@@ -509,10 +464,8 @@ if (lp < 1 || cp < 1 || colorP < 1) {
 
             rafId = requestAnimationFrame(frame)
 
-            // Tagline fade in
-            let taglineTimer: ReturnType<typeof setTimeout> | null = null
             let taglineRaf = 0
-            taglineTimer = setTimeout(() => {
+            setTimeout(() => {
                 if (!running) return
                 taglineEl.style.transform = `translateY(${CFG.TAGLINE_Y}px)`
                 taglineEl.style.opacity = "0"
@@ -535,36 +488,25 @@ if (lp < 1 || cp < 1 || colorP < 1) {
         }
 
         let resizeTimer: ReturnType<typeof setTimeout> | null = null
-
         function handleResize() {
             if (resizeTimer) clearTimeout(resizeTimer)
             resizeTimer = setTimeout(() => {
                 if (!running) return
                 if (hasResolved) {
-                    const { fontSizeStr, lineH, padding, maxW } = calcLayout()
-                    applyResolvedState(
-                        fontSizeStr,
-                        lineH,
-                        padding,
-                        maxW,
-                        resolvedNCar,
-                        resolvedColors
-                    )
+                    const { fontSizeStr, lineH, capH, lineGap, padding, maxW } = calcLayout()
+                    applyResolvedState(fontSizeStr, lineH, capH, lineGap, padding, maxW, resolvedNCar)
                 }
             }, 100)
         }
 
         function handleScroll() {
             const scrollY = window.scrollY
-            const raw =
-                (scrollY - SCROLL_FADE.fadeStart) /
-                (SCROLL_FADE.fadeEnd - SCROLL_FADE.fadeStart)
+            const raw = (scrollY - SCROLL_FADE.fadeStart) / (SCROLL_FADE.fadeEnd - SCROLL_FADE.fadeStart)
             const opacity = 1 - Math.max(0, Math.min(1, raw))
             wrap.style.opacity = opacity.toFixed(3)
         }
 
         window.addEventListener("scroll", handleScroll, { passive: true })
-
         window.addEventListener("resize", handleResize)
         buildDOM()
 
