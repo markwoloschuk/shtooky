@@ -5,10 +5,6 @@ subtitle: Fall in love with the problem, not your solutions.
 imagePath: /images/think/13/
 ---
 
-[pullquote]
-That’s <just>[br] 
-your opinion man.
-
 [paragraph]
 One of the easiest traps in creative work is confusing your idea with the answer. I've done it myself. You spend hours refining a concept, and before long you're defending it because it's yours—not because it's the best solution anymore. Ideas don't deserve loyalty. Problems do.
 

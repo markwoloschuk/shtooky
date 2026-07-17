@@ -1,7 +1,7 @@
 ---
 title: Ours is to reason why
 narrowtitle: Ours is to[br]reason why
-subtitle: Make every decision <mean> something.
+subtitle: Make every decision mean something.
 imagePath: /images/think/01/
 ---
 
