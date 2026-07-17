@@ -1,22 +1,38 @@
 ---
 title: Done is better than perfect
 narrowtitle: Done is better[br]than perfect
-subtitle: Make every decision <mean> something.
+subtitle: Creative work is never finished, only abandoned.
 imagePath: /images/think/08/
 ---
 
 [paragraph]
-The line is usually attributed to da Vinci, who apparently said that art is never finished, only abandoned. Paul Valéry said something similar about poems. The observation is old enough and universal enough that it must be true: there is no internal moment in creative work where it declares itself complete. The decision to stop is always external — a deadline, a budget, a client, a launch date. Left entirely to the creator, most work would never leave the room.
+Some attribute this quote to Leonardo DaVinci, others to Paul Valéry. I first heard it from a visual fx artist. But it doesn’t matter who said it – it’s true. 
 
 [paragraph]
-Perfectionism is often fear with a thesaurus. It uses the language of high standards to avoid the vulnerability of shipping. If it's not finished, it can't be judged. If it can't be judged, it can't fail. This logic is airtight and completely corrosive. The only work the world ever sees is work that was released. The only feedback that actually improves your practice is feedback on something real. The perfect version of a piece no one sees has taught you nothing.
+I have never missed a deadline. I mention this not to brag but because it's genuinely surprising to me in retrospect. I've worked on projects that felt impossible. Death-march timelines, last-minute pivots, clients who changed their minds at 11pm the night before delivery. And every time, something shipped.
 
 [pullquote]
-The world judges the work[br]
-that <ships>, not the work that almost did.
+Ship happened
 
 [paragraph]
-I've killed more than one piece of work by over-finishing it. There's a stage in most projects where the thing is good — genuinely, functionally, communicatively good — and instead of shipping it, I kept working on it until something essential leaked out. The edge dulled. The urgency went soft. I'd optimized for smoothness at the expense of life. Sometimes the rough version was the real version and I polished it into something else.
+It shipped because at some point I made peace with this truth. You don't reach completion, you reach the moment where the cost of one more round exceeds the value it adds. Then you let go. Knowing when to push and when to ship is a valuable creative skill.
+
+[pullquote]
+We judge work that <ships>
+not work that almost did
 
 [paragraph]
-Done is not a compromise. It's a discipline. It means knowing what the work needs to do and stopping once it can do that. It means resisting the pull to fix one more thing when the thing you'd fix doesn't actually matter. It means trusting the audience to bring something to the work — their own intelligence, their own context, their own interpretation. Not every gap needs to be filled by the maker. Some of them are where the audience gets to live.
+I once raced my motorcycle across the Golden Gate bridge to hand deliver motion graphics for a Wired Magazine awards show. I handed over the assets less than an hour before the show was supposed to air. The client furiously composing an alternative program. They were also furious.
+
+[paragraph]
+To be clear – it wasn’t my fault. The studio I was working for had overpromised, overcommitted and – in the end – massively over delivered. In trying to go beyond the client’s needs and desires they had risked failing to meet them. Not only did they damage the relationship with their client they also damaged it with me, the other contractors, and their employers.
+ 
+[pullquote]
+Respect your team
+respect the process
+
+[paragraph]
+You will always be able to find something to change. That's not a reason to keep changing it. At some point the thing has to go live, ship, print, air, post. The world needs to see it more than it needs one more round.
+
+[paragraph]
+Let go. Ship it. Make the next thing better.

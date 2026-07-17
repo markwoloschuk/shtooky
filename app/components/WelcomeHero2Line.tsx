@@ -8,6 +8,14 @@
 // NOTE: color helpers (rgbToHsl/hslToRgb/colorToWhite/etc.) are duplicated here,
 // not yet shared — deferred bonus item: extract into a shared module once both
 // files' color math is fully settled.
+//
+// LINE-GAP FIX: line-2 positioning previously used `lineH * 0.76` as a guessed
+// approximation of visual cap-height (borrowed from the tagline code). For this
+// font that guess overestimates the real glyph height, so most of the visible
+// gap was a fixed baked-in error — LINE_GAP could shrink to near-zero without
+// closing it. Now uses canvas actualBoundingBoxAscent/Descent to measure the
+// TRUE rendered glyph height, and LINE_GAP_PX is a plain, independent pixel
+// value on top of that — no ratio, no guessing.
 
 import { useEffect, useRef, useState } from "react"
 import { TYPE, COLORS, TIMING } from "./Tokens"
@@ -24,7 +32,10 @@ const CFG = {
     COLOR_SETTLE_DELAY: 80,
     COLOR_SETTLE_DUR: 1200,
     NUM_ENTRIES: 8,        // pool has 14 unique words — tune how many cycle through
-    LINE_GAP: 0.00000000000000000000000000000000000000000000000000000000000001,        // gap between line 1 and line 2, as a fraction of lineH — tune by eye
+    LINE_GAP_PX: 1.5,        // gap between line 1 and line 2, plain pixels at reference scale — tune by eye, 0 = touching
+
+    TAGLINE_GAP_PX: 35,   // gap between "problem solver" and the subtitle below it — tune by eye
+
     TAGLINE_DELAY: 2050,   // same starting point as HeroAnimation.tsx — may need nudging
     TAGLINE_DUR: 1500,
     TAGLINE_Y: 10,
@@ -178,6 +189,22 @@ function measureText(
     return r
 }
 
+// Measures the TRUE rendered height of glyphs (ascent+descent of actual ink),
+// not the font's inflated line-box. Used to position line 2 tight against
+// line 1's real visual bottom edge, independent of any guessed ratio.
+let measureCanvas: HTMLCanvasElement | null = null
+function measureGlyphHeight(
+    fontSizeStr: string,
+    fontFamily: string,
+    fontWeight: number
+): number {
+    if (!measureCanvas) measureCanvas = document.createElement("canvas")
+    const ctx = measureCanvas.getContext("2d")!
+    ctx.font = `${fontWeight} ${fontSizeStr} ${fontFamily}`
+    const m = ctx.measureText("Apgy") // mix of cap height + descenders
+    return Math.ceil(m.actualBoundingBoxAscent + m.actualBoundingBoxDescent)
+}
+
 // ─── COMPONENT ───────────────────────────────────────────────────────────────
 
 const FONT_DISPLAY = TYPE.display
@@ -309,6 +336,7 @@ export default function HeroAnimationTwoLine({
             const fontSize = Math.round(window.innerWidth * (TYPE.OPENING.sizeVw / 100))
             const fontSizeStr = fontSize + "px"
             const lineH = measureText("A", fontSizeStr, FONT_DISPLAY, TYPE.OPENING.weight).h
+            const glyphH = measureGlyphHeight(fontSizeStr, FONT_DISPLAY, TYPE.OPENING.weight)
             const scale = fontSize / 34
             const travelPx = Math.round(CFG.TRAVEL_PX * scale)
             const reachStart = Math.round(CFG.REACH_START * scale)
@@ -327,20 +355,19 @@ export default function HeroAnimationTwoLine({
                 if (w > maxW) maxW = w
             })
             const padding = Math.max(travelPx, lineH + reachStart + 4)
-            const capH = Math.round(lineH * 0.76)
-            const lineGap = Math.round(capH * CFG.LINE_GAP)
-            return { fontSize, fontSizeStr, lineH, capH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding, lineGap }
+            const lineGap = Math.round(CFG.LINE_GAP_PX * scale)
+            return { fontSize, fontSizeStr, lineH, glyphH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding, lineGap }
         }
 
-        function positionTagline(capH: number, lineGap: number) {
-            const gap = 5
-            taglineEl.style.top = capH + lineGap + capH + gap + "px"
-        }
+
+function positionTagline(glyphH: number, lineGap: number) {
+    taglineEl.style.top = glyphH + lineGap + glyphH + CFG.TAGLINE_GAP_PX + "px"
+}
 
         function applyResolvedState(
             fontSizeStr: string,
             lineH: number,
-            capH: number,
+            glyphH: number,
             lineGap: number,
             padding: number,
             maxW: number,
@@ -350,7 +377,7 @@ export default function HeroAnimationTwoLine({
             line1El.style.cssText += `opacity:1;transform:translateY(0);`
 
             carouselAnchor.style.fontSize = fontSizeStr
-            carouselAnchor.style.top = capH + lineGap + "px"
+            carouselAnchor.style.top = glyphH + lineGap + "px"
 
             const outerH = lineH + padding * 2
             slotOuter.style.height = outerH + "px"
@@ -366,11 +393,11 @@ export default function HeroAnimationTwoLine({
             finalEl.style.color = "rgb(255,255,255)"
             finalEl.textContent = FINAL
 
-            positionTagline(capH, lineGap)
+            positionTagline(glyphH, lineGap)
         }
 
         function play() {
-            const { fontSizeStr, lineH, capH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding, lineGap } = calcLayout()
+            const { fontSizeStr, lineH, glyphH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding, lineGap } = calcLayout()
 
             resolvedNCar = nCar
             resolvedColors = allColors
@@ -383,7 +410,7 @@ export default function HeroAnimationTwoLine({
 
             // Line 2 (carousel)
             carouselAnchor.style.fontSize = fontSizeStr
-            carouselAnchor.style.top = capH + lineGap + "px"
+            carouselAnchor.style.top = glyphH + lineGap + "px"
 
             const outerH = lineH + padding * 2
             slotOuter.style.height = outerH + "px"
@@ -411,7 +438,7 @@ export default function HeroAnimationTwoLine({
             finalEl.style.opacity = "0"
             finalEl.textContent = FINAL
 
-            positionTagline(capH, lineGap)
+            positionTagline(glyphH, lineGap)
 
             const t0 = performance.now()
 
@@ -493,8 +520,8 @@ export default function HeroAnimationTwoLine({
             resizeTimer = setTimeout(() => {
                 if (!running) return
                 if (hasResolved) {
-                    const { fontSizeStr, lineH, capH, lineGap, padding, maxW } = calcLayout()
-                    applyResolvedState(fontSizeStr, lineH, capH, lineGap, padding, maxW, resolvedNCar)
+                    const { fontSizeStr, lineH, glyphH, lineGap, padding, maxW } = calcLayout()
+                    applyResolvedState(fontSizeStr, lineH, glyphH, lineGap, padding, maxW, resolvedNCar)
                 }
             }, 100)
         }

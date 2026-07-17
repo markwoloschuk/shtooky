@@ -6,17 +6,31 @@ imagePath: /images/think/09/
 ---
 
 [paragraph]
-A design system is an act of communication at a different scale. Not just "here are the components" — but "here is how this brand thinks, how it speaks, what it values, how it moves." Every decision that gets encoded into a system is a decision that doesn't have to be made again, which sounds like efficiency and is actually something much better: accumulated trust. Audiences learn the language. Once they know it, you can say more with less.
-
-[paragraph]
-A system isn't a cage — it's a vocabulary. The constraint that looks like limitation is actually the thing that makes expression possible. You can't write a sentence if words don't have stable meanings. You can't build a visual language if every element means something different every time. The rules don't prevent creativity. They create the shared ground that creativity needs to be legible.
+I was at a really great outdoor dance party once* — the kind where the music is fantastic, the crowd is super positive, and you end up dancing with strangers you'd never otherwise meet. The man next to me was older – maybe seventy – moving with an energy that belied his age. His t-shirt said, in large letters: SAME, SAME, SAME. I assumed it was an ironic jab at overlay repetitive EDM – it wasn't.
 
 [pullquote]
-Audiences don't reward novelty.[br]
-They reward <recognition>.
+Unique snowflakes?
 
 [paragraph]
-I worked on a brand rollout where we had to produce hundreds of pieces across a dozen markets. The instinct at that scale is always to give each market some freedom to "make it their own." We did the opposite — we tightened the system, made the rules explicit, and trusted it. The result was a campaign where every touchpoint reinforced every other touchpoint. It felt like a single voice speaking in many rooms at once. The power wasn't in any one piece. It was in the accumulation.
+We got talking. He told me the shirt was a philosophy. Even though we are all unique, we are also — underneath everything — the same, same, same. The consistency underneath the variation is what connects us. I think about that shirt a lot.
 
 [paragraph]
-Consistency is a gift to your audience. Every time something behaves as expected, it earns a small deposit of trust. That trust compounds. Once an audience has learned how you speak, they stop spending cognitive energy on decoding and start spending it on receiving. That's when the work can actually land — not just be seen, but felt. That's what a shared language buys you.
+Consistency in design isn't repetition. It's a shared language — a set of agreements that makes every individual piece smarter by connecting it to something larger. A color palette. A recurring motif. A typographic system. Every system has its own vocabulary: colors, type, motion, language, imagery, hierarchy.  Each is a way of saying, "These things belong together."
+
+[paragraph]
+These aren't constraints. They're the conversation happening underneath the conversation. They’re a lattice of connections forming a structure to support the overall vision.
+
+[pullquote]
+Same <and> different
+
+[paragraph]
+I once designed a set of cards with 100 different words for fire from around the world. Each one featured a different language and its own color identity. Using After Effects I had mapped out 100 unique colors from the kelvin temperature spectrum, from deep red amber to bright blue-white flame. Each card was unique but all 100 were unmistakably part of a set.
+
+[paragraph]
+The consistency was what made the individuality meaningful. Without the shared system, a hundred different colors is just noise. With it, it's a spectrum. It's a story.
+
+[paragraph]
+Build the system first. Then let the pieces be themselves inside it.
+
+[paragraph]
+* I’ve actually been to many of these. They’re literally one of my favorite things and ONE of the reasons I started DJ-ing.
