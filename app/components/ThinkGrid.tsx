@@ -15,8 +15,8 @@ export const CONFIG = {
   ACCENT: '#D6DE23',      // COLORS.thinking — also used by ThinkPageController
                            // for the cut-tag color and close button
 
-  FADE_DELAY_MS: 4500,    // starts once the blurb's own fade finishes (currently 3500)
-  FADE_DURATION_MS: 1000, // matches the blurb's fade duration
+  FADE_DELAY_MS: 0,    // starts once the blurb's own fade finishes (currently 3500)
+  FADE_DURATION_MS: 0, // matches the blurb's fade duration
 };
 
 // Same 1440-wide reference canvas as ThinkOpenAnimation's NATIVE_W — block

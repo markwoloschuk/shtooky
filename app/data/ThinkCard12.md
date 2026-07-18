@@ -22,24 +22,24 @@ We were’t exaggerating
 we were <lying.>
 
 [paragraph]
-I've noticed a similar pattern throughout creative work. The strongest ideas usually aren't invented—they're uncovered. Every product, company, or person has something genuinely interesting about them. The job isn't to manufacture excitement. It's to discover what deserves it.
+I’ve noticed a similar pattern throughout creative work. The strongest ideas usually aren’t invented—they’re uncovered. Every product, company, or person has something genuinely interesting about them. The job isn’t to manufacture excitement. It’s to discover what deserves it.
 
 [pullquote]
 <Discovering> the story
 not inventing it.
 
 [paragraph]
-That doesn't mean telling every truth equally. Good storytelling is still selective. You choose what to emphasize. You frame. You simplify. But there's an important difference between focus and fabrication. Audiences can feel that difference, even when they can't explain it.
+That doesn’t mean telling every truth equally. Good storytelling is still selective. You choose what to emphasize. You frame. You simplify. But there’s an important difference between focus and fabrication. Audiences can feel that difference, even when they can’t explain it.
 
 [pullquote]
 Sincerity is a form of <respect.>
 
 [paragraph]
-It means believing people don't need to be tricked into caring. You don't need misleading headlines, endless pop-ups, or carefully engineered confusion to create engagement. Those tactics may improve a metric, but they damage something much harder to earn: trust.
+It means believing people don’t need to be tricked into caring. You don’t need misleading headlines, endless pop-ups, or carefully engineered confusion to create engagement. Those tactics may improve a metric, but they damage something much harder to earn: trust.
 
 [paragraph]
-The same is true in design. Don't hide complexity where it matters. Don't exaggerate benefits that aren't there. Don't solve today's conversion problem by creating tomorrow's credibility problem.
-I'd rather make something people believe than something they merely click.
+The same is true in design. Don’t hide complexity where it matters. Don’t exaggerate benefits that aren’t there. Don’t solve today’s conversion problem by creating tomorrow’s credibility problem.
+I’d rather make something people believe than something they merely click.
 
 [paragraph]
-Good design doesn't make people wonder what you meant. It helps them understand what matters.
+Good design doesn’t make people wonder what you meant. It helps them understand what matters.

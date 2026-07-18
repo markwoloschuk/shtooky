@@ -13,7 +13,7 @@ const CONFIG = {
   FONT_SIZE_MAX: 34,      // px
   LINE_HEIGHT: 1.3,
 
-  FADE_DELAY_MS: 3500,    // starts 5s after this component mounts, which is
+  FADE_DELAY_MS: 2500,    // starts 5s after this component mounts, which is
                            // effectively "5s after the think animation
                            // starts" since both mount together in page.tsx
   FADE_DURATION_MS: 1000,

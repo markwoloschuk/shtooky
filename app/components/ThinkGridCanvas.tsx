@@ -44,32 +44,23 @@ export { NATIVE_W };
 const CFG = {
   HOVER_SPEED: 500,
   HOVER_ZOOM: 1.10,
-  OVERLAY_DARKEN: 0.60,
+  OVERLAY_DARKEN: 0.85,
   TITLE_SIZE: 25,
-  FADE_DELAY_MS: 4500,
-  FADE_DURATION_MS: 1000,
+  FADE_DELAY_MS: 3000,
+  FADE_DURATION_MS: 2000,
   TRANSITION_DURATION: 750,
   COL_RANGE: 0.40,
   COL_OPACITY: 1.00,
 };
 
-// Cover images now resolve through the manifest — THINK_GRID maps
-// each bento slot to a card number, coverImageFor() resolves that
-// number to its flat-folder cover path. See ThinkManifest.ts.
-
-
-export const CARD_DATA = [
-  { title: 'Sincerity as the\nsoul of design', tag: 'On intention', subtitle: 'Make every decision mean something', excerpt: 'Every choice — every color, font, line, edge — should carry intent.' },
-  { title: 'Seeing with\nyour heart', tag: 'On empathy', subtitle: 'Empathy is the lens that focuses design', excerpt: 'The empathy lens is what helps you see the emotional hooks and where they can be placed.' },
-  { title: 'Be a zoom lens', tag: 'On scale', subtitle: 'Relish the details but paint a bigger picture', excerpt: 'A designer who only sees pixels misses the point. A designer who only sees the picture misses the craft.' },
-  { title: 'WYSIWYG?', tag: 'On perspective', subtitle: 'What you see depends on where you stand', excerpt: 'Two people looking at the same design see different things — informed by their experience, expertise, agenda.' },
-  { title: 'Design is a\nconversation', tag: 'On dialogue', subtitle: "The brief starts the conversation, it doesn't end it", excerpt: 'Good design is never a monologue.' },
-  { title: 'Paper is cheap', tag: 'On iteration', subtitle: 'Lo-fi exploration leads to hi-fi results', excerpt: 'The faster you can be wrong, the sooner you can be right.' },
-  { title: "Iterate but\ndon't thrash", tag: 'On rhythm', subtitle: 'Patience is a creative skill, so is knowing when to move on', excerpt: 'Iteration without convergence is thrashing. The skill is recognizing the difference.' },
-  { title: 'Done is better\nthan perfect', tag: 'On shipping', subtitle: 'Creative work is never finished, only abandoned', excerpt: 'Perfectionism is often fear with a thesaurus. Done is the only thing the world ever sees.' },
-  { title: 'Consistency\ncreates connection', tag: 'On systems', subtitle: 'A shared language makes design speak more clearly', excerpt: "A system isn't a cage — it's a vocabulary." },
-  { title: 'An uncomfortable hug?', tag: 'On change', subtitle: 'Embracing AI requires faith in change', excerpt: "The hug is uncomfortable. It's still a hug." },
-];
+// Cover images resolve through the manifest — THINK_GRID maps each bento
+// slot to a card number, coverImageFor() resolves that number to its
+// flat-folder cover path. See ThinkManifest.ts.
+//
+// Titles resolve the same way, via /api/think/manifest — fetched once on
+// mount below and looked up through THINK_GRID (see titleForSlot()), so
+// slot→card resolution is identical for images and titles instead of
+// titles bypassing THINK_GRID entirely.
 
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 function clamp(v: number, a: number, b: number) { return Math.max(a, Math.min(b, v)); }
@@ -341,6 +332,11 @@ useEffect(() => {
   }, [bandMounted]);
 
   const imgsRef = useRef<HTMLImageElement[]>([]);
+  // cardNum -> narrowtitle text, [br] already converted to '\n' to match
+  // drawTitleBlock()/drawBandTitle()'s existing title.split('\n') parsing.
+  // Populated once by the fetch effect below; empty until then (mirrors
+  // how a cover image renders blank until its own onload fires).
+  const titlesRef = useRef<Record<number, string>>({});
   const hovIdx = useRef(-1);
 const onOpenRef = useRef(onOpen);
   const onCloseRef = useRef(onClose);
@@ -402,6 +398,14 @@ const onOpenRef = useRef(onOpen);
     ctx.restore();
   }, []);
 
+  // Slot index -> THINK_GRID -> card number -> fetched narrowtitle.
+  // Mirrors coverImageFor(THINK_GRID[i]) exactly, so title lookup can no
+  // longer drift out of sync with image lookup if THINK_GRID is reordered.
+  function titleForSlot(slot: number): string {
+    const cardNum = THINK_GRID[slot];
+    return titlesRef.current[cardNum] ?? '';
+  }
+
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -415,7 +419,7 @@ if (m === 'grid') {
         const screenRect = cellToScreen(LAYOUT[i]);
         drawCardAt(ctx, i, screenRect, zoom.current[i], darken.current[i]);
         drawVignette(ctx, screenRect);
-        drawTitleBlock(ctx, screenRect, CARD_DATA[i % CARD_DATA.length].title, titleA.current[i], CFG.TITLE_SIZE);
+        drawTitleBlock(ctx, screenRect, titleForSlot(i), titleA.current[i], CFG.TITLE_SIZE);
       }
       return;
     }
@@ -520,7 +524,7 @@ for (let i = 0; i < N; i++) {
         const titleOutSlide = -nd * 30 * s * (1 - titleOutAlpha);
         ctx.save();
         ctx.translate(titleOutSlide, 0);
-        drawBandTitle(ctx, to, to, CARD_DATA[nf % CARD_DATA.length].title, titleOutAlpha, s, 0);
+        drawBandTitle(ctx, to, to, titleForSlot(nf), titleOutAlpha, s, 0);
         ctx.restore();
       }
 
@@ -531,7 +535,7 @@ for (let i = 0; i < N; i++) {
         const titleInSlide = nd * 30 * s * (1 - tp);
         ctx.save();
         ctx.translate(titleInSlide, 0);
-        drawBandTitle(ctx, to, to, CARD_DATA[nt % CARD_DATA.length].title, tp, s, 0);
+        drawBandTitle(ctx, to, to, titleForSlot(nt), tp, s, 0);
         ctx.restore();
       }
       return;
@@ -552,7 +556,7 @@ for (let i = 0; i < N; i++) {
     const tp = isClosing ? titleEaseIn(rawTP) : titleEaseOut(rawTP);
     const riseNative = isClosing ? 20 : 30;
     const riseOffset = (1 - tp) * riseNative * s;
-    drawBandTitle(ctx, cur, to, CARD_DATA[oi % CARD_DATA.length].title, tp, s, riseOffset);
+    drawBandTitle(ctx, cur, to, titleForSlot(oi), tp, s, riseOffset);
   }, [drawCardAt]);
 
   const updateHitLayer = useCallback(() => {
@@ -880,6 +884,23 @@ imgsRef.current = Array.from({ length: N }, (_, i) => {
       img.onload = () => render();
       return img;
     });
+
+    // Titles fetched once in bulk (all 13 cards' frontmatter) rather than
+    // per-card, then looked up via titleForSlot() at draw time. Same
+    // fire-and-render-on-arrival pattern as the cover images above.
+    fetch('/api/think/manifest')
+      .then(r => r.json())
+      .then((data: Record<string, { title: string; narrowtitle: string }>) => {
+        const titles: Record<number, string> = {};
+        for (const [cardNum, fields] of Object.entries(data)) {
+          titles[Number(cardNum)] = fields.narrowtitle.split('[br]').join('\n');
+        }
+        titlesRef.current = titles;
+        render();
+      })
+      .catch(() => {
+        // Manifest fetch failed — grid still renders, just with blank titles.
+      });
 
     const scaleStage = () => {
       const wrap = wrapRef.current;

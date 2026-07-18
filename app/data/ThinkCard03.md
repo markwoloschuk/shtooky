@@ -6,17 +6,17 @@ imagePath: /images/think/03/
 ---
 
 [paragraph]
-I once got in trouble when visiting the SF MOMA. Actually it was a LOT of times. I wasn’t being disruptive or touching something I shouldn't have. I had just drifted up a little too close to a painting. A docent appeared from out of nowhere and informed me I needed to step back. So I did. I took in the full composition for a while – and then I drifted close again. More admonishment. Rinse and repeat – I couldn't help it. To really appreciate something I like to get wide and close.
+I once got in trouble when visiting the SF MOMA. Actually it was a LOT of times. I wasn’t being disruptive or touching something I shouldn’t have. I had just drifted up a little too close to a painting. A docent appeared from out of nowhere and informed me I needed to step back. So I did. I took in the full composition for a while – and then I drifted close again. More admonishment. Rinse and repeat – I couldn’t help it. To really appreciate something I like to get wide and close.
 
 
 [paragraph]
-That's the zoom lens practice. Moving deliberately between detail and context. Tight enough to see the craft, wide enough to understand the composition. Never so deep in the work you lose the room. Never so far back you lose what makes it worth looking at in the first place.
+That’s the zoom lens practice. Moving deliberately between detail and context. Tight enough to see the craft, wide enough to understand the composition. Never so deep in the work you lose the room. Never so far back you lose what makes it worth looking at in the first place.
 
 [pullquote]
 The forest <AND> the trees
 
 [paragraph]
-I think of it as a discipline because it requires actual effort to move. It's easy to get comfortable at one focal length. The detail work is satisfying — there's always something to refine — one more pixel to push. The big picture thinking is energizing — there's always a grander vision to get excited about. The hard part is remembering to do both – deliberately and on purpose — throughout the process.
+I think of it as a discipline because it requires actual effort to move. It’s easy to get comfortable at one focal length. The detail work is satisfying — there’s always something to refine — one more pixel to push. The big picture thinking is energizing — there’s always a grander vision to get excited about. The hard part is remembering to do both – deliberately and on purpose — throughout the process.
 
 [pullquote]
 Literally the <coolest> party

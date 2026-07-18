@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { TYPE, COLORS } from './Tokens'
+import Gallery from './Gallery'
 
 const ACCENT = COLORS.thinking
-const FADE_DUR = 2000
+const FADE_DUR = 1000
 const FADE_OFFSET = 25
 
 interface Frontmatter {
@@ -17,6 +18,22 @@ interface Frontmatter {
 interface Block {
   type: 'paragraph' | 'pullquote' | 'video-carousel' | 'gallery' | 'img'
   content: string
+}
+
+interface GalleryOffset {
+  index: number   // 1-based, matches image position in folder order
+  x: number       // position nudge, % (default 0)
+  y: number       // position nudge, % (default 0)
+  scale: number   // % (default 100 = no change)
+}
+
+interface GalleryData {
+  source: string          // folder name (relative to imagePath) or full path
+  columns: number         // desktop grid column count ("Nup")
+  crop?: '4by3' | '16by9' | '1by1'  // omitted = native image aspect ratio
+  noClick?: boolean       // true = disable lightbox
+  heroHeight?: number     // px; omitted = no hero, straight grid
+  offsets: GalleryOffset[]
 }
 
 interface ParsedCard {
@@ -59,6 +76,60 @@ function parseFrontmatter(raw: string): { fm: Frontmatter; rest: string } {
 function resolveImagePath(imagePath: string, filename: string): string {
   const base = imagePath.endsWith('/') ? imagePath : `${imagePath}/`
   return `${base}${filename}`
+}
+
+// Parses a [gallery] block body. Expected shape:
+//   folderName-or-/full/path/
+//   Nup, crop(optional: 4by3|16by9|1by1), noClick(optional)
+//   hero, heightPx        <- entire line omitted = no hero
+//   offset {
+//     [1, 20x, 50y, 100s],
+//     [4, -50x, 25y, 120s]
+//   }
+// Missing offset x/y/s values default to 0/0/100 (no change).
+function parseGalleryBlock(content: string): GalleryData {
+  const lines = content.split('\n').map(l => l.trim()).filter(Boolean)
+
+  const source = lines[0] ?? ''
+
+  const line2 = (lines[1] ?? '').split(',').map(s => s.trim())
+  const columns = parseInt(line2[0]?.replace(/up$/i, '') ?? '', 10) || 3
+  const CROP_TOKENS = new Set(['4by3', '16by9', '1by1'])
+  let crop: GalleryData['crop']
+  let noClick = false
+  for (const tok of line2.slice(1)) {
+    if (CROP_TOKENS.has(tok)) crop = tok as GalleryData['crop']
+    if (tok === 'noClick') noClick = true
+  }
+
+  let heroHeight: number | undefined
+  let offsetStartLine = 2
+  if (lines[2]?.toLowerCase().startsWith('hero')) {
+    const parts = lines[2].split(',').map(s => s.trim())
+    heroHeight = parseInt(parts[1] ?? '', 10) || undefined
+    offsetStartLine = 3
+  }
+
+  const offsets: GalleryOffset[] = []
+  const remaining = lines.slice(offsetStartLine).join(' ')
+  const offsetMatch = remaining.match(/offset\s*\{([\s\S]*)\}/)
+  if (offsetMatch) {
+    const entries = offsetMatch[1].match(/\[[^\]]+\]/g) ?? []
+    for (const entry of entries) {
+      const parts = entry.slice(1, -1).split(',').map(s => s.trim())
+      const index = parseInt(parts[0], 10)
+      if (isNaN(index)) continue
+      let x = 0, y = 0, scale = 100
+      for (const p of parts.slice(1)) {
+        if (p.endsWith('x')) x = parseFloat(p) || 0
+        else if (p.endsWith('y')) y = parseFloat(p) || 0
+        else if (p.endsWith('s')) scale = parseFloat(p) || 100
+      }
+      offsets.push({ index, x, y, scale })
+    }
+  }
+
+  return { source, columns, crop, noClick, heroHeight, offsets }
 }
 
 function parseMd(raw: string): ParsedCard {
@@ -189,11 +260,13 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
         }
 
         if (block.type === 'gallery') {
-          const folder = block.content.trim()
-          const path = resolveImagePath(fm.imagePath, folder)
+          const gallery = parseGalleryBlock(block.content)
+          const path = gallery.source.includes('/')
+            ? gallery.source
+            : resolveImagePath(fm.imagePath, gallery.source)
           return (
             <div key={i} style={style}>
-              <GalleryInline path={path} />
+              <GalleryInline path={path} gallery={gallery} />
             </div>
           )
         }
@@ -278,10 +351,6 @@ const navBtnStyle: React.CSSProperties = {
   width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
 }
 
-function GalleryInline({ path }: { path: string }) {
-  return (
-    <div style={{ marginBottom: 28, color: 'rgba(255,255,255,0.3)', fontSize: 13, fontFamily: TYPE.display }}>
-      [Gallery: {path}]
-    </div>
-  )
+function GalleryInline({ path, gallery }: { path: string; gallery: GalleryData }) {
+  return <Gallery path={path} gallery={gallery} />
 }
