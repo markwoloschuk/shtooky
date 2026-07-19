@@ -44,10 +44,10 @@ export { NATIVE_W };
 const CFG = {
   HOVER_SPEED: 500,
   HOVER_ZOOM: 1.10,
-  OVERLAY_DARKEN: 0.85,
+  OVERLAY_DARKEN: 0.60,
   TITLE_SIZE: 25,
-  FADE_DELAY_MS: 3000,
-  FADE_DURATION_MS: 2000,
+  FADE_DELAY_MS: 4500,
+  FADE_DURATION_MS: 1000,
   TRANSITION_DURATION: 750,
   COL_RANGE: 0.40,
   COL_OPACITY: 1.00,
@@ -332,11 +332,12 @@ useEffect(() => {
   }, [bandMounted]);
 
   const imgsRef = useRef<HTMLImageElement[]>([]);
-  // cardNum -> narrowtitle text, [br] already converted to '\n' to match
-  // drawTitleBlock()/drawBandTitle()'s existing title.split('\n') parsing.
-  // Populated once by the fetch effect below; empty until then (mirrors
-  // how a cover image renders blank until its own onload fires).
-  const titlesRef = useRef<Record<number, string>>({});
+  // cardNum -> { title, narrowtitle } text, [br] already converted to '\n' in
+  // both fields to match drawTitleBlock()/drawBandTitle()'s existing
+  // title.split('\n') parsing. Populated once by the fetch effect below;
+  // empty until then (mirrors how a cover image renders blank until its
+  // own onload fires).
+  const titlesRef = useRef<Record<number, { title: string; narrowtitle: string }>>({});
   const hovIdx = useRef(-1);
 const onOpenRef = useRef(onOpen);
   const onCloseRef = useRef(onClose);
@@ -398,12 +399,20 @@ const onOpenRef = useRef(onOpen);
     ctx.restore();
   }, []);
 
-  // Slot index -> THINK_GRID -> card number -> fetched narrowtitle.
+  // Slot index -> THINK_GRID -> card number -> fetched title.
   // Mirrors coverImageFor(THINK_GRID[i]) exactly, so title lookup can no
   // longer drift out of sync with image lookup if THINK_GRID is reordered.
+  //
+  // Grid tiles use the SHORT title (narrowtitle) — sized for the tight
+  // card space. The expanded/band view uses the LONG title (title) —
+  // these are two different fields, not the same text at two sizes.
   function titleForSlot(slot: number): string {
     const cardNum = THINK_GRID[slot];
-    return titlesRef.current[cardNum] ?? '';
+    return titlesRef.current[cardNum]?.narrowtitle ?? '';
+  }
+  function bandTitleForSlot(slot: number): string {
+    const cardNum = THINK_GRID[slot];
+    return titlesRef.current[cardNum]?.title ?? '';
   }
 
   const render = useCallback(() => {
@@ -524,7 +533,7 @@ for (let i = 0; i < N; i++) {
         const titleOutSlide = -nd * 30 * s * (1 - titleOutAlpha);
         ctx.save();
         ctx.translate(titleOutSlide, 0);
-        drawBandTitle(ctx, to, to, titleForSlot(nf), titleOutAlpha, s, 0);
+        drawBandTitle(ctx, to, to, bandTitleForSlot(nf), titleOutAlpha, s, 0);
         ctx.restore();
       }
 
@@ -535,7 +544,7 @@ for (let i = 0; i < N; i++) {
         const titleInSlide = nd * 30 * s * (1 - tp);
         ctx.save();
         ctx.translate(titleInSlide, 0);
-        drawBandTitle(ctx, to, to, titleForSlot(nt), tp, s, 0);
+        drawBandTitle(ctx, to, to, bandTitleForSlot(nt), tp, s, 0);
         ctx.restore();
       }
       return;
@@ -556,7 +565,7 @@ for (let i = 0; i < N; i++) {
     const tp = isClosing ? titleEaseIn(rawTP) : titleEaseOut(rawTP);
     const riseNative = isClosing ? 20 : 30;
     const riseOffset = (1 - tp) * riseNative * s;
-    drawBandTitle(ctx, cur, to, titleForSlot(oi), tp, s, riseOffset);
+    drawBandTitle(ctx, cur, to, bandTitleForSlot(oi), tp, s, riseOffset);
   }, [drawCardAt]);
 
   const updateHitLayer = useCallback(() => {
@@ -891,9 +900,12 @@ imgsRef.current = Array.from({ length: N }, (_, i) => {
     fetch('/api/think/manifest')
       .then(r => r.json())
       .then((data: Record<string, { title: string; narrowtitle: string }>) => {
-        const titles: Record<number, string> = {};
+        const titles: Record<number, { title: string; narrowtitle: string }> = {};
         for (const [cardNum, fields] of Object.entries(data)) {
-          titles[Number(cardNum)] = fields.narrowtitle.split('[br]').join('\n');
+          titles[Number(cardNum)] = {
+            title: fields.title.split('[br]').join('\n'),
+            narrowtitle: fields.narrowtitle.split('[br]').join('\n'),
+          };
         }
         titlesRef.current = titles;
         render();
