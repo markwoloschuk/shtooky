@@ -1,7 +1,13 @@
 'use client'
 
+// TYPE ROLES USED IN THIS FILE:
+//   body paragraphs      → TYPE_TIERS.CASE_BODY  (sizePx, weight, lineHeight, tracking)
+//   card subtitle        → TYPE_TIERS.SUBTITLE   (sizePx, weight)
+//   pull-quote blocks    → TYPE_TIERS.PULLQUOTE  (sizePx, weight, lineHeight)
+//   figcaption / counter → TYPE_TIERS.CAPTION    (sizePx — matched, not yet wired)
+
 import { useEffect, useState } from 'react'
-import { TYPE, COLORS } from './Tokens'
+import { TYPE, COLORS, useType } from './Tokens'
 import Gallery from './Gallery'
 
 const ACCENT = COLORS.thinking
@@ -157,6 +163,7 @@ interface Props {
 }
 
 export default function ThinkCasePanel({ cardFile, visible }: Props) {
+  const type = useType()
   const [parsed, setParsed] = useState<ParsedCard | null>(null)
   const [blockOps, setBlockOps] = useState<number[]>([])
 
@@ -206,8 +213,8 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
         transition: `opacity ${FADE_DUR}ms ease`,
       }}>
         <p style={{
-          fontSize: 22,
-          fontWeight: 700,
+          fontSize: type.SUBTITLE.sizePx,
+          fontWeight: type.SUBTITLE.weight,
           color: COLORS.white,
           fontFamily: TYPE.display,
           margin: 0,
@@ -224,7 +231,7 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
 
         if (block.type === 'paragraph') {
           return (
-            <p key={i} style={{ ...style, fontSize: 17, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, maxWidth: 760, marginBottom: 28, fontFamily: TYPE.display }}>
+            <p key={i} style={{ ...style, fontSize: type.CASE_BODY.sizePx, fontWeight: type.CASE_BODY.weight, lineHeight: type.CASE_BODY.lineHeight, letterSpacing: `${type.CASE_BODY.tracking}em`, color: 'rgba(255,255,255,0.6)', maxWidth: 760, marginBottom: 28, fontFamily: TYPE.display }}>
               {parseAccents(block.content)}
             </p>
           )
@@ -232,7 +239,7 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
 
         if (block.type === 'pullquote') {
           return (
-            <p key={i} style={{ ...style, fontSize: 32, fontWeight: 700, lineHeight: 1.2, color: COLORS.white, maxWidth: 760, marginBottom: 28, fontFamily: TYPE.display }}>
+            <p key={i} style={{ ...style, fontSize: type.PULLQUOTE.sizePx, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, color: COLORS.white, maxWidth: 760, marginBottom: 28, fontFamily: TYPE.display }}>
               {parseAccents(block.content)}
             </p>
           )

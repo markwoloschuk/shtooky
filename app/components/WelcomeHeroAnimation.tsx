@@ -1,5 +1,9 @@
 "use client"
 
+// TYPE ROLES USED IN THIS FILE:
+//   opening headline  → TYPE_TIERS.OPENING  (sizeVw — read via getType() for breakpoint-awareness)
+//   tagline paragraph → TYPE_TIERS.TAGLINE   (weight, tracking, lineHeight)
+
 // HeroAnimation.tsx — shtooky.com
 // Combines OpeningAnimation and WelcomeTagline into a single self-sizing component.
 // Measures its own width and sets height as a ratio — no fixed px needed.
@@ -7,7 +11,7 @@
 // \u2019 will give you an apostrophe
 
 import { useEffect, useRef, useState } from "react"
-import { TYPE, COLORS, TIMING } from "./Tokens"
+import { TYPE, COLORS, TIMING, getType } from "./Tokens"
 
 // ─── TUNING ──────────────────────────────────────────────────────────────────
 
@@ -335,7 +339,7 @@ export default function HeroAnimation({
 
         function calcLayout() {
             const fontSize = Math.round(
-                window.innerWidth * (TYPE.OPENING.sizeVw / 100)
+                window.innerWidth * (getType().OPENING.sizeVw / 100)
             )
             const fontSizeStr = fontSize + "px"
             const lineH = measureText(

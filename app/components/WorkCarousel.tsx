@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { WORK_MANIFEST } from '../data/WorkManifest'
-import { TYPE, COLORS } from './Tokens'
+import { TYPE, COLORS, useType, useColumn } from './Tokens'
 
 // ── Locked animation constants (from work_carousel_v30.html) ─────────────────
 const CFG = {
@@ -110,7 +110,13 @@ interface Props {
   onRegisterControls: (step: (dir: number) => void, close: () => void) => void
 }
 
-export default function WorkCarousel({ onOpen, onClose, activeIdx, onRegisterControls }: Props) {const canvasRef    = useRef<HTMLCanvasElement>(null)
+// TYPE ROLES USED IN THIS FILE:
+//   resting-state headline → TYPE_TIERS.OPENING  (sizeVw, weight, tracking, lineHeight)
+
+export default function WorkCarousel({ onOpen, onClose, activeIdx, onRegisterControls }: Props) {
+const col  = useColumn()
+const type = useType()
+const canvasRef    = useRef<HTMLCanvasElement>(null)
 const fadeRan = useRef(false)
   const hitRef       = useRef<HTMLDivElement>(null)
 const fullHitRef   = useRef<HTMLDivElement>(null)
@@ -712,9 +718,9 @@ style={{ width: '100%', position: 'relative', background: '#000', overflow: 'hid
 {/* Carousel text — resting state headline + subhead */}
       <div
   ref={carTextRef}
-  style={{ position: 'absolute', top: '100%', left: '7.2222%', width: 900, pointerEvents: 'none', zIndex: 1, marginTop: 24, opacity: 0, transform: 'translateY(12px)' }}
+  style={{ position: 'absolute', top: '100%', left: '7.2222%', width: `${col.vw}vw`, pointerEvents: 'none', zIndex: 1, marginTop: 24, opacity: 0, transform: 'translateY(12px)' }}
 >
-           <p style={{ fontSize: 'clamp(28px, 4vw, 52px)', fontWeight: 700, lineHeight: 1.05, letterSpacing: '-0.025em', color: '#fff', margin: '0 0 10px 0', fontFamily: TYPE.display }}>
+           <p style={{ fontSize: `${type.OPENING.sizeVw}vw`, fontWeight: type.OPENING.weight, lineHeight: type.OPENING.lineHeight, letterSpacing: `${type.OPENING.tracking}em`, color: '#fff', margin: '0 0 10px 0', fontFamily: TYPE.display }}>
   <span style={{ display: 'block' }}><span style={{ color: COLORS.work }}>The work</span> reveals the process.</span>
   <span style={{ display: 'block' }}>The process reveals <span style={{ color: COLORS.work }}>the person.</span></span>
 </p>

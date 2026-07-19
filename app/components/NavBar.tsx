@@ -5,10 +5,14 @@
 // Adjust left /right padding at line 819
 
 "use client"
+
+// TYPE ROLES USED IN THIS FILE:
+//   wordmark ("mark woloschuk")  → TYPE_TIERS.NAV_NAME (sizePx — read via getType() in applyLayout())
+//   subtitle / strip height      → derived from nameW / NAV constants (no separate token)
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { PAGES, COLORS, NAV, FOOTER, getActivePage } from "../components/Tokens"
+import { PAGES, COLORS, NAV, FOOTER, getActivePage, getType } from "../components/Tokens"
 
 // ── Locked defaults (from v18 prototype) ─────────────────────
 const S = {
@@ -90,13 +94,13 @@ function measH(span: HTMLElement, fs: number, fw: string): number {
     return span.getBoundingClientRect().height
 }
 
-function getNameWidth(span: HTMLElement): number {
+function getNameWidth(span: HTMLElement, fontSize = S.fontSize): number {
     return (
         Math.ceil(
             meas(
                 span,
                 "mark woloschuk",
-                S.fontSize,
+                fontSize,
                 "700",
                 "-0.01em",
                 "lowercase"
@@ -394,8 +398,21 @@ useEffect(() => {
         // ── Layout ──────────────────────────────────────────────────
         function applyLayout() {
             if (st.glitched) return
-            const nameW = getNameWidth(ms!)
-            const nameH = measH(ms!, S.fontSize, "700") * .73
+
+            // Breakpoint-aware name size (re-evaluated on every resize)
+            const nameFontSize = getType().NAV_NAME.sizePx
+            const scale = nameFontSize / NAV.nameFontSize
+
+            // Fixed-px constants scaled proportionally with the name
+            const scaledNameHit    = Math.round(S.nameHit    * scale)
+            const scaledLineHeight = Math.round(S.lineHeight * scale)
+            const scaledTextGap    = Math.round(S.textGap    * scale)
+            const scaledHitAbove   = Math.round(S.hitAbove   * scale)
+            const scaledHitBelow   = Math.round(S.hitBelow   * scale)
+            const scaledStripGap   = Math.round(S.stripGap   * scale)
+
+            const nameW = getNameWidth(ms!, nameFontSize)
+            const nameH = measH(ms!, nameFontSize, "700") * .73
             const titleFs = fitFontSize(ms!, S.titleText, S.tracking, nameW)
             const titleH = Math.ceil(measH(ms!, titleFs, "500")) + 2
             const shtookyTracking = fitTracking(
@@ -406,10 +423,10 @@ useEffect(() => {
             )
             const stripH = Math.max(
                 1,
-                Math.round((S.fontSize * S.stripHeightPct) / 100)
+                Math.round((nameFontSize * S.stripHeightPct) / 100)
             )
-            const titleTopY = nameH + S.lineHeight
-            const stripsTopY = titleTopY + titleH + S.textGap
+            const titleTopY = nameH + scaledLineHeight
+            const stripsTopY = titleTopY + titleH + scaledTextGap
             st.L = {
                 nameW,
                 nameH,
@@ -423,11 +440,11 @@ useEffect(() => {
             }
 
             nav.style.width = nameW + "px"
-            nav.style.height = stripsTopY + stripH + S.hitBelow + "px"
+            nav.style.height = stripsTopY + stripH + scaledHitBelow + "px"
             nameWrap.style.cssText += `top:0px;width:${nameW}px;`
-            navName.style.fontSize = S.fontSize + "px"
+            navName.style.fontSize = nameFontSize + "px"
             navName.style.letterSpacing = "-0.01em"
-            navNameOver.style.fontSize = S.fontSize + "px"
+            navNameOver.style.fontSize = nameFontSize + "px"
             navNameOver.style.letterSpacing = "-0.01em"
             navNameOver.style.opacity = "0"
             setNameText(navName, "mark woloschuk", "#fff")
@@ -439,10 +456,22 @@ useEffect(() => {
             stripsAnchor.style.width = nameW + "px"
             stripsRow.style.width = nameW + "px"
             stripsRow.style.minWidth = nameW + "px"
-            stripsRow.style.gap = S.stripGap + "px"
+            stripsRow.style.gap = scaledStripGap + "px"
             strips.forEach((s) => {
                 s.style.height = stripH + "px"
             })
+
+            // Hit areas re-applied here so they stay correct on resize
+            let hitStyle = document.getElementById("navHitAreaStyle")
+            if (!hitStyle) {
+                hitStyle = document.createElement("style")
+                hitStyle.id = "navHitAreaStyle"
+                document.head.appendChild(hitStyle)
+            }
+            hitStyle.textContent = `.strip-wrap::before{height:${scaledHitAbove}px!important}.strip-wrap::after{height:${scaledHitBelow}px!important}`
+            nameWrap.style.padding = `${scaledNameHit}px ${scaledNameHit}px`
+            nameWrap.style.margin = `-${scaledNameHit}px -${scaledNameHit}px`
+
             updateLabelPositions()
             applyWidths(st.hoveredWrap, nameW)
         }

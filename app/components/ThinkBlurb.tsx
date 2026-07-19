@@ -1,7 +1,10 @@
 'use client';
 
+// TYPE ROLES USED IN THIS FILE:
+//   intro blurb → TYPE_TIERS.SUBTITLE  (sizePx — replaces local clamp CONFIG)
+
 import { useEffect, useState } from 'react';
-import { useColumn } from './Tokens';
+import { useColumn, useType } from './Tokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 const CONFIG = {
@@ -20,7 +23,8 @@ const CONFIG = {
 };
 
 export default function ThinkBlurb() {
-  const col = useColumn();
+  const col  = useColumn();
+  const type = useType();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -41,8 +45,8 @@ export default function ThinkBlurb() {
         style={{
           fontFamily: '"Archivo", sans-serif',
           fontWeight: 300,
-          fontSize: `clamp(${CONFIG.FONT_SIZE_MIN}px, ${CONFIG.FONT_SIZE_VW}vw, ${CONFIG.FONT_SIZE_MAX}px)`,
-          lineHeight: CONFIG.LINE_HEIGHT,
+          fontSize: `${type.SUBTITLE.sizePx}px`,
+          lineHeight: type.SUBTITLE.lineHeight,
           color: '#fff',
           margin: 0,
         }}

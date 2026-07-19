@@ -1,11 +1,14 @@
 "use client"
 
+// TYPE ROLES USED IN THIS FILE:
+//   text overlay headlines → TYPE_TIERS.OPENING  (sizeVw, weight, tracking, lineHeight — read via getType())
+
 // RippleNetwork.tsx — shtooky.com
 // Let's Talk page — ripple signal animation with text overlay
 // v2 — ported to Next.js 2026-06-22
 
 import { useEffect, useRef } from "react"
-import { COLORS, TYPE } from "./Tokens"
+import { COLORS, TYPE, getType } from "./Tokens"
 
 // ─── LAYOUT ───────────────────────────────────────────────────────────────────
 
@@ -418,7 +421,6 @@ export default function RippleNetwork() {
         let mountTs = performance.now()
 
         // ── Text animation ────────────────────────────────────────────────────
-        const TEXT_SCALE = 0.75
         const textTimers: ReturnType<typeof setTimeout>[] = []
         let textPlayed = false
 
@@ -429,9 +431,10 @@ export default function RippleNetwork() {
 
         function buildTextDOM() {
             textLayer!.innerHTML = ""
+            const opening = getType().OPENING
             const fontSize = typeof window !== "undefined"
-                ? Math.round(window.innerWidth * (TYPE.DISPLAY_HERO.sizeVw / 100) * TEXT_SCALE)
-                : 93
+                ? Math.round(window.innerWidth * (opening.sizeVw / 100))
+                : 72
 
             const lines: Record<number, { chunk: typeof CHUNKS[0]; idx: number }[]> = {}
             CHUNKS.forEach((chunk, i) => {
@@ -452,10 +455,10 @@ export default function RippleNetwork() {
                         "position:relative",
                         "overflow:visible",
                         `font-family:${TYPE.display}`,
-                        "font-weight:700",
+                        `font-weight:${opening.weight}`,
                         `font-size:${fontSize}px`,
-                        `line-height:${TYPE.DISPLAY_HERO.lineHeight}`,
-                        `letter-spacing:${TYPE.DISPLAY_HERO.tracking}em`,
+                        `line-height:${opening.lineHeight}`,
+                        `letter-spacing:${opening.tracking}em`,
                         "color:#ffffff",
                         "white-space:nowrap",
                         "opacity:0",

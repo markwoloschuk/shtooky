@@ -1,8 +1,11 @@
 'use client';
 
+// TYPE ROLES USED IN THIS FILE:
+//   Lottie "How I Think" text scale → TYPE_TIERS.OPENING  (sizeVw — via useType())
+
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Lottie from 'lottie-react';
-import { useColumn, NAV, COLORS } from './Tokens';
+import { useColumn, useType, NAV, COLORS } from './Tokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 export const CONFIG = {
@@ -114,8 +117,15 @@ export default function ThinkOpenAnimation() {
   const particleRAF = useRef<number | null>(null);
   const lastFrameTime = useRef(0);
 
-  const col = useColumn();
-  const pxToVw = (col.vw * CONFIG.SCALE) / CONFIG.NATIVE_W;
+  const col  = useColumn();
+  const type = useType();
+
+  // Scale the Lottie so its authored 120px text appears at the OPENING token size.
+  // Derivation: text_vw = (120 / NATIVE_W) * col.vw * lottieScale = OPENING.sizeVw
+  // → lottieScale = OPENING.sizeVw * NATIVE_W / (120 * col.vw)
+  const lottieScale = (type.OPENING.sizeVw * CONFIG.NATIVE_W) / (120 * col.vw);
+  // pxToVw: 1 native px → OPENING.sizeVw / 120 vw (simplification of the above)
+  const pxToVw = type.OPENING.sizeVw / 120;
 
   // Vertical placement, derived directly from the artwork's real bounds —
   // reuses the same pxToVw conversion the burst/particle system already
@@ -316,7 +326,7 @@ export default function ThinkOpenAnimation() {
           // (CONTENT_TOP_Y) lands exactly at this wrapper's own y=0 —
           // direct, no percentage-anchor math.
           top: `${-artworkTopOffsetVw}vw`,
-          width: `${CONFIG.SCALE * 100}%`,
+          width: `${lottieScale * 100}%`,
           aspectRatio: `${CONFIG.NATIVE_W} / ${CONFIG.NATIVE_H}`,
           transform: `translateX(-${ANCHOR_X_PCT}%)`,
         }}

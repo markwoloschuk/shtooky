@@ -1,7 +1,13 @@
 'use client'
 
+// TYPE ROLES USED IN THIS FILE:
+//   body paragraphs  → TYPE_TIERS.CASE_BODY  (sizePx, weight, lineHeight, tracking)
+//   pull-quote blocks → TYPE_TIERS.PULLQUOTE  (sizePx, weight, lineHeight)
+//   job box labels   → (hardcoded 12px — audit flagged, pending CAPTION decision)
+//   video counter    → TYPE_TIERS.CAPTION     (sizePx — matched, not yet wired)
+
 import { useEffect, useState } from 'react'
-import { TYPE, COLORS } from './Tokens'
+import { TYPE, COLORS, useType } from './Tokens'
 import Gallery from './Gallery'
 
 const PINK = COLORS.work
@@ -152,6 +158,7 @@ interface Props {
 }
 
 export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
+  const type = useType()
   const [parsed, setParsed] = useState<ParsedCase | null>(null)
   const [blockOps, setBlockOps] = useState<number[]>([])
 
@@ -232,7 +239,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
 
         if (block.type === 'paragraph') {
           return (
-            <p key={i} style={{ ...style, fontSize: 17, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, maxWidth: 760, marginBottom: 28, fontFamily: TYPE.display }}>
+            <p key={i} style={{ ...style, fontSize: type.CASE_BODY.sizePx, fontWeight: type.CASE_BODY.weight, lineHeight: type.CASE_BODY.lineHeight, letterSpacing: `${type.CASE_BODY.tracking}em`, color: 'rgba(255,255,255,0.6)', maxWidth: 760, marginBottom: 28, fontFamily: TYPE.display }}>
               {parseAccents(block.content)}
             </p>
           )
@@ -240,7 +247,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
 
         if (block.type === 'pullquote') {
           return (
-            <p key={i} style={{ ...style, fontSize: 32, fontWeight: 700, lineHeight: 1.2, color: '#fff', maxWidth: 760, marginBottom: 28, fontFamily: TYPE.display }}>
+            <p key={i} style={{ ...style, fontSize: type.PULLQUOTE.sizePx, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, color: '#fff', maxWidth: 760, marginBottom: 28, fontFamily: TYPE.display }}>
               {parseAccents(block.content)}
             </p>
           )

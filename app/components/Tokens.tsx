@@ -193,6 +193,15 @@ const TYPE_TIERS = {
             lineHeight: 1.72,
         },
 
+        // Case-panel body copy — mirrors BODY intentionally.
+        // Kept separate in case dense-layout or line-length adjustments are needed for case panels later.
+        CASE_BODY: {
+            sizePx: 20,
+            weight: 300,
+            tracking: 0.01,
+            lineHeight: 1.72,
+        },
+
         // Labels, eyebrows, UI text
         CAPTION: {
             sizePx: 13,
@@ -208,10 +217,28 @@ const TYPE_TIERS = {
             tracking: 0,
             lineHeight: 1.0,
         },
+
+        // Panel pull-quotes
+        PULLQUOTE: {
+            sizePx: 32,
+            weight: 700,
+            tracking: 0,
+            lineHeight: 1.2,
+        },
+
+        // Bold lead-in subtitle; also governs intro blurbs below opening animations
+        SUBTITLE: {
+            sizePx: 22,
+            weight: 700,
+            tracking: 0,
+            lineHeight: 1.35,
+        },
     },
 
     tablet: {
-        // TODO: tune for tablet — copied from desktop as placeholder
+        // Vw-based roles below are interpolated between desktop and mobile values
+        // (tablet 768 sits 36% of the way from mobile 390 toward desktop 1440).
+        // All marked provisional — needs visual tuning on a real tablet.
         display: '"Archivo", sans-serif',
         body: '"Source Serif 4", serif',
         weight: {
@@ -223,15 +250,15 @@ const TYPE_TIERS = {
             extrabold: 800,
             black: 900,
         },
-        OPENING: { sizeVw: 5, weight: 700, tracking: -0.025, lineHeight: 1.05 },
+        OPENING: { sizeVw: 7, weight: 700, tracking: -0.025, lineHeight: 1.05 }, // interpolated placeholder — needs visual tuning
         DISPLAY_HERO: {
-            sizeVw: 6.5,
+            sizeVw: 9,   // interpolated placeholder — needs visual tuning
             weight: 700,
             tracking: -0.025,
             lineHeight: 0.95,
         },
-        DISPLAY: { sizeVw: 2.6, weight: 300, tracking: -0.01, lineHeight: 1.1 },
-        SUBHEAD: { sizeVw: 2.6, weight: 300, tracking: -0.01, lineHeight: 1.2 },
+        DISPLAY: { sizeVw: 3.8, weight: 300, tracking: -0.01, lineHeight: 1.1 }, // interpolated placeholder — needs visual tuning
+        SUBHEAD: { sizeVw: 3.8, weight: 300, tracking: -0.01, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         TAGLINE: { sizePx: 26, weight: 300, tracking: 0.015, lineHeight: 1.45 },
         BODY_WELCOME: {
             sizePx: 26,
@@ -240,8 +267,11 @@ const TYPE_TIERS = {
             lineHeight: 1.72,
         },
         BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 },
+        CASE_BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 }, // mirrors BODY
         CAPTION: { sizePx: 13, weight: 300, tracking: 0.08, lineHeight: 1.4 },
-        NAV_NAME: { sizePx: 32, weight: 700, tracking: 0, lineHeight: 1.0 },
+        NAV_NAME: { sizePx: 27, weight: 700, tracking: 0, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
+        PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
+        SUBTITLE: { sizePx: 20, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
     },
 
     mobile: {
@@ -274,8 +304,11 @@ const TYPE_TIERS = {
             lineHeight: 1.72,
         },
         BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 },
+        CASE_BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 }, // mirrors BODY
         CAPTION: { sizePx: 13, weight: 300, tracking: 0.08, lineHeight: 1.4 },
-        NAV_NAME: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.0 },
+        NAV_NAME: { sizePx: 21, weight: 700, tracking: 0, lineHeight: 1.0 },
+        PULLQUOTE: { sizePx: 24, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
+        SUBTITLE: { sizePx: 18, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
     },
 }
 
