@@ -285,7 +285,7 @@ const TYPE_TIERS = {
         BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 },
         CASE_BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 }, // mirrors BODY
         CAPTION: { sizePx: 13, weight: 300, tracking: 0.08, lineHeight: 1.4 },
-        NAV_NAME: { sizePx: 27, weight: 700, tracking: 0, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
+        NAV_NAME: { sizePx: 30, weight: 700, tracking: 0, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
         PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         SUBTITLE: { sizePx: 20, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
@@ -324,7 +324,7 @@ const TYPE_TIERS = {
         BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 },
         CASE_BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 }, // mirrors BODY
         CAPTION: { sizePx: 13, weight: 300, tracking: 0.08, lineHeight: 1.4 },
-        NAV_NAME: { sizePx: 21, weight: 700, tracking: 0, lineHeight: 1.0 },
+        NAV_NAME: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.0 },
         PULLQUOTE: { sizePx: 24, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         SUBTITLE: { sizePx: 18, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 },
