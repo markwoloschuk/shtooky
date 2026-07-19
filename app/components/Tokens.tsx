@@ -233,6 +233,22 @@ const TYPE_TIERS = {
             tracking: 0,
             lineHeight: 1.35,
         },
+
+        // Job-detail grid labels (CLIENT / ROLE / TITLE / DELIVERY eyebrows)
+        JOB_LABEL: {
+            sizePx: 12,
+            weight: 700,
+            tracking: 0.12,
+            lineHeight: 1.4,
+        },
+
+        // Site-wide footer blurb text
+        FOOTER: {
+            sizePx: 14,
+            weight: 400,
+            tracking: 0.04,
+            lineHeight: 1.4,
+        },
     },
 
     tablet: {
@@ -272,6 +288,8 @@ const TYPE_TIERS = {
         NAV_NAME: { sizePx: 27, weight: 700, tracking: 0, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
         PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         SUBTITLE: { sizePx: 20, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
+        JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
+        FOOTER: { sizePx: 13, weight: 400, tracking: 0.04, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
     },
 
     mobile: {
@@ -309,6 +327,8 @@ const TYPE_TIERS = {
         NAV_NAME: { sizePx: 21, weight: 700, tracking: 0, lineHeight: 1.0 },
         PULLQUOTE: { sizePx: 24, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         SUBTITLE: { sizePx: 18, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
+        JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 },
+        FOOTER: { sizePx: 13, weight: 400, tracking: 0.04, lineHeight: 1.4 },
     },
 }
 

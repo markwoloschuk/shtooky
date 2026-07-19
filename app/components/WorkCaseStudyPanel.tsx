@@ -3,7 +3,7 @@
 // TYPE ROLES USED IN THIS FILE:
 //   body paragraphs  → TYPE_TIERS.CASE_BODY  (sizePx, weight, lineHeight, tracking)
 //   pull-quote blocks → TYPE_TIERS.PULLQUOTE  (sizePx, weight, lineHeight)
-//   job box labels   → (hardcoded 12px — audit flagged, pending CAPTION decision)
+//   job box labels   → TYPE_TIERS.JOB_LABEL  (sizePx only — weight/tracking retained hardcoded)
 //   video counter    → TYPE_TIERS.CAPTION     (sizePx — matched, not yet wired)
 
 import { useEffect, useState } from 'react'
@@ -215,19 +215,19 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
         transition: `opacity ${FADE_DUR}ms ease`,
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Client</span>
+          <span style={{ fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Client</span>
           <span style={{ fontSize: 17, color: '#fff', fontFamily: TYPE.display }}>{fm.client}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Role</span>
+          <span style={{ fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Role</span>
           <span style={{ fontSize: 17, color: '#fff', fontFamily: TYPE.display }}>{fm.role}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Title</span>
+          <span style={{ fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Title</span>
           <span style={{ fontSize: 17, color: '#fff', fontFamily: TYPE.display }}>{fm.title}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Delivery</span>
+          <span style={{ fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Delivery</span>
           <span style={{ fontSize: 17, color: '#fff', fontFamily: TYPE.display }}>{fm.delivery}</span>
         </div>
       </div>

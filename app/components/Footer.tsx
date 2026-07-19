@@ -1,8 +1,12 @@
 // Footer.tsx — shtooky.com
 "use client"
+
+// TYPE ROLES USED IN THIS FILE:
+//   footer blurb text  → TYPE_TIERS.FOOTER (sizePx)
+
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
-import { COLORS, FOOTER, PAGES, getActivePage } from "../components/Tokens"
+import { COLORS, FOOTER, PAGES, getActivePage, useType } from "../components/Tokens"
 
 const FONT_DISPLAY = '"Archivo", sans-serif'
 
@@ -33,6 +37,7 @@ export default function Footer() {
 const [activePage, setActivePage] = useState("welcome")
     const [visible, setVisible] = useState(false)
     const pathname = usePathname()
+    const type = useType()
 
     useEffect(() => {
         setActivePage(getActivePage())
@@ -100,7 +105,7 @@ const pageBlurbs =
             <span
                 style={{
                        fontFamily: FONT_DISPLAY,
-                    fontSize: 14,
+                    fontSize: type.FOOTER.sizePx,
                     fontWeight: 400,
                     letterSpacing: "0.04em",
                     color: "rgba(255,255,255,0.45)",
