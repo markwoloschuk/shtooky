@@ -7,7 +7,7 @@
 // v02 — ported to Next.js 2026-06-22
 
 import { useEffect, useRef } from "react"
-import { COLORS, TYPE } from "./Tokens"
+import { COLORS, TYPE, useColumn, bodyMaxWidth } from "./Tokens"
 import { CONTENT as ABOUT_CONTENT, SPACING as ABOUT_SPACING } from "../data/AboutContent"
 import { CONTENT as CONTACT_CONTENT, SPACING as CONTACT_SPACING } from "../data/TalkContent"
 import {
@@ -221,6 +221,7 @@ function ParagraphItem({
     mountIndex?: number
 }) {
     const ref = useScrollFade(unlocked, SCROLL_FADE, false, mountIndex)
+    const col = useColumn()
 
     return (
         <div ref={ref} style={{ width: "100%" }}>
@@ -228,7 +229,7 @@ function ParagraphItem({
                 style={{
                     ...PARA_STYLE,
                     color: "#ffffff",
-                    maxWidth: "60%",
+                    maxWidth: bodyMaxWidth(col),
                     margin: 0,
                     padding: 0,
                 }}

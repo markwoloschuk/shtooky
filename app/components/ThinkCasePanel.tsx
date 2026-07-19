@@ -7,7 +7,7 @@
 //   figcaption / counter → TYPE_TIERS.CAPTION    (sizePx — matched, not yet wired)
 
 import { useEffect, useState } from 'react'
-import { TYPE, COLORS, useType } from './Tokens'
+import { TYPE, COLORS, useType, useColumn, bodyMaxWidth } from './Tokens'
 import Gallery from './Gallery'
 
 const ACCENT = COLORS.thinking
@@ -164,6 +164,7 @@ interface Props {
 
 export default function ThinkCasePanel({ cardFile, visible }: Props) {
   const type = useType()
+  const col = useColumn()
   const [parsed, setParsed] = useState<ParsedCard | null>(null)
   const [blockOps, setBlockOps] = useState<number[]>([])
 
@@ -231,7 +232,7 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
 
         if (block.type === 'paragraph') {
           return (
-            <p key={i} style={{ ...style, fontSize: type.CASE_BODY.sizePx, fontWeight: type.CASE_BODY.weight, lineHeight: type.CASE_BODY.lineHeight, letterSpacing: `${type.CASE_BODY.tracking}em`, color: 'rgba(255,255,255,0.6)', maxWidth: 760, marginBottom: 28, fontFamily: TYPE.display }}>
+            <p key={i} style={{ ...style, fontSize: type.CASE_BODY.sizePx, fontWeight: type.CASE_BODY.weight, lineHeight: type.CASE_BODY.lineHeight, letterSpacing: `${type.CASE_BODY.tracking}em`, color: 'rgba(255,255,255,0.6)', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display }}>
               {parseAccents(block.content)}
             </p>
           )
@@ -239,7 +240,7 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
 
         if (block.type === 'pullquote') {
           return (
-            <p key={i} style={{ ...style, fontSize: type.PULLQUOTE.sizePx, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, color: COLORS.white, maxWidth: 760, marginBottom: 28, fontFamily: TYPE.display }}>
+            <p key={i} style={{ ...style, fontSize: type.PULLQUOTE.sizePx, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, color: COLORS.white, maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display }}>
               {parseAccents(block.content)}
             </p>
           )
@@ -251,7 +252,7 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
           const caption = lines[1]
           const src = resolveImagePath(fm.imagePath, filename)
           return (
-            <div key={i} style={{ ...style, maxWidth: 760, marginBottom: 28 }}>
+            <div key={i} style={{ ...style, maxWidth: bodyMaxWidth(col), marginBottom: 28 }}>
               <ImageBlockInline src={src} caption={caption} />
             </div>
           )
@@ -323,10 +324,11 @@ function ImageBlockInline({ src, caption }: { src: string; caption?: string }) {
 
 function VideoCarouselInline({ urls }: { urls: string[] }) {
   const [idx, setIdx] = useState(0)
+  const col = useColumn()
   if (!urls.length) return null
   const embedUrl = toEmbed(urls[idx])
   return (
-    <div style={{ marginBottom: 28, maxWidth: 760 }}>
+    <div style={{ marginBottom: 28, maxWidth: bodyMaxWidth(col) }}>
       <div style={{ position: 'relative', paddingBottom: '56.25%', background: COLORS.dark }}>
         <iframe
           key={embedUrl}

@@ -6,7 +6,7 @@ import ScrollFade from "./components/WelcomeScrollFade"
 import EverythingIsInteresting from "./components/WelcomeEverythingIsInteresting"
 import ClientLogoGrid from "./components/WelcomeClientLogoGrid"
 import WelcomeCTA from "./components/WelcomeCTA"
-import { useColumn, useType } from "./components/Tokens"
+import { useColumn, useType, bodyMaxWidth } from "./components/Tokens"
 
 export default function Page() {
     const col = useColumn()
@@ -21,7 +21,7 @@ export default function Page() {
         letterSpacing: `${type.BODY_WELCOME.tracking}em`,
         lineHeight: type.BODY_WELCOME.lineHeight,
         color: "#ffffff",
-        maxWidth: "54%",
+        maxWidth: bodyMaxWidth(col),
     }
 
 useEffect(() => {
@@ -51,7 +51,7 @@ useEffect(() => {
                 <ClientLogoGrid triggerOnScroll={true} onComplete={() => setTimeout(() => setGridComplete(true), 300)} />
                 <div style={{ height: "6vh" }} />
                <ScrollFade enabled={gridComplete}>
-                    <p style={{ ...bodyStyle, maxWidth: "70%" }}>
+                    <p style={bodyStyle}>
                         I&rsquo;ve worked with some great people. Why not you?
                     </p>
                 </ScrollFade>

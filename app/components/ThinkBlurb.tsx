@@ -4,13 +4,12 @@
 //   intro blurb → TYPE_TIERS.SUBTITLE  (sizePx — replaces local clamp CONFIG)
 
 import { useEffect, useState } from 'react';
-import { useColumn, useType } from './Tokens';
+import { useColumn, useType, bodyMaxWidth } from './Tokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 const CONFIG = {
   GAP_BELOW_CONTENT: 32, // px — direct gap from the animation's real
                           // visible bottom edge to this blurb.
-  WIDTH_FACTOR: 0.48,      // fraction of the content column's width
   FONT_SIZE_MIN: 22,      // px
   FONT_SIZE_VW: 2.4,      // vw
   FONT_SIZE_MAX: 34,      // px
@@ -35,7 +34,7 @@ export default function ThinkBlurb() {
   return (
     <div
       style={{
-        width: `${col.vw * CONFIG.WIDTH_FACTOR}vw`,
+        width: bodyMaxWidth(col),
         margin: `${CONFIG.GAP_BELOW_CONTENT}px 0 0 ${col.marginVw}vw`,
         opacity: visible ? 1 : 0,
         transition: `opacity ${CONFIG.FADE_DURATION_MS}ms linear`,

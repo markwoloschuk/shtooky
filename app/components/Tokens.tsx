@@ -76,7 +76,7 @@ const COLUMN_TIERS = {
     desktop: {
         vw: 76, // content column width as % of viewport
         marginVw: 12, // margin each side = (100 - vw) / 2
-        bodyColPct: 45, // body copy column as % of content column (~34vw at 1440px)
+        bodyColPct: 50, // body copy column as % of content column (~38vw at 1440px)
         referenceW: 1440,
         referenceH: 900,
     },
@@ -285,7 +285,7 @@ const TYPE_TIERS = {
         BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 },
         CASE_BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 }, // mirrors BODY
         CAPTION: { sizePx: 13, weight: 300, tracking: 0.08, lineHeight: 1.4 },
-        NAV_NAME: { sizePx: 30, weight: 700, tracking: 0, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
+        NAV_NAME: { sizePx: 34, weight: 700, tracking: 0, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
         PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         SUBTITLE: { sizePx: 20, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
@@ -469,6 +469,15 @@ export function useBreakpoint(): "mobile" | "tablet" | "desktop" {
 
 export function useColumn() {
     return COLUMN_TIERS[useBreakpoint()]
+}
+
+// Returns a vw string for body-copy max-width, reading bodyColPct from the
+// current column tier. Pass overridePct to deviate for a specific context.
+export function bodyMaxWidth(
+    col: ReturnType<typeof getColumn>,
+    overridePct?: number
+): string {
+    return `${(col.vw * (overridePct ?? col.bodyColPct)) / 100}vw`
 }
 export function useType() {
     return TYPE_TIERS[useBreakpoint()]
