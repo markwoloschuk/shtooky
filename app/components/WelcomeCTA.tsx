@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
-import { COLORS, TIMING, TYPE } from "./Tokens"
+import { COLORS, TIMING, TYPE, getBreakpoint } from "./Tokens"
 
 // ─────────────────────────────────────────────────────────────
 // DEFAULTS — all tuning lives here
@@ -21,6 +21,7 @@ const DEFAULTS = {
 
     // Layout
     gapPx: 220,
+    verticalGapPx: 24,
     lineGapPx: 30,
 
     // Horizontal rule
@@ -99,22 +100,37 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
         if (!row) return
         const textH = textRefs.current[0]?.offsetHeight ?? 40
         ws.current = textRefs.current.map((el) => el?.offsetWidth ?? 0)
-        const [w0, w1, w2] = ws.current
-        const gap = DEFAULTS.gapPx
-        const x0 = 0
-        const x1 = w0 + gap
-        const x2 = w0 + gap + w1 + gap
-        const totalSpan = x2 + w2
-        const positions = [x0, x1, x2]
-        textRefs.current.forEach((el, i) => {
-            if (!el) return
-            el.style.left = positions[i] + "px"
-            el.style.top = "0px"
-            el.style.transformOrigin = "left center"
-        })
-        row.style.height = textH + "px"
         const rule = ruleRef.current
-        if (rule) rule.style.width = totalSpan + "px"
+
+        if (getBreakpoint() === "desktop") {
+            // Horizontal layout
+            const [w0, w1, w2] = ws.current
+            const gap = DEFAULTS.gapPx
+            const x1 = w0 + gap
+            const x2 = w0 + gap + w1 + gap
+            const totalSpan = x2 + w2
+            textRefs.current.forEach((el, i) => {
+                if (!el) return
+                el.style.left = [0, x1, x2][i] + "px"
+                el.style.top = "0px"
+                el.style.transformOrigin = "left center"
+            })
+            row.style.height = textH + "px"
+            if (rule) rule.style.width = totalSpan + "px"
+        } else {
+            // Vertical stack — tablet/mobile
+            // NOTE (rule width): currently spans the widest item — change rule.style.width
+            // to "100%" here if a full-column-width rule looks better once reviewed on device.
+            const vGap = DEFAULTS.verticalGapPx
+            textRefs.current.forEach((el, i) => {
+                if (!el) return
+                el.style.left = "0px"
+                el.style.top = i * (textH + vGap) + "px"
+                el.style.transformOrigin = "left center"
+            })
+            row.style.height = 3 * textH + 2 * vGap + "px"
+            if (rule) rule.style.width = Math.max(...ws.current) + "px"
+        }
     }
 
     const playEntrance = useCallback(() => {

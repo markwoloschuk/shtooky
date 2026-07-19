@@ -10,7 +10,7 @@
 // spirit to ThinkCasePanel's block fade-in than anything canvas-based.
 
 import { useState, useRef, useEffect } from "react"
-import { COLORS, TYPE } from "./Tokens"
+import { COLORS, TYPE, useBreakpoint } from "./Tokens"
 import { useSequence, unlock } from "./SequenceController"
 
 const ACCENT = COLORS.contact
@@ -18,7 +18,8 @@ const ACCENT = COLORS.contact
 // ── Tunable constants ───────────────────────────────────────────────────
 const CONFIG = {
     LABEL_FONT_SIZE: 30,
-    LABEL_GAP: 100,          // gap between the three label rows
+    LABEL_GAP: 100,          // gap between labels — horizontal (desktop)
+    LABEL_GAP_VERTICAL: 24, // gap between labels — vertical stack (tablet/mobile)
     ROW_GAP_TOP: 16,        // space between a label and its open content
     ROW_GAP_BOTTOM: 40,     // space after open content, before next label
     TRANSITION_MS: 500,
@@ -242,6 +243,7 @@ function ResumePanel() {
 // ── Top-level accordion ──────────────────────────────────────────────────
 export default function TalkOptions() {
     const [open, setOpen] = useState<PanelKey | null>(null)
+    const bp = useBreakpoint()
     const revealed = useSequence(2)
     const [visible, setVisible] = useState(false)
     const firedNextRef = useRef(false)
@@ -274,7 +276,11 @@ export default function TalkOptions() {
                 pointerEvents: visible ? "auto" : "none",
             }}
         >
-            <div style={{ display: "flex", gap: CONFIG.LABEL_GAP }}>
+            <div style={{
+                    display: "flex",
+                    flexDirection: bp === "desktop" ? "row" : "column",
+                    gap: bp === "desktop" ? CONFIG.LABEL_GAP : CONFIG.LABEL_GAP_VERTICAL,
+                }}>
                 <OptionLabel label="Contact" active={open === "contact"} onClick={() => toggle("contact")} />
                 <OptionLabel label="Resume" active={open === "resume"} onClick={() => toggle("resume")} />
                 <OptionLabel label="Location" active={open === "location"} onClick={() => toggle("location")} />
