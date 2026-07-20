@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { WORK_MANIFEST } from '../data/WorkManifest'
-import { TYPE, COLORS, useType, useColumn } from './Tokens'
+import { TYPE, COLORS, useType, useColumn } from './SiteTokens'
 
 // ── Locked animation constants (from work_carousel_v30.html) ─────────────────
 const CFG = {
@@ -718,7 +718,7 @@ style={{ width: '100%', position: 'relative', background: '#000', overflow: 'hid
 {/* Carousel text — resting state headline + subhead */}
       <div
   ref={carTextRef}
-  style={{ position: 'absolute', top: '100%', left: '7.2222%', width: `${col.vw}vw`, pointerEvents: 'none', zIndex: 1, marginTop: 24, opacity: 0, transform: 'translateY(12px)' }}
+  style={{ position: 'absolute', top: '100%', left: `${col.marginVw}vw`, width: `${col.vw}vw`, pointerEvents: 'none', zIndex: 1, marginTop: 24, opacity: 0, transform: 'translateY(12px)' }}
 >
            <p style={{ fontSize: `${type.OPENING.sizeVw}vw`, fontWeight: type.OPENING.weight, lineHeight: type.OPENING.lineHeight, letterSpacing: `${type.OPENING.tracking}em`, color: '#fff', margin: '0 0 10px 0', fontFamily: TYPE.display }}>
   <span style={{ display: 'block' }}><span style={{ color: COLORS.work }}>The work</span> reveals the process.</span>

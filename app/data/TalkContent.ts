@@ -3,7 +3,7 @@
 // Page content data for the Contact page.
 // v02 — ported to Next.js 2026-06-22
 
-import type { ContentItem } from "../components/TextBlock"
+import type { ContentItem } from "../components/SiteTextBlock"
 
 // ─── Spacing ──────────────────────────────────────────────────────────────────
 

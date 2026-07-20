@@ -7,8 +7,8 @@
 //   video counter    → TYPE_TIERS.CAPTION     (sizePx — matched, not yet wired)
 
 import { useEffect, useState } from 'react'
-import { TYPE, COLORS, useType, useColumn, bodyMaxWidth } from './Tokens'
-import Gallery from './Gallery'
+import { TYPE, COLORS, useType, useColumn, bodyMaxWidth } from './SiteTokens'
+import SiteGallery from './SiteGallery'
 
 const PINK = COLORS.work
 const FADE_DUR = 2000
@@ -198,8 +198,8 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
 
   return (
     <div style={{
-      paddingLeft: '7.2222%',
-      paddingRight: '7.2222%',
+      paddingLeft: `${col.marginVw}vw`,
+      paddingRight: `${col.marginVw}vw`,
       paddingTop: 40,
       paddingBottom: 80,
       position: 'relative',
@@ -322,5 +322,5 @@ const navBtnStyle: React.CSSProperties = {
 }
 
 function GalleryInline({ path, gallery }: { path: string; gallery: GalleryData }) {
-  return <Gallery path={path} gallery={gallery} />
+  return <SiteGallery path={path} gallery={gallery} />
 }

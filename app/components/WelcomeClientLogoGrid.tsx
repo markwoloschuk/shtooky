@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useCallback } from "react"
-import { COLORS, TIMING, LOGO_GRID_TIERS, useBreakpoint } from "./Tokens"
+import { COLORS, TIMING, LOGO_GRID_TIERS, useBreakpoint } from "./SiteTokens"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TUNING — adjust these to change animation behaviour

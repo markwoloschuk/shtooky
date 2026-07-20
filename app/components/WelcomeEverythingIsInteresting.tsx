@@ -6,7 +6,7 @@
 import * as React from "react"
 import ReactDOM from "react-dom"
 import { useEffect, useRef, useState } from "react"
-import { COLORS, TYPE, SPACE, TIMING } from "./Tokens"
+import { COLORS, TYPE, SPACE, TIMING } from "./SiteTokens"
 
 // ─── Tuning ───────────────────────────────────────────────────────────────────
 

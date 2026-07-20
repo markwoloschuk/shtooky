@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { PAGES, COLORS, NAV, FOOTER, getActivePage, getType } from "../components/Tokens"
+import { PAGES, COLORS, NAV, FOOTER, FRAME_INSET_VW, getActivePage, getType } from "../components/SiteTokens"
 
 // ── Locked defaults (from v18 prototype) ─────────────────────
 const S = {
@@ -878,7 +878,7 @@ useEffect(() => {
                     // Adjust spacing here
                     top: "2.4vw",
                     // set navbar to be left or right side here
-                    left: "2.5vw",
+                    left: `${FRAME_INSET_VW}vw`,
                     zIndex: 40,
                     pointerEvents: "auto",
                 }}

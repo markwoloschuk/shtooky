@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
-import { COLORS, FOOTER, PAGES, getActivePage, useType } from "../components/Tokens"
+import { COLORS, FOOTER, PAGES, FRAME_INSET_VW, getActivePage, useType } from "../components/SiteTokens"
 
 const FONT_DISPLAY = '"Archivo", sans-serif'
 
@@ -79,8 +79,8 @@ const pageBlurbs =
                 alignItems: "center",
                 justifyContent: "space-between",
                 // Adjust margin padding here
-                paddingLeft: "2.5vw",
-                paddingRight: "2.5vw",
+                paddingLeft: `${FRAME_INSET_VW}vw`,
+                paddingRight: `${FRAME_INSET_VW}vw`,
                 zIndex: 40,
                 background:
                     "linear-gradient(to top, rgba(13,13,13,0.9) 0%, transparent 100%)",

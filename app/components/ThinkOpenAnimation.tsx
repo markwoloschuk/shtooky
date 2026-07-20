@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Lottie from 'lottie-react';
-import { useColumn, useType, NAV, COLORS } from './Tokens';
+import { useColumn, useType, NAV, COLORS } from './SiteTokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 export const CONFIG = {

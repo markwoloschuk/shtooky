@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import WorkCarousel from '../components/WorkCarousel'
 import CaseStudyPanel from '../components/WorkCaseStudyPanel'
 import { WORK_MANIFEST } from '../data/WorkManifest'
-import { useColumn } from '../components/Tokens'
+import { useColumn } from '../components/SiteTokens'
 
 const NAV_BTN_SIZE = 32
 const SYM_PCT = 0.50

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Archivo, Source_Serif_4 } from "next/font/google";
-import Background from "./components/Background";
-import NavBar from "./components/NavBar";
-import Footer from "./components/Footer";
-import ScrollConfig from "./components/ScrollConfig";
+import SiteBackground from "./components/SiteBackground";
+import SiteNavBar from "./components/SiteNavBar";
+import SiteFooter from "./components/SiteFooter";
+import SiteScrollConfig from "./components/SiteScrollConfig";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -42,13 +42,13 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} ${sourceSerif4.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Background />
-        <NavBar />
+        <SiteBackground />
+        <SiteNavBar />
         <div style={{ position: "relative", zIndex: 1 }}>
           {children}
         </div>
-        <ScrollConfig />
-        <Footer />
+        <SiteScrollConfig />
+        <SiteFooter />
       </body>
     </html>
   );

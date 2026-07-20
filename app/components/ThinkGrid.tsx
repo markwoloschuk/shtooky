@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useColumn } from './Tokens';
+import { useColumn } from './SiteTokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 export const CONFIG = {

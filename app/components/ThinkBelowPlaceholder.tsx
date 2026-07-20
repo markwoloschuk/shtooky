@@ -1,6 +1,6 @@
 'use client';
 
-import { useColumn } from './Tokens';
+import { useColumn } from './SiteTokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 const CONFIG = {

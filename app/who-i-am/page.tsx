@@ -9,8 +9,8 @@ import { useEffect } from "react"
 import { unlock } from "../components/SequenceController"
 import SkillsSphere from "../components/WhoSkillsSphere"
 import VennDiagram from "../components/WhoVennDiagram"
-import TextBlock from "../components/TextBlock"
-import { useColumn } from "../components/Tokens"
+import SiteTextBlock from "../components/SiteTextBlock"
+import { useColumn } from "../components/SiteTokens"
 
 export default function WhoIAm() {
     const col = useColumn()
@@ -57,7 +57,7 @@ export default function WhoIAm() {
                 }}
             >
                 {/* Text blocks 1–7 */}
-                <TextBlock page="about" ids="1-7" />
+                <SiteTextBlock page="about" ids="1-7" />
 
                 {/* Venn Diagram */}
                 <div style={{ marginTop: "4vh", marginBottom: "4vh" }}>
@@ -65,7 +65,7 @@ export default function WhoIAm() {
                 </div>
 
                 {/* Text blocks 8–26 */}
-                <TextBlock page="about" ids="8-26" />
+                <SiteTextBlock page="about" ids="8-26" />
             </div>
         </div>
     )

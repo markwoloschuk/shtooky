@@ -11,7 +11,7 @@
 // \u2019 will give you an apostrophe
 
 import { useEffect, useRef, useState } from "react"
-import { TYPE, COLORS, TIMING, getType } from "./Tokens"
+import { TYPE, COLORS, TIMING, getType } from "./SiteTokens"
 
 // ─── TUNING ──────────────────────────────────────────────────────────────────
 

@@ -10,7 +10,7 @@
 // spirit to ThinkCasePanel's block fade-in than anything canvas-based.
 
 import { useState, useRef, useEffect } from "react"
-import { COLORS, TYPE, useBreakpoint } from "./Tokens"
+import { COLORS, TYPE, useBreakpoint } from "./SiteTokens"
 import { useSequence, unlock } from "./SequenceController"
 
 const ACCENT = COLORS.contact

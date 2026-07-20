@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useColumn, NAV, COLORS, TYPE } from './Tokens';
+import { useColumn, NAV, COLORS, TYPE } from './SiteTokens';
 import { THINK_GRID, coverImageFor, offsetFor } from '../data/ThinkManifest';
 
 // ── Layout — 13 cells, native units on a 1440-wide reference canvas ────────

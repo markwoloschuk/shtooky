@@ -6,7 +6,7 @@
 // v02 — ported to Next.js 2026-06-22
 
 import { useEffect, useRef, useCallback } from "react"
-import { COLORS } from "./Tokens"
+import { COLORS } from "./SiteTokens"
 
 // ─── TUNING ───────────────────────────────────────────────────────────────────
 

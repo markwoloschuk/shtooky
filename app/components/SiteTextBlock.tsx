@@ -7,7 +7,7 @@
 // v02 — ported to Next.js 2026-06-22
 
 import { useEffect, useRef } from "react"
-import { COLORS, TYPE, useColumn, bodyMaxWidth } from "./Tokens"
+import { COLORS, TYPE, useColumn, bodyMaxWidth } from "./SiteTokens"
 import { CONTENT as ABOUT_CONTENT, SPACING as ABOUT_SPACING } from "../data/AboutContent"
 import { CONTENT as CONTACT_CONTENT, SPACING as CONTACT_SPACING } from "../data/TalkContent"
 import {

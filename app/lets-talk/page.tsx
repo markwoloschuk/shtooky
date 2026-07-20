@@ -17,9 +17,9 @@
 import { useEffect } from "react"
 import { unlock, reset } from "../components/SequenceController"
 import RippleNetwork, { TEXT_DELAY, CHUNKS, TIMING } from "../components/TalkRippleNetwork"
-import TextBlock, { SCROLL_FADE } from "../components/TextBlock"
+import SiteTextBlock, { SCROLL_FADE } from "../components/SiteTextBlock"
 import TalkOptions from "../components/TalkOptions"
-import { useColumn } from "../components/Tokens"
+import { useColumn } from "../components/SiteTokens"
 
 // Real completion time of RippleNetwork's one-shot text overlay —
 // last chunk's own delay + its animation duration, on top of the
@@ -66,11 +66,11 @@ export default function LetsTalk() {
             >
                 <RippleNetwork />
                 <div style={{ marginTop: "-80px" }}>
-                    <TextBlock page="contact" ids="1" />
+                    <SiteTextBlock page="contact" ids="1" />
                     <div style={{ marginTop: "2.2em", marginBottom: "2.2em" }}>
                         <TalkOptions />
                     </div>
-                    <TextBlock page="contact" ids="3-4" />
+                    <SiteTextBlock page="contact" ids="3-4" />
                 </div>
             </div>
         </div>

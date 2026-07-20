@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useColumn, COLORS } from './Tokens';
+import { useColumn, COLORS } from './SiteTokens';
 import ThinkOpenAnimation from './ThinkOpenAnimation';
 import ThinkBlurb from './ThinkBlurb';
 import ThinkGridCanvas, { BAND_HEIGHT, NATIVE_W } from './ThinkGridCanvas';
@@ -75,8 +75,6 @@ const cardFile = openIdx >= 0 ? contentFileFor(THINK_GRID[openIdx]) : null;
       <div
         style={{
           width: `${col.vw}vw`,
-          paddingLeft: '7.2222%',
-          paddingRight: '7.2222%',
           boxSizing: 'border-box' as const,
           pointerEvents: cardOpen ? 'auto' : 'none',
           ...(cardOpen ? {

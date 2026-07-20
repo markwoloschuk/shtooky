@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { COLORS, TIMING, TYPE, getBreakpoint, useType } from "./Tokens"
+import { COLORS, TIMING, TYPE, getBreakpoint, useType } from "./SiteTokens"
 
 // ─────────────────────────────────────────────────────────────
 // DEFAULTS — all tuning lives here

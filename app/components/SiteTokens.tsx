@@ -91,7 +91,7 @@ const COLUMN_TIERS = {
     mobile: {
         // TODO: tune for mobile
         vw: 90,
-        marginVw: 3,
+        marginVw: 5,
         bodyColPct: 100,
         referenceW: 390,
         referenceH: 844,
@@ -380,6 +380,9 @@ export const TIMING = {
 }
 
 // ─── NAV ─────────────────────────────────────────────────────────────────────
+// NavBar and Footer share the same left inset — both sit to the left of all
+// page content at every breakpoint. Page content uses COLUMN_TIERS.marginVw.
+export const FRAME_INSET_VW = 2.5
 
 export const NAV = {
     height: 87, // measured desktop height in px — update if navbar changes

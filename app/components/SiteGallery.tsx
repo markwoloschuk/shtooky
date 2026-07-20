@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { COLORS, useBreakpoint } from './Tokens'
+import { COLORS, useBreakpoint } from './SiteTokens'
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 // All tunable values live here, per project convention.

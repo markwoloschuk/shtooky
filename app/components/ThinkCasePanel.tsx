@@ -7,8 +7,8 @@
 //   figcaption / counter → TYPE_TIERS.CAPTION    (sizePx — matched, not yet wired)
 
 import { useEffect, useState } from 'react'
-import { TYPE, COLORS, useType, useColumn, bodyMaxWidth } from './Tokens'
-import Gallery from './Gallery'
+import { TYPE, COLORS, useType, useColumn, bodyMaxWidth } from './SiteTokens'
+import SiteGallery from './SiteGallery'
 
 const ACCENT = COLORS.thinking
 const FADE_DUR = 1000
@@ -361,5 +361,5 @@ const navBtnStyle: React.CSSProperties = {
 }
 
 function GalleryInline({ path, gallery }: { path: string; gallery: GalleryData }) {
-  return <Gallery path={path} gallery={gallery} />
+  return <SiteGallery path={path} gallery={gallery} />
 }

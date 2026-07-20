@@ -8,7 +8,7 @@
 // v2 — ported to Next.js 2026-06-22
 
 import { useEffect, useRef } from "react"
-import { COLORS, TYPE, getType, useBreakpoint } from "./Tokens"
+import { COLORS, TYPE, getType, useBreakpoint } from "./SiteTokens"
 
 // ─── LAYOUT ───────────────────────────────────────────────────────────────────
 

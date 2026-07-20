@@ -6,7 +6,7 @@ import ScrollFade from "./components/WelcomeScrollFade"
 import EverythingIsInteresting from "./components/WelcomeEverythingIsInteresting"
 import ClientLogoGrid from "./components/WelcomeClientLogoGrid"
 import WelcomeCTA from "./components/WelcomeCTA"
-import { useColumn, useType, bodyMaxWidth } from "./components/Tokens"
+import { useColumn, useType, bodyMaxWidth } from "./components/SiteTokens"
 
 export default function Page() {
     const col = useColumn()

@@ -1,6 +1,6 @@
 "use client"
 
-import { useBreakpoint } from "./Tokens"
+import { useBreakpoint } from "./SiteTokens"
 import HeroAnimation from "./WelcomeHeroAnimation"
 import HeroAnimationTwoLine from "./WelcomeHero2Line"
 

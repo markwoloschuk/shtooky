@@ -18,7 +18,7 @@
 // value on top of that — no ratio, no guessing.
 
 import { useEffect, useRef, useState } from "react"
-import { TYPE, COLORS, TIMING, getType } from "./Tokens"
+import { TYPE, COLORS, TIMING, getType } from "./SiteTokens"
 
 // ─── TUNING ──────────────────────────────────────────────────────────────────
 

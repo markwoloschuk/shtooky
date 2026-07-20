@@ -12,7 +12,7 @@
 
 "use client"
 
-import { COLORS, DEBUG, NAV, getVisibility } from "./Tokens"
+import { COLORS, DEBUG, NAV, getVisibility } from "./SiteTokens"
 import { useState, useEffect } from "react"
 
 // ─── Global config store ──────────────────────────────────────────────────────

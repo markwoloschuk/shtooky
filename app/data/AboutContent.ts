@@ -3,7 +3,7 @@
 // Single source of truth for all Who I Am page copy and pull text config.
 // v03 — type fix 2026-06-22
 
-import type { ContentItem } from "../components/TextBlock"
+import type { ContentItem } from "../components/SiteTextBlock"
 
 // ─── Spacing ──────────────────────────────────────────────────────────────────
 

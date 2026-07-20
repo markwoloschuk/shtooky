@@ -6,7 +6,7 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
-import { PAGES, NAV, COLORS, getActivePage } from "../components/Tokens"
+import { PAGES, NAV, COLORS, getActivePage } from "../components/SiteTokens"
 
 interface NebulaParticle {
     x: number
@@ -257,7 +257,7 @@ function getDailySeed(baseSeed: number) {
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 
-export default function Background() {
+export default function SiteBackground() {
 const pathname = usePathname()
 const [activePage, setActivePage] = useState("welcome")
 const [visible, setVisible] = useState(false)
