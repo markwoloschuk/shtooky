@@ -47,7 +47,7 @@ export const CHUNKS = [
         push: 1,
     },
     {
-        text: "shall we stay in {touch?}",
+        text: "shall we {connect?}",
         line: 2,
         delay: 500,
         wipe: 0,
