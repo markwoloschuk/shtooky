@@ -8,11 +8,10 @@
 // v2 — ported to Next.js 2026-06-22
 
 import { useEffect, useRef } from "react"
-import { COLORS, TYPE, getType } from "./Tokens"
+import { COLORS, TYPE, getType, useBreakpoint } from "./Tokens"
 
 // ─── LAYOUT ───────────────────────────────────────────────────────────────────
 
-const HEIGHT = 350
 const PLAY_DELAY = 0
 export const TEXT_DELAY = 1000
 const playOnce = true
@@ -60,6 +59,8 @@ export const CHUNKS = [
 // ─── RIPPLE / LINE CFG ────────────────────────────────────────────────────────
 
 const CFG = {
+    HEIGHT: 350,
+
     maxPairs: 5,
     rampUp: 8,
     birthVar: 100,
@@ -95,6 +96,19 @@ const CFG = {
     colorRange: 40,
 
     blendMode: "screen" as GlobalCompositeOperation,
+}
+
+// Provisional overrides — needs Mark's live visual tuning on device.
+const CFG_TABLET_OVERRIDES = {
+    HEIGHT: 275,    // was 350
+    maxRadius: 44,  // was 60
+    maxRadiusVar: 90,
+}
+
+const CFG_MOBILE_OVERRIDES = {
+    HEIGHT: 200,    // was 350
+    maxRadius: 28,  // was 60
+    maxRadiusVar: 90,
 }
 
 // ─── COLOR SYSTEM ─────────────────────────────────────────────────────────────
@@ -268,6 +282,14 @@ export default function RippleNetwork() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const textLayerRef = useRef<HTMLDivElement>(null)
 
+    const breakpoint = useBreakpoint()
+    const cfg = {
+        ...CFG,
+        ...(breakpoint === "mobile" ? CFG_MOBILE_OVERRIDES
+            : breakpoint === "tablet" ? CFG_TABLET_OVERRIDES
+            : {}),
+    }
+
     useEffect(() => {
         const container = containerRef.current
         const canvas = canvasRef.current
@@ -281,7 +303,7 @@ export default function RippleNetwork() {
 
         function resize() {
             const w = container!.clientWidth
-            const h = HEIGHT
+            const h = cfg.HEIGHT
             canvas!.width = Math.round(w * dpr)
             canvas!.height = Math.round(h * dpr)
             canvas!.style.width = w + "px"
@@ -295,10 +317,10 @@ export default function RippleNetwork() {
         const CW = () => container!.clientWidth
 
         function rollSpawnPos(existing: { x: number; y: number }[]): SpawnPos {
-            const h = HEIGHT
+            const h = cfg.HEIGHT
             const cb = CFG.centerBias / 100
             const minDist = CFG.antiClump
-            const nodeR = Math.min(varyF(CFG.maxRadius, CFG.maxRadiusVar), CW() * 0.45, h * 0.45)
+            const nodeR = Math.min(varyF(cfg.maxRadius, cfg.maxRadiusVar), CW() * 0.45, h * 0.45)
             const minX = nodeR, maxX = CW() - nodeR
             const minY = nodeR, maxY = h - nodeR
             if (maxX <= minX || maxY <= minY) return { x: CW() / 2, y: h / 2, nodeR }
@@ -347,7 +369,7 @@ export default function RippleNetwork() {
 
         function makeNode(pos: SpawnPos): Node {
             const rf = CFG.colorRange / 100
-            const h = HEIGHT
+            const h = cfg.HEIGHT
             const x = Math.max(pos.nodeR, Math.min(CW() - pos.nodeR, pos.x))
             const y = Math.max(pos.nodeR, Math.min(h - pos.nodeR, pos.y))
             return {
@@ -610,7 +632,7 @@ export default function RippleNetwork() {
             rafId = requestAnimationFrame(tick)
 
             const wallAge = (ts - mountTs) / 1000
-            if (wallAge < PLAY_DELAY) { ctx!.clearRect(0, 0, CW(), HEIGHT); return }
+            if (wallAge < PLAY_DELAY) { ctx!.clearRect(0, 0, CW(), cfg.HEIGHT); return }
             if (startTs < 0) startTs = ts
 
             const dt = Math.min((ts - lastTs) / 1000, 0.05)
@@ -618,7 +640,7 @@ export default function RippleNetwork() {
 
             const el = CFG.energyLoss / 100
             const cw = CW()
-            const h = HEIGHT
+            const h = cfg.HEIGHT
 
             const need = CFG.maxPairs - pairs.length - pendingPairs.length
             if (need > 0) {
@@ -755,7 +777,7 @@ export default function RippleNetwork() {
             clearTimeout(textDelayTimer)
             window.removeEventListener("scroll", handleScrollFade)
         }
-    }, [])
+    }, [breakpoint])
 
     return (
         <div
@@ -763,7 +785,7 @@ export default function RippleNetwork() {
             style={{
                 position: "relative",
                 width: "100%",
-                height: HEIGHT,
+                height: cfg.HEIGHT,
                 overflow: "visible",
                 background: "transparent",
             }}

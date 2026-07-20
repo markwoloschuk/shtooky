@@ -139,7 +139,7 @@ const TYPE_TIERS = {
 
         // "I'm a creative problem solver"
         OPENING: {
-            sizeVw: 5.5,
+            sizeVw: 5.0,
             weight: 700,
             tracking: -0.025,
             lineHeight: 1.05,

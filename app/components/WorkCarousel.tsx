@@ -724,7 +724,8 @@ style={{ width: '100%', position: 'relative', background: '#000', overflow: 'hid
   <span style={{ display: 'block' }}><span style={{ color: COLORS.work }}>The work</span> reveals the process.</span>
   <span style={{ display: 'block' }}>The process reveals <span style={{ color: COLORS.work }}>the person.</span></span>
 </p>
-            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.65)', fontFamily: TYPE.display, lineHeight: 1.5 }}>
+
+            <p style={{ fontSize: 24, color: 'rgba(255,255,255,0.65)', fontFamily: TYPE.display, lineHeight: 1.5 }}>
               This is how I apply curiosity with empathy to solve creative problems.
             </p>
           </div>
