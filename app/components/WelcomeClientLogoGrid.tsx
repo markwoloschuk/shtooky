@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useCallback } from "react"
-import { COLORS, TIMING } from "./Tokens"
+import { COLORS, TIMING, LOGO_GRID_TIERS, useBreakpoint } from "./Tokens"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TUNING — adjust these to change animation behaviour
@@ -338,9 +338,10 @@ const LOGOS = [
 // ─────────────────────────────────────────────────────────────────────────────
 // GRID CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
-const COLS = 5
-const ROWS = 4
-const COUNT = COLS * ROWS
+// Per-cell aspect ratio derived from the original tuned 20/9 container at 5×4.
+// (20/9) / (5/4) ≈ 1.778 — keeps individual logo cells the same proportions
+// at every breakpoint without needing to guess new container ratios by eye.
+const CELL_ASPECT = (20 / 9) / (5 / 4)
 
 const BRAND_COLORS = ["#EB008B", "#FAAF40", "#D6DE23", "#00ADEE", "#885198"]
 
@@ -389,15 +390,13 @@ function shuffle<T>(arr: T[]): T[] {
     return a
 }
 
-function distFromCenter(i: number): number {
-    const col = i % COLS
-    const row = Math.floor(i / COLS)
-    const cx = (COLS - 1) / 2
-    const cy = (ROWS - 1) / 2
+function distFromCenter(i: number, cols: number, rows: number): number {
+    const col = i % cols
+    const row = Math.floor(i / cols)
+    const cx = (cols - 1) / 2
+    const cy = (rows - 1) / 2
     return Math.sqrt((col - cx) ** 2 + (row - cy) ** 2)
 }
-
-const MAX_DIST = distFromCenter(0)
 
 function settleEasing(elasticity: number): string {
     const c2 = Math.min(elasticity - 1.0, 0.9)
@@ -460,6 +459,11 @@ export default function ClientLogoGrid({
     const gridRef = useRef<HTMLDivElement>(null)
     const hasAnimated = useRef(false)
 
+    const breakpoint = useBreakpoint()
+    const { cols, rows } = LOGO_GRID_TIERS[breakpoint]
+    const count = cols * rows
+    const containerAspect = (cols / rows) * CELL_ASPECT
+
     const runAnimation = useCallback(
         (grid: HTMLDivElement) => {
             if (!grid) return
@@ -486,10 +490,12 @@ export default function ClientLogoGrid({
                 hoverScale,
             } = DEFAULTS
 
-            // Pick COUNT logos at random from full pool
+            const maxDist = distFromCenter(0, cols, rows)
+
+            // Pick count logos at random from full pool
             const picked = shuffle([...Array(LOGOS.length).keys()]).slice(
                 0,
-                COUNT
+                count
             )
             const order = shuffle(picked)
             const shuffled = shuffle([...BRAND_COLORS])
@@ -501,10 +507,10 @@ export default function ClientLogoGrid({
 
             order.forEach((logoIdx, gridPos) => {
                 const logo = LOGOS[logoIdx]
-                const col = gridPos % COLS
-                const row = Math.floor(gridPos / COLS)
-                const tx = COLS > 1 ? col / (COLS - 1) : 0
-                const ty = ROWS > 1 ? row / (ROWS - 1) : 0
+                const col = gridPos % cols
+                const row = Math.floor(gridPos / cols)
+                const tx = cols > 1 ? col / (cols - 1) : 0
+                const ty = rows > 1 ? row / (rows - 1) : 0
                 const rgb = bilinearRGB(
                     cornerTL,
                     cornerTR,
@@ -546,9 +552,9 @@ export default function ClientLogoGrid({
                     }
                 })
 
-                const dist = distFromCenter(gridPos)
+                const dist = distFromCenter(gridPos, cols, rows)
                 const delay =
-                    (dist / MAX_DIST) * spreadMs + Math.random() * jitterMs
+                    (dist / maxDist) * spreadMs + Math.random() * jitterMs
                 grid.appendChild(cell)
 
                 // Fade in + colour settle
@@ -641,7 +647,7 @@ export default function ClientLogoGrid({
             return () =>
                 document.removeEventListener("mousemove", handleMouseMove)
         },
-        [logoSizePercent]
+        [logoSizePercent, cols, rows, count]
     )
 
     useEffect(() => {
@@ -709,7 +715,7 @@ export default function ClientLogoGrid({
             style={{
                 position: "relative",
                 width: "100%",
-                aspectRatio: "20 / 9",
+                aspectRatio: containerAspect,
             }}
         >
             <div
@@ -721,7 +727,7 @@ export default function ClientLogoGrid({
                     right: 0,
                     bottom: 0,
                     display: "grid",
-                    gridTemplateColumns: `repeat(${COLS}, 1fr)`,
+                    gridTemplateColumns: `repeat(${cols}, 1fr)`,
                     gap,
                     opacity: 0,
                 }}

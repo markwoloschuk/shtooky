@@ -18,7 +18,7 @@
 // value on top of that — no ratio, no guessing.
 
 import { useEffect, useRef, useState } from "react"
-import { TYPE, COLORS, TIMING } from "./Tokens"
+import { TYPE, COLORS, TIMING, getType } from "./Tokens"
 
 // ─── TUNING ──────────────────────────────────────────────────────────────────
 
@@ -254,8 +254,8 @@ export default function HeroAnimationTwoLine({
                 left: 0;
                 top: 0;
                 font-family: ${FONT_DISPLAY};
-                font-weight: ${TYPE.OPENING.weight};
-                letter-spacing: ${TYPE.OPENING.tracking}em;
+                font-weight: ${getType().OPENING.weight};
+                letter-spacing: ${getType().OPENING.tracking}em;
                 color: #fff;
                 white-space: nowrap;
                 pointer-events: none;
@@ -267,8 +267,8 @@ export default function HeroAnimationTwoLine({
                 left: 0;
                 top: 0;
                 font-family: ${FONT_DISPLAY};
-                font-weight: ${TYPE.OPENING.weight};
-                letter-spacing: ${TYPE.OPENING.tracking}em;
+                font-weight: ${getType().OPENING.weight};
+                letter-spacing: ${getType().OPENING.tracking}em;
                 white-space: nowrap;
                 pointer-events: none;
             `
@@ -279,7 +279,7 @@ export default function HeroAnimationTwoLine({
                 position: absolute;
                 left: 0;
                 top: 0;
-                font-weight: ${TYPE.OPENING.weight};
+                font-weight: ${getType().OPENING.weight};
                 white-space: nowrap;
                 opacity: 0;
                 pointer-events: none;
@@ -310,9 +310,9 @@ export default function HeroAnimationTwoLine({
                 white-space: nowrap;
                 font-family: ${FONT_DISPLAY};
                 font-size: 1.944vw;
-                font-weight: ${TYPE.TAGLINE.weight};
-                letter-spacing: ${TYPE.TAGLINE.tracking}em;
-                line-height: ${TYPE.TAGLINE.lineHeight};
+                font-weight: ${getType().TAGLINE.weight};
+                letter-spacing: ${getType().TAGLINE.tracking}em;
+                line-height: ${getType().TAGLINE.lineHeight};
                 color: #ffffff;
                 opacity: 0;
                 pointer-events: none;
@@ -333,10 +333,10 @@ export default function HeroAnimationTwoLine({
         }
 
         function calcLayout() {
-            const fontSize = Math.round(window.innerWidth * (TYPE.OPENING.sizeVw / 100))
+            const fontSize = Math.round(window.innerWidth * (getType().OPENING.sizeVw / 100))
             const fontSizeStr = fontSize + "px"
-            const lineH = measureText("A", fontSizeStr, FONT_DISPLAY, TYPE.OPENING.weight).h
-            const glyphH = measureGlyphHeight(fontSizeStr, FONT_DISPLAY, TYPE.OPENING.weight)
+            const lineH = measureText("A", fontSizeStr, FONT_DISPLAY, getType().OPENING.weight).h
+            const glyphH = measureGlyphHeight(fontSizeStr, FONT_DISPLAY, getType().OPENING.weight)
             const scale = fontSize / 34
             const travelPx = Math.round(CFG.TRAVEL_PX * scale)
             const reachStart = Math.round(CFG.REACH_START * scale)
@@ -351,7 +351,7 @@ export default function HeroAnimationTwoLine({
             })()
             let maxW = 0
             ;[...carSeq, FINAL].forEach((p) => {
-                const { w } = measureText(p, fontSizeStr, FONT_DISPLAY, TYPE.OPENING.weight)
+                const { w } = measureText(p, fontSizeStr, FONT_DISPLAY, getType().OPENING.weight)
                 if (w > maxW) maxW = w
             })
             const padding = Math.max(travelPx, lineH + reachStart + 4)
@@ -421,7 +421,7 @@ function positionTagline(glyphH: number, lineGap: number) {
             slotTrack.innerHTML = ""
             ;[...carSeq, FINAL].forEach((text, i) => {
                 const div = document.createElement("div")
-                div.style.cssText = `height:${lineH}px;line-height:${lineH}px;font-size:${fontSizeStr};font-weight:${TYPE.OPENING.weight};white-space:nowrap;display:block;color:${rgbStr(allColors[i])};`
+                div.style.cssText = `height:${lineH}px;line-height:${lineH}px;font-size:${fontSizeStr};font-weight:${getType().OPENING.weight};white-space:nowrap;display:block;color:${rgbStr(allColors[i])};`
                 div.textContent = text
                 slotTrack.appendChild(div)
             })

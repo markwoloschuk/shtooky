@@ -139,7 +139,7 @@ const TYPE_TIERS = {
 
         // "I'm a creative problem solver"
         OPENING: {
-            sizeVw: 5,
+            sizeVw: 5.5,
             weight: 700,
             tracking: -0.025,
             lineHeight: 1.05,
@@ -244,9 +244,9 @@ const TYPE_TIERS = {
 
         // Site-wide footer blurb text
         FOOTER: {
-            sizePx: 14,
+            sizePx: 18,
             weight: 400,
-            tracking: 0.04,
+            tracking: 0.1,
             lineHeight: 1.4,
         },
 
@@ -494,6 +494,12 @@ export function useType() {
 }
 export function useVisibility() {
     return VISIBILITY_TIERS[useBreakpoint()]
+}
+
+export const LOGO_GRID_TIERS = {
+    desktop: { cols: 5, rows: 4 },
+    tablet:  { cols: 4, rows: 5 },
+    mobile:  { cols: 3, rows: 6 },
 }
 
 
