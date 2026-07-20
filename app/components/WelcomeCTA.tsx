@@ -110,10 +110,23 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
             })
             row.style.height = textH + "px"
             if (rule) rule.style.width = totalSpan + "px"
+        } else if (getBreakpoint() === "mobile") {
+            // Horizontal row — mobile
+            const rowWidth = row.offsetWidth
+            const totalTextWidth = ws.current.reduce((a, b) => a + b, 0)
+            const gap = Math.max(8, (rowWidth - totalTextWidth) / (LINKS.length - 1))
+            let x = 0
+            textRefs.current.forEach((el, i) => {
+                if (!el) return
+                el.style.left = x + "px"
+                el.style.top = "0px"
+                el.style.transformOrigin = "left center"
+                x += ws.current[i] + gap
+            })
+            row.style.height = textH + "px"
+            if (rule) rule.style.width = "100%"
         } else {
-            // Vertical stack — tablet/mobile
-            // NOTE (rule width): currently spans the widest item — change rule.style.width
-            // to "100%" here if a full-column-width rule looks better once reviewed on device.
+            // Vertical stack — tablet
             const vGap = DEFAULTS.verticalGapPx
             textRefs.current.forEach((el, i) => {
                 if (!el) return

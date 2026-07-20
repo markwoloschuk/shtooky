@@ -1,5 +1,9 @@
 "use client"
 
+// TYPE ROLES USED IN THIS FILE:
+//   option labels (Contact / Resume / Location) → CONFIG.LABEL_FONT_SIZE (30px) desktop/tablet
+//                                               → TYPE_TIERS.CTA_LINK (sizePx) mobile — read via useType()
+
 // TalkOptions.tsx
 // app/components/
 // Three single-line toggles — Contact / Location / Resume — sitting
@@ -10,7 +14,7 @@
 // spirit to ThinkCasePanel's block fade-in than anything canvas-based.
 
 import { useState, useRef, useEffect } from "react"
-import { COLORS, TYPE, useBreakpoint } from "./SiteTokens"
+import { COLORS, TYPE, useBreakpoint, useType } from "./SiteTokens"
 import { useSequence, unlock } from "./SequenceController"
 
 const ACCENT = COLORS.contact
@@ -93,6 +97,9 @@ function OptionLabel({
     active: boolean
     onClick: () => void
 }) {
+    const bp = useBreakpoint()
+    const type = useType()
+    const fontSize = bp === "mobile" ? type.CTA_LINK.sizePx : CONFIG.LABEL_FONT_SIZE
     return (
         <button
             onClick={onClick}
@@ -102,7 +109,7 @@ function OptionLabel({
                 padding: 0,
                 cursor: "pointer",
                 fontFamily: TYPE.display,
-                fontSize: CONFIG.LABEL_FONT_SIZE,
+                fontSize,
                 fontWeight: 700,
                 color: ACCENT,
                 opacity: active ? 1 : 0.65,
@@ -278,8 +285,9 @@ export default function TalkOptions() {
         >
             <div style={{
                     display: "flex",
-                    flexDirection: bp === "desktop" ? "row" : "column",
-                    gap: bp === "desktop" ? CONFIG.LABEL_GAP : CONFIG.LABEL_GAP_VERTICAL,
+                    flexDirection: bp === "desktop" || bp === "mobile" ? "row" : "column",
+                    justifyContent: bp === "mobile" ? "space-between" : undefined,
+                    gap: bp === "desktop" ? CONFIG.LABEL_GAP : bp === "mobile" ? 0 : CONFIG.LABEL_GAP_VERTICAL,
                 }}>
                 <OptionLabel label="Contact" active={open === "contact"} onClick={() => toggle("contact")} />
                 <OptionLabel label="Resume" active={open === "resume"} onClick={() => toggle("resume")} />
