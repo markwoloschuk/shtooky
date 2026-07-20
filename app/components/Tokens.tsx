@@ -316,7 +316,7 @@ const TYPE_TIERS = {
         },
         OPENING: { sizeVw: 8, weight: 700, tracking: -0.025, lineHeight: 1.05 },
         DISPLAY_HERO: {
-            sizeVw: 10,
+            sizeVw: 12,
             weight: 700,
             tracking: -0.025,
             lineHeight: 0.95,
