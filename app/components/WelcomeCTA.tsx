@@ -1,24 +1,22 @@
 "use client"
 
+// TYPE ROLES USED IN THIS FILE:
+//   CTA nav links ("See the work" / "Who I am" / "How I think")  → TYPE_TIERS.CTA_LINK (sizePx, weight, tracking — read via useType())
+
 // WelcomeCTA.tsx
 // Welcome page bottom CTA links — "See the work", "Who I am", "How I think"
 // Place inside ContentColumn (76vw centered frame) — fills 100% of container width
 // Last updated: 2026-07-01
 
-import { useEffect, useRef, useCallback, useState } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { COLORS, TIMING, TYPE, getBreakpoint } from "./Tokens"
+import { COLORS, TIMING, TYPE, getBreakpoint, useType } from "./Tokens"
 
 // ─────────────────────────────────────────────────────────────
 // DEFAULTS — all tuning lives here
 // ─────────────────────────────────────────────────────────────
 
 const DEFAULTS = {
-    // Type
-    fontSizeVw: 2.0,
-    fontWeight: 600,
-    letterSpacing: -0.01,
-
     // Layout
     gapPx: 220,
     verticalGapPx: 24,
@@ -78,22 +76,17 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
     const ruleRef = useRef<HTMLHRElement>(null)
     const rowRef = useRef<HTMLDivElement>(null)
     const textRefs = useRef<(HTMLSpanElement | null)[]>([null, null, null])
-    const [fontPx, setFontPx] = useState(26)
     const triggered = useRef(false)
-
-    useEffect(() => {
-        setFontPx(Math.round((DEFAULTS.fontSizeVw / 100) * window.innerWidth))
-    }, [])
+    const type = useType()
+    // Keep current type accessible inside the stale-closure resize/layout effect
+    const typeRef = useRef(type)
+    typeRef.current = type
 
     const router = useRouter()
 
     const lingerT = useRef<(ReturnType<typeof setTimeout> | null)[]>([null, null, null])
     const clickT = useRef<(ReturnType<typeof setTimeout> | null)[]>([null, null, null])
     const ws = useRef<number[]>([0, 0, 0])
-
-    function getFontPx(): number {
-        return fontPx
-    }
 
     function layout() {
         const row = rowRef.current
@@ -260,12 +253,12 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
 
     // ── layout-only effect — runs once on mount ───────────────
     useEffect(() => {
-        const fontPx = getFontPx()
+        const ct = typeRef.current.CTA_LINK
         textRefs.current.forEach((el) => {
             if (!el) return
-            el.style.fontSize = fontPx + "px"
-            el.style.fontWeight = String(DEFAULTS.fontWeight)
-            el.style.letterSpacing = DEFAULTS.letterSpacing + "em"
+            el.style.fontSize = ct.sizePx + "px"
+            el.style.fontWeight = String(ct.weight)
+            el.style.letterSpacing = ct.tracking + "em"
             el.style.fontFamily = TYPE.display
             el.style.position = "absolute"
             el.style.opacity = "0"
@@ -278,7 +271,7 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
             setTimeout(layout, 300)
         }
         const onResize = () => {
-            const px = getFontPx()
+            const px = typeRef.current.CTA_LINK.sizePx
             textRefs.current.forEach((el) => {
                 if (el) el.style.fontSize = px + "px"
             })
@@ -394,7 +387,7 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
                 style={{
                     width: "100%",
                     position: "relative",
-                    minHeight: getFontPx() + "px",
+                    minHeight: type.CTA_LINK.sizePx + "px",
                 }}
             >
                 {LINKS.map((link, i) => (
@@ -409,9 +402,9 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
                             whiteSpace: "nowrap",
                             color: link.color,
                             fontFamily: TYPE.display,
-                            fontWeight: DEFAULTS.fontWeight,
-                            fontSize: getFontPx() + "px",
-                            letterSpacing: DEFAULTS.letterSpacing + "em",
+                            fontWeight: type.CTA_LINK.weight,
+                            fontSize: type.CTA_LINK.sizePx + "px",
+                            letterSpacing: type.CTA_LINK.tracking + "em",
                             lineHeight: 1,
                             userSelect: "none",
                             cursor: "pointer",

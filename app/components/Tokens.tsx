@@ -249,6 +249,14 @@ const TYPE_TIERS = {
             tracking: 0.04,
             lineHeight: 1.4,
         },
+
+        // Welcome page bottom CTA nav links ("See the work" / "Who I am" / "How I think")
+        CTA_LINK: {
+            sizePx: 28,
+            weight: 600,
+            tracking: -0.01,
+            lineHeight: 1.0,
+        },
     },
 
     tablet: {
@@ -290,6 +298,7 @@ const TYPE_TIERS = {
         SUBTITLE: { sizePx: 20, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
         FOOTER: { sizePx: 13, weight: 400, tracking: 0.04, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
+        CTA_LINK: { sizePx: 26, weight: 600, tracking: -0.01, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
     },
 
     mobile: {
@@ -329,6 +338,7 @@ const TYPE_TIERS = {
         SUBTITLE: { sizePx: 18, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 },
         FOOTER: { sizePx: 13, weight: 400, tracking: 0.04, lineHeight: 1.4 },
+        CTA_LINK: { sizePx: 22, weight: 600, tracking: -0.01, lineHeight: 1.0 },
     },
 }
 
