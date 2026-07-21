@@ -5,7 +5,13 @@
 
 // RippleNetwork.tsx — shtooky.com
 // Let's Talk page — ripple signal animation with text overlay
-// v2 — ported to Next.js 2026-06-22
+// v3 — 2026-07-21 — ripple spawn area decoupled from the container box:
+// AREA_WIDTH_PCT/AREA_HEIGHT/AREA_OFFSET_X/AREA_OFFSET_Y now define an
+// independent rectangle ripples spawn within, instead of always filling
+// CW()/HEIGHT. TEXT_BOTTOM_PADDING (was a flat inline 100px) is now
+// breakpoint-tiered too, since on a short mobile HEIGHT box that flat
+// value was eating most of the available room and pinning the headline
+// near the top almost regardless of HEIGHT.
 
 import { useEffect, useRef } from "react"
 import { COLORS, TYPE, getType, useBreakpoint } from "./SiteTokens"
@@ -61,6 +67,21 @@ export const CHUNKS = [
 const CFG = {
     HEIGHT: 350,
 
+    // Ripple spawn area — an independent rectangle within the container box,
+    // decoupled from HEIGHT so it can be sized/positioned on its own.
+    // AREA_WIDTH_PCT is a % of the container's own width (CW()); AREA_HEIGHT/
+    // AREA_OFFSET_X/AREA_OFFSET_Y are px. Defaults here reproduce the old
+    // always-fill-the-container behavior (desktop, which already looks
+    // right, is unaffected).
+    AREA_WIDTH_PCT: 100,
+    AREA_HEIGHT: 350,
+    AREA_OFFSET_X: 0,
+    AREA_OFFSET_Y: 0,
+
+    // Was a flat inline 100px on the text layer's padding-bottom. Now a
+    // tunable that ties naturally to breakpoint overrides below.
+    TEXT_BOTTOM_PADDING: 100,
+
     maxPairs: 5,
     rampUp: 8,
     birthVar: 100,
@@ -106,6 +127,13 @@ const CFG_TABLET_OVERRIDES = {
     centerBias: 60,   // placeholder — tune live
     maxPairs: 4,   // placeholder — tune live
 
+    // Ripple area — starting guess: full width, matches HEIGHT, no offset.
+    // Independently tunable now — placeholder, tune live.
+    AREA_WIDTH_PCT: 100,
+    AREA_HEIGHT: 275,
+    AREA_OFFSET_X: 0,
+    AREA_OFFSET_Y: 0,
+    TEXT_BOTTOM_PADDING: 60,   // was flat 100 — placeholder, tune live
 }
 
 const CFG_MOBILE_OVERRIDES = {
@@ -114,6 +142,17 @@ const CFG_MOBILE_OVERRIDES = {
     maxRadiusVar: 90,
     centerBias: 70,   // placeholder — tune live
     maxPairs: 3,   // placeholder — tune live
+
+    // Ripple area — starting guess: full width (matching desktop's spread
+    // across the headline), matches HEIGHT, no offset. This is the main
+    // knob to move for "too narrow" / "too low" — tune live.
+    AREA_WIDTH_PCT: 100,
+    AREA_HEIGHT: 160,
+    AREA_OFFSET_X: 0,
+    AREA_OFFSET_Y: 0,
+    TEXT_BOTTOM_PADDING: 30,   // was flat 100 — that alone was likely most
+                               // of the "headline too high" problem on a
+                               // 160px-tall box. Placeholder, tune live.
 }
 
 // ─── COLOR SYSTEM ─────────────────────────────────────────────────────────────
@@ -322,21 +361,27 @@ export default function RippleNetwork() {
         const CW = () => container!.clientWidth
 
         function rollSpawnPos(existing: { x: number; y: number }[]): SpawnPos {
-            const h = cfg.HEIGHT
+            // Ripple area — an independent rectangle within the container,
+            // sized/positioned by its own tunables rather than always
+            // filling CW()/HEIGHT.
+            const areaW = CW() * (cfg.AREA_WIDTH_PCT / 100)
+            const areaH = cfg.AREA_HEIGHT
+            const offX = cfg.AREA_OFFSET_X
+            const offY = cfg.AREA_OFFSET_Y
             const cb = cfg.centerBias / 100
             const minDist = cfg.antiClump
-            const nodeR = Math.min(varyF(cfg.maxRadius, cfg.maxRadiusVar), CW() * 0.45, h * 0.45)
-            const minX = nodeR, maxX = CW() - nodeR
-            const minY = nodeR, maxY = h - nodeR
-            if (maxX <= minX || maxY <= minY) return { x: CW() / 2, y: h / 2, nodeR }
+            const nodeR = Math.min(varyF(cfg.maxRadius, cfg.maxRadiusVar), areaW * 0.45, areaH * 0.45)
+            const minX = offX + nodeR, maxX = offX + areaW - nodeR
+            const minY = offY + nodeR, maxY = offY + areaH - nodeR
+            if (maxX <= minX || maxY <= minY) return { x: offX + areaW / 2, y: offY + areaH / 2, nodeR }
             let best: SpawnPos | null = null
             let bestDist = -1
             for (let att = 0; att < 50; att++) {
                 const rx = minX + Math.random() * (maxX - minX)
                 const ry = minY + Math.random() * (maxY - minY)
                 const t = cb * cb
-                let x = rx + (CW() * 0.2 - rx) * t
-                let y = ry + (h / 2 - ry) * t
+                let x = rx + (offX + areaW * 0.2 - rx) * t
+                let y = ry + (offY + areaH / 2 - ry) * t
                 x = Math.max(minX, Math.min(maxX, x))
                 y = Math.max(minY, Math.min(maxY, y))
                 if (minDist <= 0) return { x, y, nodeR }
@@ -374,9 +419,12 @@ export default function RippleNetwork() {
 
         function makeNode(pos: SpawnPos): Node {
             const rf = cfg.colorRange / 100
-            const h = cfg.HEIGHT
-            const x = Math.max(pos.nodeR, Math.min(CW() - pos.nodeR, pos.x))
-            const y = Math.max(pos.nodeR, Math.min(h - pos.nodeR, pos.y))
+            const areaW = CW() * (cfg.AREA_WIDTH_PCT / 100)
+            const areaH = cfg.AREA_HEIGHT
+            const offX = cfg.AREA_OFFSET_X
+            const offY = cfg.AREA_OFFSET_Y
+            const x = Math.max(offX + pos.nodeR, Math.min(offX + areaW - pos.nodeR, pos.x))
+            const y = Math.max(offY + pos.nodeR, Math.min(offY + areaH - pos.nodeR, pos.y))
             return {
                 x, y,
                 ripples: [],
@@ -810,7 +858,7 @@ export default function RippleNetwork() {
                     position: "absolute",
                     bottom: 0,
                     left: 0,
-                    padding: "0 0 100px 0",
+                    padding: `0 0 ${cfg.TEXT_BOTTOM_PADDING}px 0`,
                     overflow: "visible",
                     pointerEvents: "none",
                 }}
