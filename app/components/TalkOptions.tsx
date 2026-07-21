@@ -34,7 +34,7 @@ const CONFIG = {
     // duration, and doubles as the real number the next unlock (seq 3,
     // the remaining paragraphs) chains off of — not a separate guess.
     REVEAL_DELAY_MS: 200,
-    REVEAL_FADE_MS: 500,
+    REVEAL_FADE_MS: 1000,
 }
 
 const RESUME_PATH = "/Mark_Woloschuk_Resume.pdf"

@@ -17,7 +17,7 @@
 import { useEffect } from "react"
 import { unlock, reset } from "../components/SequenceController"
 import RippleNetwork, { TEXT_DELAY, CHUNKS, TIMING } from "../components/TalkRippleNetwork"
-import SiteTextBlock, { SCROLL_FADE } from "../components/SiteTextBlock"
+import SiteTextBlock, { SCROLL_FADE_FAST } from "../components/SiteTextBlock"
 import TalkOptions from "../components/TalkOptions"
 import { useColumn, useBreakpoint } from "../components/SiteTokens"
 
@@ -37,10 +37,11 @@ const BLURB_GAP_MOBILE = -28
 const RIPPLE_TEXT_DONE_MS =
     TEXT_DELAY + CHUNKS[CHUNKS.length - 1].delay + TIMING.duration
 
-// Real completion time of id1's fade once seq 1 unlocks — mountIndex
-// is 0 for a single-paragraph TextBlock call, so paragraphStagger
-// doesn't factor in.
-const ID1_FADE_DONE_MS = SCROLL_FADE.mountDelay + SCROLL_FADE.mountFadeIn
+// Real completion time of id1's fade once seq 1 unlocks. id1 now renders
+// with fast: true (SCROLL_FADE_FAST), so this must track that config, not
+// the base SCROLL_FADE — otherwise this wait drifts out of sync with what
+// actually happens on screen.
+const ID1_FADE_DONE_MS = SCROLL_FADE_FAST.mountDelay + SCROLL_FADE_FAST.mountFadeIn
 
 export default function LetsTalk() {
     const col = useColumn()

@@ -375,7 +375,7 @@ function showNav() {
 
 const ep = easeIO(m === 'nav' ? navProg.current : m === 'fullview' ? 1 : op)
     const fCX = fullviewCX()
-    const ct = CFG.CHROMA_ON ? CFG.CHROMA_AMT : 0
+    const ct = (CFG.CHROMA_ON && !isMobileRef.current) ? CFG.CHROMA_AMT : 0
     const sliceFadeOp = CFG.SLICE_FADE_COLOR ? ep * CFG.COL_OPACITY : 0
 
     if (m === 'closing') {

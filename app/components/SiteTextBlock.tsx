@@ -56,8 +56,8 @@ const SCROLL_FADE_PULL = {
 // 3000ms at every step of an already-visible serial chain.
 export const SCROLL_FADE_FAST = {
     ...SCROLL_FADE,
-    mountDelay: 150,
-    mountFadeIn: 550,
+    mountDelay: 100,
+    mountFadeIn: 1500,
 }
 
 // ─── Paragraph type style ─────────────────────────────────────────────────────
