@@ -227,7 +227,7 @@ function drawTitleBlock(ctx: CanvasRenderingContext2D, rect: Rect, title: string
 function drawBandTitle(
   ctx: CanvasRenderingContext2D,
   clipRect: Rect, posRect: Rect, title: string,
-  alpha: number, scale: number, riseOffset: number,
+  alpha: number, padL: number, riseOffset: number,
 ) {
   if (alpha <= 0) return;
   ctx.save();
@@ -237,9 +237,8 @@ function drawBandTitle(
   ctx.clip();
   ctx.globalAlpha = alpha;
   // All values match WorkCarousel.drawHeadline, scaled to screen pixels
-  const unitPx = _bandTitlePx / 52; // proportional unit; on desktop = scale, on mobile = larger
+  const unitPx = _bandTitlePx / 52; // proportional unit; on desktop ≈ viewport/NATIVE_W, on mobile = larger
   const fontSize = _bandTitlePx;
-  const padL = 104 * unitPx;
   const lineH = 55 * unitPx;
   const padB = 28 * unitPx; // Work carousel: CH(480) - 48 + HL_Y(20) = 452 → 28 from bottom
   ctx.font = `700 ${fontSize}px ${TYPE.display}`;
@@ -331,12 +330,16 @@ const gridInsetRef = useRef({ offset: 0, scale: 1 });
   // whether it's the first open or the fifth.
 useEffect(() => {
     if (bandMounted && bandCanvasRef.current) {
-      bandCanvasRef.current.width = window.innerWidth;
+      const dpr = window.devicePixelRatio || 1;
+      // CSS display size = logical pixels; backing store = physical pixels for sharpness on HiDPI.
+      bandCanvasRef.current.style.width  = `${window.innerWidth}px`;
       // Tall enough to encompass both the card's starting position
       // (which can be anywhere in the viewport) AND the band's final
       // position (at the top). Was bandHeight before, which clipped
       // the card at its starting position — causing the "unmask" look.
-      bandCanvasRef.current.height = window.innerHeight;
+      bandCanvasRef.current.style.height = `${window.innerHeight}px`;
+      bandCanvasRef.current.width  = window.innerWidth  * dpr;
+      bandCanvasRef.current.height = window.innerHeight * dpr;
     }    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bandMounted]);
 
@@ -503,13 +506,19 @@ for (let i = 0; i < N; i++) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Scale context to physical pixels so all subsequent drawing uses logical CSS pixel coords.
+    const dpr = window.devicePixelRatio || 1;
+    const logW = window.innerWidth;
+    const logH = window.innerHeight;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, logW, logH);
     const oi = openIdx.current;
     if (oi < 0) return;
     const m = mode.current;
-    const bandH = canvas.width * (_bandH / NATIVE_W);
-    const to: Rect = { x: 0, y: 0, w: canvas.width, h: bandH };
-    const s = canvas.width / NATIVE_W;
+    const bandH = logW * (_bandH / NATIVE_W);
+    const to: Rect = { x: 0, y: 0, w: logW, h: bandH };
+    const s = logW / NATIVE_W;
+    const padL = logW * col.marginVw / 100;
 
     // ── Nav mode — horizontal push between two cards ───────────────────
     if (m === 'nav') {
@@ -542,7 +551,7 @@ for (let i = 0; i < N; i++) {
         const titleOutSlide = -nd * 30 * s * (1 - titleOutAlpha);
         ctx.save();
         ctx.translate(titleOutSlide, 0);
-        drawBandTitle(ctx, to, to, bandTitleForSlot(nf), titleOutAlpha, s, 0);
+        drawBandTitle(ctx, to, to, bandTitleForSlot(nf), titleOutAlpha, padL, 0);
         ctx.restore();
       }
 
@@ -557,7 +566,7 @@ for (let i = 0; i < N; i++) {
             ctx,
             { x: clipX, y: 0, w: clipW, h: to.h },
             { x: inX, y: 0, w: to.w, h: to.h },
-            bandTitleForSlot(nt), tp, s, 0
+            bandTitleForSlot(nt), tp, padL, 0
           );
         }
       }
@@ -579,7 +588,7 @@ for (let i = 0; i < N; i++) {
     const tp = isClosing ? titleEaseIn(rawTP) : titleEaseOut(rawTP);
     const riseNative = isClosing ? 20 : 30;
     const riseOffset = (1 - tp) * riseNative * s;
-    drawBandTitle(ctx, cur, to, bandTitleForSlot(oi), tp, s, riseOffset);
+    drawBandTitle(ctx, cur, to, bandTitleForSlot(oi), tp, padL, riseOffset);
   }, [drawCardAt]);
 
   const updateHitLayer = useCallback(() => {
@@ -670,7 +679,7 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     // Only close if click is within the band's visible area — the canvas
     // is viewport-height for animation room, but the band itself is much shorter.
     if (e && bandCanvasRef.current) {
-      const bandH = bandCanvasRef.current.width * (_bandH / NATIVE_W);
+      const bandH = window.innerWidth * (_bandH / NATIVE_W);
       if (e.nativeEvent.offsetY > bandH) return;
     }
     // Snap back to exactly where the page was when this card was
@@ -819,18 +828,18 @@ if (Math.abs(openProg.current - target) < 0.006) {
     // ── Band title — independent timeline (runs in opening/fullview/closing) ──
     if (m === 'opening' || m === 'fullview') {
       if (bandTitleStart.current === 0) {
-        const canvas = bandCanvasRef.current;
-        if (canvas) {
+        if (bandCanvasRef.current) {
+          const logW = window.innerWidth;
           const ep = easeIO(openProg.current);
           const from = fromRectRef.current;
-          const bandH = canvas.width * (_bandH / NATIVE_W);
+          const bandH = logW * (_bandH / NATIVE_W);
           const curX = lerp(from.x, 0, ep);
           const curY = lerp(from.y, 0, ep);
-          const curW = lerp(from.w, canvas.width, ep);
+          const curW = lerp(from.w, logW, ep);
           const curH = lerp(from.h, bandH, ep);
-          const titleLeftX = 0.072222 * canvas.width;
+          const titleLeftX = 0.072222 * logW;
           const titleRevealY = bandH * 0.9;
-          if (curX <= titleLeftX && (curX + curW) >= canvas.width * 0.95 && (curY + curH) >= titleRevealY) {
+          if (curX <= titleLeftX && (curX + curW) >= logW * 0.95 && (curY + curH) >= titleRevealY) {
             bandTitleStart.current = now + 100;
           }
         }
@@ -946,8 +955,11 @@ imgsRef.current = Array.from({ length: N }, (_, i) => {
       // reasoning as the grid's own scale — otherwise a resize mid-open
       // would leave it drawing at a stale width.
 if (bandCanvasRef.current && mode.current !== 'grid') {
-        bandCanvasRef.current.width = window.innerWidth;
-        bandCanvasRef.current.height = window.innerHeight;
+        const dpr = window.devicePixelRatio || 1;
+        bandCanvasRef.current.style.width  = `${window.innerWidth}px`;
+        bandCanvasRef.current.style.height = `${window.innerHeight}px`;
+        bandCanvasRef.current.width  = window.innerWidth  * dpr;
+        bandCanvasRef.current.height = window.innerHeight * dpr;
       }      updateHitLayer();
     };
     window.addEventListener('resize', scaleStage);

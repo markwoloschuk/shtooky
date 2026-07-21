@@ -47,13 +47,13 @@ export default function WorkPage() {
             closeRef.current = close
           }}
         />
-        <div style={{ width: `${col.vw}vw`, marginLeft: 'auto', marginRight: 'auto' }}>
-          <CaseStudyPanel
-            caseFile={manifest?.contentFile ?? null}
-            caseIdx={activeIdx}
-            visible={activeIdx !== null}
-          />
-        </div>
+
+<CaseStudyPanel
+          caseFile={manifest?.contentFile ?? null}
+          caseIdx={activeIdx}
+          visible={activeIdx !== null}
+        />
+
       </div>
 
       {/* Nav buttons — portalled to body to escape stacking context */}
