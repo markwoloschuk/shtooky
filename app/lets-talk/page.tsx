@@ -19,7 +19,17 @@ import { unlock, reset } from "../components/SequenceController"
 import RippleNetwork, { TEXT_DELAY, CHUNKS, TIMING } from "../components/TalkRippleNetwork"
 import SiteTextBlock, { SCROLL_FADE } from "../components/SiteTextBlock"
 import TalkOptions from "../components/TalkOptions"
-import { useColumn } from "../components/SiteTokens"
+import { useColumn, useBreakpoint } from "../components/SiteTokens"
+
+// Gap between RippleNetwork's box and the blurb below it — was a flat
+// -80px, tuned for the old taller desktop-shaped ripple box. Now that
+// TalkRippleNetwork's mobile HEIGHT/TEXT_BOTTOM_PADDING are their own
+// (shorter) tunables, the headline sits much closer to the box's bottom
+// on mobile, so mobile needs a much smaller (or positive) gap here
+// instead of inheriting desktop's negative pull. Starting guess — tune
+// live on device.
+const BLURB_GAP_DESKTOP = -80
+const BLURB_GAP_MOBILE = 0
 
 // Real completion time of RippleNetwork's one-shot text overlay —
 // last chunk's own delay + its animation duration, on top of the
@@ -34,6 +44,8 @@ const ID1_FADE_DONE_MS = SCROLL_FADE.mountDelay + SCROLL_FADE.mountFadeIn
 
 export default function LetsTalk() {
     const col = useColumn()
+    const bp = useBreakpoint()
+    const blurbGap = bp === "mobile" ? BLURB_GAP_MOBILE : BLURB_GAP_DESKTOP
 
     useEffect(() => {
         reset()
@@ -65,7 +77,7 @@ export default function LetsTalk() {
                 }}
             >
                 <RippleNetwork />
-                <div style={{ marginTop: "-80px" }}>
+                <div style={{ marginTop: `${blurbGap}px` }}>
                     <SiteTextBlock page="contact" ids="1" />
                     <div style={{ marginTop: "2.2em", marginBottom: "2.2em" }}>
                         <TalkOptions />
