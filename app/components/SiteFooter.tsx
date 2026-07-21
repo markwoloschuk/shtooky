@@ -83,6 +83,7 @@ const pageBlurbs =
                 // Adjust margin padding here
                 paddingLeft: `${FRAME_INSET_VW}vw`,
                 paddingRight: `${FRAME_INSET_VW}vw`,
+
                 zIndex: 40,
                 background:
                     "linear-gradient(to top, rgba(13,13,13,0.9) 0%, transparent 100%)",
@@ -115,7 +116,9 @@ const pageBlurbs =
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                    maxWidth: "60%",
+                    flex: "1 1 auto",
+                    minWidth: 0,
+                    marginRight: 16,
                     opacity: blurbVisible ? 1 : 0,
                     transition: "opacity 500ms ease",
                 }}
@@ -123,8 +126,8 @@ const pageBlurbs =
                 {blurb}
             </span>
 
-            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                {FOOTER.social.map((s) => (
+            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>        
+                {FOOTER.social.filter((s) => ICONS[s.id as keyof typeof ICONS]).map((s) => (
                     <a
                         key={s.id}
                         href={s.url || "#"}

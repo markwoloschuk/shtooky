@@ -431,7 +431,7 @@ const VISIBILITY_TIERS = {
         // TODO: tune for tablet — copied from desktop as placeholder
         TF0: 8,
         TF100: 18,
-        BF100: 72,
+        BF100: 76,
         BF0: 88,
         gradientHeight: 100,
         gradientOpacity: 0.95,
@@ -530,8 +530,8 @@ export const BACKGROUND = {
 export const FOOTER = {
     blurbs: {
         welcome: [
-            "25 years of learning to make things look the way I meant them to.",
-            "Creative concepting, direction and execution – sometimes all before lunch.",
+            "25 years of learning to make things look the way I meant.",
+            "Creative concepting, direction and execution – often before lunch.",
             "Making maps to places I've never been – one step at a time.",
         ],
         work: [

@@ -77,19 +77,20 @@ const cardFile = openIdx >= 0 ? contentFileFor(THINK_GRID[openIdx]) : null;
           in its own fixed/scrolling box. */}
       <div
         style={{
-          width: `${col.vw}vw`,
+          width: '100%',
           boxSizing: 'border-box' as const,
           pointerEvents: cardOpen ? 'auto' : 'none',
+          paddingLeft: `${col.marginVw}vw`,
+          paddingRight: `${col.marginVw}vw`,
           ...(cardOpen ? {
             position: 'absolute' as const,
             top: `${detailTopPx}px`,
             left: '0',
             right: '0',
-            margin: '0 auto',
             zIndex: 15,
             paddingBottom: '24px',
           } : {
-            margin: '56px auto 0',
+            marginTop: '56px',
           }),
         }}
       >

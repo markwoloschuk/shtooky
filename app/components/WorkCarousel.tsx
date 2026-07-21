@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { WORK_MANIFEST } from '../data/WorkManifest'
-import { TYPE, COLORS, useType, useColumn, MOBILE_BAND_HEIGHT_SCALE, getType } from './SiteTokens'
+import { TYPE, COLORS, useType, useColumn, MOBILE_BAND_HEIGHT_SCALE, getType, getColumn } from './SiteTokens'
 
 // ── Locked animation constants (from work_carousel_v30.html) ─────────────────
 const CFG = {
@@ -45,7 +45,8 @@ const BASE_W = CW / N
 // _ech (effective CH) — desktop/tablet = CH; mobile = CH * MOBILE_BAND_HEIGHT_SCALE.
 // Updated by scaleStage on every resize. All drawing functions read this.
 let _ech = CH
-let _hlNativeSize = 52 // updated in scaleStage: mobile drives this to meet PULLQUOTE min-size on screen
+let _hlNativeSize = 52  // updated in scaleStage: mobile drives this to meet PULLQUOTE min-size on screen
+let _hlPadNative = 104  // updated in scaleStage: col.marginVw * CW / 100 in native units
 
 
 // ── Carousel headlines drawn on canvas ───────────────────────────────────────
@@ -305,7 +306,7 @@ function showNav() {
     ctx.fillStyle = '#fff'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'bottom'
-    const pad = Math.round(104 * hlScale), lineH = Math.round(55 * hlScale)
+    const pad = _hlPadNative, lineH = Math.round(55 * hlScale)
     const totalH = lines.length * lineH
     const baseY = _ech - 48 - totalH + CFG.HL_Y - rise
     lines.forEach((line, i) => ctx.fillText(line, pad, baseY + (i + 1) * lineH))
@@ -660,6 +661,7 @@ if (m === 'nav') {
   _ech = isMobileRef.current ? Math.round(CH * MOBILE_BAND_HEIGHT_SCALE) : CH
   const s = wrap.clientWidth / CW
   _hlNativeSize = isMobileRef.current ? Math.round(getType().PULLQUOTE.sizePx / s) : 52
+  _hlPadNative = Math.round(getColumn().marginVw * CW / 100)
   stage.style.transform = `scale(${s})`
   stage.style.height = `${_ech}px`
   wrap.style.height = `${_ech * s}px`

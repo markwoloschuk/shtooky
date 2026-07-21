@@ -726,9 +726,11 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     // anywhere along its travel path, so keep the looser grid-bound clip.
     const bandCanvas = bandCanvasRef.current;
     if (bandCanvas) {
-      const bandHpx = bandCanvas.width * (_bandH / NATIVE_W);
+      const logW = window.innerWidth;
+      const logH = window.innerHeight;
+      const bandHpx = logW * (_bandH / NATIVE_W);
       if (m === 'fullview' || m === 'nav') {
-        bandCanvas.style.clipPath = `inset(0px 0px ${Math.max(0, bandCanvas.height - bandHpx)}px 0px)`;
+        bandCanvas.style.clipPath = `inset(0px 0px ${Math.max(0, logH - bandHpx)}px 0px)`;
       } else {
         const bottomInset = Math.max(0, bandDocYRef.current + window.innerHeight - gridDocBottomRef.current);
         bandCanvas.style.clipPath = `inset(0px 0px ${bottomInset}px 0px)`;
