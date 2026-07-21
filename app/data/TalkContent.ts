@@ -22,6 +22,7 @@ export const CONTENT: ContentItem[] = [
         id: 1,
         type: "paragraph",
         seq: 1,
+        size: "subtitle",   // NEW
         text: "I aim to take people at their word — and I hope they will take me at mine.",
     },
     

@@ -52,13 +52,14 @@ const SCROLL_FADE_PULL = {
 
 // ─── Paragraph type style ─────────────────────────────────────────────────────
 
-function getParaStyle(type: ReturnType<typeof useType>) {
+function getParaStyle(type: ReturnType<typeof useType>, size: "body" | "subtitle" = "body") {
+    const tier = size === "subtitle" ? type.SUBTITLE : type.BODY
     return {
         fontFamily: TYPE.display,
-        fontSize: `${type.BODY.sizePx}px`,
-        fontWeight: type.BODY.weight,
-        letterSpacing: `${type.BODY.tracking}em`,
-        lineHeight: type.BODY.lineHeight,
+        fontSize: `${tier.sizePx}px`,
+        fontWeight: tier.weight,
+        letterSpacing: `${tier.tracking}em`,
+        lineHeight: tier.lineHeight,
     }
 }
 
@@ -102,6 +103,7 @@ export interface ContentItem {
     text?: string
     href?: string
     color?: string
+    size?: "body" | "subtitle"   // NEW — defaults to body if omitted
     timing?: PullTiming
     chunks?: ChunkDef[]
 }
@@ -213,7 +215,7 @@ const rect2 = el.getBoundingClientRect()
 
 // ─── ParagraphItem ────────────────────────────────────────────────────────────
 
-function ParagraphItem({ text, unlocked, mountIndex = 0 }: { text: string; unlocked: boolean; mountIndex?: number }) {
+function ParagraphItem({ text, unlocked, mountIndex = 0, size = "body" }: { text: string; unlocked: boolean; mountIndex?: number; size?: "body" | "subtitle" }) {
     const ref = useScrollFade(unlocked, SCROLL_FADE, false, mountIndex)
     const col = useColumn()
     const type = useType()
@@ -222,7 +224,7 @@ function ParagraphItem({ text, unlocked, mountIndex = 0 }: { text: string; unloc
         <div ref={ref} style={{ width: "100%" }}>
             <p
                 style={{
-                    ...getParaStyle(type),
+                    ...getParaStyle(type, size),
                     color: "#ffffff",
                     maxWidth: bodyMaxWidth(col),
                     margin: 0,
@@ -709,6 +711,7 @@ function ParagraphItemWrapper({
             text={item.text!}
             unlocked={unlocked}
             mountIndex={mountIndex}
+            size={item.size}
         />
     )
 }

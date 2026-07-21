@@ -28,8 +28,8 @@ import { useColumn, useBreakpoint } from "../components/SiteTokens"
 // on mobile, so mobile needs a much smaller (or positive) gap here
 // instead of inheriting desktop's negative pull. Starting guess — tune
 // live on device.
-const BLURB_GAP_DESKTOP = -80
-const BLURB_GAP_MOBILE = 0
+const BLURB_GAP_DESKTOP = -90
+const BLURB_GAP_MOBILE = -28
 
 // Real completion time of RippleNetwork's one-shot text overlay —
 // last chunk's own delay + its animation duration, on top of the
