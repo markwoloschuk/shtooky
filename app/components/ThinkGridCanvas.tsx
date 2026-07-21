@@ -589,7 +589,7 @@ for (let i = 0; i < N; i++) {
     const riseNative = isClosing ? 20 : 30;
     const riseOffset = (1 - tp) * riseNative * s;
     drawBandTitle(ctx, cur, to, bandTitleForSlot(oi), tp, padL, riseOffset);
-  }, [drawCardAt]);
+  }, [drawCardAt, col.marginVw]);
 
   const updateHitLayer = useCallback(() => {
     const hit = hitRef.current;

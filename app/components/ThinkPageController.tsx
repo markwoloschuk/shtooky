@@ -54,7 +54,7 @@ const effectiveBandH = (viewportW > 0 && viewportW < 768)
     ? BAND_HEIGHT * MOBILE_BAND_HEIGHT_SCALE
     : BAND_HEIGHT;
   const bandHeightPx = viewportW * (effectiveBandH / NATIVE_W);
-  const detailTopPx = bandDocY + bandHeightPx + 56;
+  const detailTopPx = bandDocY + bandHeightPx + 20;
 const cardFile = openIdx >= 0 ? contentFileFor(THINK_GRID[openIdx]) : null;
 
   return (
