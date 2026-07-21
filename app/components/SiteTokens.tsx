@@ -229,7 +229,7 @@ const TYPE_TIERS = {
         // Bold lead-in subtitle; also governs intro blurbs below opening animations
         SUBTITLE: {
             sizePx: 22,
-            weight: 700,
+            weight: 400,
             tracking: 0,
             lineHeight: 1.35,
         },
