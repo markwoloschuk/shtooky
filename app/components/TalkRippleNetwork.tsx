@@ -103,12 +103,17 @@ const CFG_TABLET_OVERRIDES = {
     HEIGHT: 275,    // was 350
     maxRadius: 44,  // was 60
     maxRadiusVar: 90,
+    centerBias: 60,   // placeholder — tune live
+    maxPairs: 4,   // placeholder — tune live
+
 }
 
 const CFG_MOBILE_OVERRIDES = {
-    HEIGHT: 200,    // was 350
+    HEIGHT: 160,    // was 350
     maxRadius: 28,  // was 60
     maxRadiusVar: 90,
+    centerBias: 70,   // placeholder — tune live
+    maxPairs: 3,   // placeholder — tune live
 }
 
 // ─── COLOR SYSTEM ─────────────────────────────────────────────────────────────
@@ -318,8 +323,8 @@ export default function RippleNetwork() {
 
         function rollSpawnPos(existing: { x: number; y: number }[]): SpawnPos {
             const h = cfg.HEIGHT
-            const cb = CFG.centerBias / 100
-            const minDist = CFG.antiClump
+            const cb = cfg.centerBias / 100
+            const minDist = cfg.antiClump
             const nodeR = Math.min(varyF(cfg.maxRadius, cfg.maxRadiusVar), CW() * 0.45, h * 0.45)
             const minX = nodeR, maxX = CW() - nodeR
             const minY = nodeR, maxY = h - nodeR
@@ -344,7 +349,7 @@ export default function RippleNetwork() {
         }
 
         function rollReceiverPos(sx: number, sy: number, existing: { x: number; y: number }[]): SpawnPos {
-            const minA = (CFG.minAngle * Math.PI) / 180
+            const minA = (cfg.minAngle * Math.PI) / 180
             let best: SpawnPos | null = null
             let bestScore = -1
             for (let att = 0; att < 60; att++) {
@@ -363,12 +368,12 @@ export default function RippleNetwork() {
         }
 
         function variedInterval() {
-            const base = (CFG.rampUp * 1000) / Math.max(1, CFG.maxPairs)
-            return varyF(base, CFG.birthVar)
+            const base = (CFG.rampUp * 1000) / Math.max(1, cfg.maxPairs)
+            return varyF(base, cfg.birthVar)
         }
 
         function makeNode(pos: SpawnPos): Node {
-            const rf = CFG.colorRange / 100
+            const rf = cfg.colorRange / 100
             const h = cfg.HEIGHT
             const x = Math.max(pos.nodeR, Math.min(CW() - pos.nodeR, pos.x))
             const y = Math.max(pos.nodeR, Math.min(h - pos.nodeR, pos.y))
@@ -381,16 +386,16 @@ export default function RippleNetwork() {
                 lineColor: null,
                 draining: false,
                 ghost: false,
-                nodeSpeedMult: varyF(1, CFG.rippleSpeedNodeVar),
-                nodeBirthRate: varyF(CFG.rippleBirthRate, CFG.rippleBirthRateVar),
+                nodeSpeedMult: varyF(1, cfg.rippleSpeedNodeVar),
+                nodeBirthRate: varyF(cfg.rippleBirthRate, cfg.rippleBirthRateVar),
                 nodeR: pos.nodeR,
             }
         }
 
         function spawnRipple(node: Node) {
-            const rf = CFG.colorRange / 100
-            const vf = CFG.colorVar / 100
-            const opv = CFG.rippleOpVar / 100
+            const rf = cfg.colorRange / 100
+            const vf = cfg.colorVar / 100
+            const opv = cfg.rippleOpVar / 100
             let col: [number, number, number]
             if (node.ripplesSpawned === 0) {
                 col = [...node.birthColor] as [number, number, number]
@@ -398,12 +403,12 @@ export default function RippleNetwork() {
             } else {
                 col = varyColor(node.birthColor, rf, vf)
             }
-            const spd = varyF(CFG.rippleSpeed, CFG.rippleSpeedVar) * node.nodeSpeedMult
-            const fadeStart = 1 - CFG.fadePct / 100
+            const spd = varyF(cfg.rippleSpeed, cfg.rippleSpeedVar) * node.nodeSpeedMult
+            const fadeStart = 1 - cfg.fadePct / 100
             node.ripples.push({
                 r: 0, progress: 0, maxR: node.nodeR, speed: spd, fadeStart,
-                strokeOp: Math.min(1, CFG.rippleStrokeOp * varyF(1, opv)),
-                fillOp: Math.min(1, CFG.rippleFillOp * varyF(1, opv)),
+                strokeOp: Math.min(1, cfg.rippleStrokeOp * varyF(1, opv)),
+                fillOp: Math.min(1, cfg.rippleFillOp * varyF(1, opv)),
                 color: col,
             })
             node.ripplesSpawned++
@@ -429,7 +434,7 @@ export default function RippleNetwork() {
             return {
                 sender: makeNode(sSpawn),
                 receiver: { x: rSpawn.x, y: rSpawn.y, nodeR: rSpawn.nodeR },
-                line: { t: 0, speedMult: varyF(1, CFG.lineSpeedVar), opMult: varyF(1, CFG.lineOpVar), tailLen: varyF(CFG.tailLen, CFG.tailLenVar) },
+                line: { t: 0, speedMult: varyF(1, cfg.lineSpeedVar), opMult: varyF(1, cfg.lineOpVar), tailLen: varyF(cfg.tailLen, cfg.tailLenVar) },
             }
         }
 
@@ -638,11 +643,11 @@ export default function RippleNetwork() {
             const dt = Math.min((ts - lastTs) / 1000, 0.05)
             lastTs = ts
 
-            const el = CFG.energyLoss / 100
+            const el = cfg.energyLoss / 100
             const cw = CW()
             const h = cfg.HEIGHT
 
-            const need = CFG.maxPairs - pairs.length - pendingPairs.length
+            const need = cfg.maxPairs - pairs.length - pendingPairs.length
             if (need > 0) {
                 let t = ts
                 for (let i = 0; i < need; i++) { t += variedInterval(); pendingPairs.push({ spawnAt: t }) }
@@ -656,18 +661,18 @@ export default function RippleNetwork() {
                 if (!s.draining && ts >= s.nextRippleTs) {
                     spawnRipple(s)
                     s.nextRippleTs = ts + s.nodeBirthRate
-                    if (s.ripplesSpawned >= CFG.rippleCount) s.draining = true
+                    if (s.ripplesSpawned >= cfg.rippleCount) s.draining = true
                 }
                 if (s.lineColor) {
                     const dx = p.receiver.x - s.x, dy = p.receiver.y - s.y
                     const dist = Math.hypot(dx, dy)
-                    p.line.t = Math.min(1, p.line.t + (CFG.lineSpeed * p.line.speedMult * dt) / Math.max(1, dist))
+                    p.line.t = Math.min(1, p.line.t + (cfg.lineSpeed * p.line.speedMult * dt) / Math.max(1, dist))
                     if (p.line.t >= 1) {
                         dyingLines.push({
                             x1: s.x, y1: s.y, x2: p.receiver.x, y2: p.receiver.y,
                             color: [...s.lineColor] as [number, number, number],
-                            peakAlpha: CFG.lineOp * p.line.opMult,
-                            weight: CFG.lineWeight, tailLen: p.line.tailLen, age: 0, duration: CFG.dyingLineDuration,
+                            peakAlpha: cfg.lineOp * p.line.opMult,
+                            weight: cfg.lineWeight, tailLen: p.line.tailLen, age: 0, duration: cfg.dyingLineDuration,
                         })
                         s.ghost = true
                         ghosts.push(s)
@@ -676,7 +681,7 @@ export default function RippleNetwork() {
                         const rSpawn = rollReceiverPos(oldPos.x, oldPos.y, existing)
                         p.sender = makeNode({ x: oldPos.x, y: oldPos.y, nodeR: oldPos.nodeR })
                         p.receiver = { x: rSpawn.x, y: rSpawn.y, nodeR: rSpawn.nodeR }
-                        p.line = { t: 0, speedMult: varyF(1, CFG.lineSpeedVar), opMult: varyF(1, CFG.lineOpVar), tailLen: varyF(CFG.tailLen, CFG.tailLenVar) }
+                        p.line = { t: 0, speedMult: varyF(1, cfg.lineSpeedVar), opMult: varyF(1, cfg.lineOpVar), tailLen: varyF(cfg.tailLen, cfg.tailLenVar) }
                     }
                 }
                 for (const r of p.sender.ripples) {
@@ -699,7 +704,7 @@ export default function RippleNetwork() {
 
             ctx!.clearRect(0, 0, cw, h)
             ctx!.lineCap = "round"
-            ctx!.globalCompositeOperation = CFG.blendMode
+            ctx!.globalCompositeOperation = cfg.blendMode
 
             for (const dl of dyingLines) {
                 const t = Math.min(1, dl.age / dl.duration)
@@ -723,12 +728,12 @@ export default function RippleNetwork() {
                 const fx = s.x + dx * t, fy = s.y + dy * t
                 const tx2 = s.x + dx * tailT, ty2 = s.y + dy * tailT
                 const [cr, cg, cb] = s.lineColor
-                const op = CFG.lineOp * p.line.opMult
+                const op = cfg.lineOp * p.line.opMult
                 const grad = ctx!.createLinearGradient(tx2, ty2, fx, fy)
                 grad.addColorStop(0, `rgba(${cr},${cg},${cb},0)`)
                 grad.addColorStop(1, `rgba(${cr},${cg},${cb},${op})`)
                 ctx!.beginPath(); ctx!.moveTo(tx2, ty2); ctx!.lineTo(fx, fy)
-                ctx!.strokeStyle = grad; ctx!.lineWidth = CFG.lineWeight; ctx!.stroke()
+                ctx!.strokeStyle = grad; ctx!.lineWidth = cfg.lineWeight; ctx!.stroke()
             }
 
             function drawNodeRipples(node: Node) {
@@ -740,7 +745,7 @@ export default function RippleNetwork() {
                     ctx!.arc(node.x, node.y, Math.max(0.5, r.r), 0, Math.PI * 2)
                     if (r.strokeOp > 0) {
                         ctx!.strokeStyle = `rgba(${cr},${cg},${cb},${r.strokeOp * alpha})`
-                        ctx!.lineWidth = CFG.rippleStroke
+                        ctx!.lineWidth = cfg.rippleStroke
                         ctx!.stroke()
                     }
                     if (r.fillOp > 0) {
@@ -796,7 +801,7 @@ export default function RippleNetwork() {
                     position: "absolute",
                     top: 0,
                     height: "100%",
-                    mixBlendMode: CFG.blendMode as any,
+                    mixBlendMode: cfg.blendMode as any,
                 }}
             />
             <div
