@@ -50,6 +50,16 @@ const SCROLL_FADE_PULL = {
     mountDelay: 0,
 }
 
+// Lighter variant for sequenced reveals already on-screen when they unlock
+// (Let's Talk's chained blurb → options → paragraphs). SCROLL_FADE's
+// 1500/1500 was tuned for scroll-triggered arrival and was costing a full
+// 3000ms at every step of an already-visible serial chain.
+export const SCROLL_FADE_FAST = {
+    ...SCROLL_FADE,
+    mountDelay: 150,
+    mountFadeIn: 550,
+}
+
 // ─── Paragraph type style ─────────────────────────────────────────────────────
 
 function getParaStyle(type: ReturnType<typeof useType>, size: "body" | "subtitle" = "body") {
@@ -103,7 +113,8 @@ export interface ContentItem {
     text?: string
     href?: string
     color?: string
-    size?: "body" | "subtitle"   // NEW — defaults to body if omitted
+    size?: "body" | "subtitle"   // defaults to body if omitted
+    fast?: boolean                // NEW — use SCROLL_FADE_FAST instead of SCROLL_FADE
     timing?: PullTiming
     chunks?: ChunkDef[]
 }
@@ -215,8 +226,8 @@ const rect2 = el.getBoundingClientRect()
 
 // ─── ParagraphItem ────────────────────────────────────────────────────────────
 
-function ParagraphItem({ text, unlocked, mountIndex = 0, size = "body" }: { text: string; unlocked: boolean; mountIndex?: number; size?: "body" | "subtitle" }) {
-    const ref = useScrollFade(unlocked, SCROLL_FADE, false, mountIndex)
+function ParagraphItem({ text, unlocked, mountIndex = 0, size = "body", fast = false }: { text: string; unlocked: boolean; mountIndex?: number; size?: "body" | "subtitle"; fast?: boolean }) {
+    const ref = useScrollFade(unlocked, fast ? SCROLL_FADE_FAST : SCROLL_FADE, false, mountIndex)
     const col = useColumn()
     const type = useType()
 
@@ -707,11 +718,12 @@ function ParagraphItemWrapper({
 }) {
     const unlocked = useSequence(item.seq)
     return (
-        <ParagraphItem
+<ParagraphItem
             text={item.text!}
             unlocked={unlocked}
             mountIndex={mountIndex}
             size={item.size}
+            fast={item.fast}
         />
     )
 }

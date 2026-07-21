@@ -1,6 +1,6 @@
 ---
-title: Consistency creates connection
-narrowtitle: Consistency[br]creates[br]connection
+title: Create connection
+narrowtitle: Create[br]connection
 subtitle: A shared language makes design speak more clearly.
 imagePath: /images/think/09/
 ---

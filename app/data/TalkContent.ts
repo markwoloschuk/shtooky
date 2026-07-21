@@ -23,6 +23,7 @@ export const CONTENT: ContentItem[] = [
         type: "paragraph",
         seq: 1,
         size: "subtitle",   // NEW
+        fast: true,
         text: "I aim to take people at their word — and I hope they will take me at mine.",
     },
     
@@ -30,12 +31,14 @@ export const CONTENT: ContentItem[] = [
         id: 3,
         type: "paragraph",
         seq: 3,
+        fast: true,
         text: "How you say something can be just as important as what you say, but I've come to think that how you listen may be even more fundamental. I like talking — especially in person — but I also really like to hear what others have to say.",
     },
     {
         id: 4,
         type: "paragraph",
         seq: 3,
+        fast: true,
         text: "That's because I believe collaboration isn't just working well together — it's the foundation of greater accomplishment. To do it well requires empathy, respect, an open mind and a positive attitude. That's the kind of team I want to be part of — let me know if that's with you.",
     },
 ]

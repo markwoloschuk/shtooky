@@ -334,7 +334,7 @@ const TYPE_TIERS = {
         CASE_BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 }, // mirrors BODY
         CAPTION: { sizePx: 13, weight: 300, tracking: 0.08, lineHeight: 1.4 },
         NAV_NAME: { sizePx: 30, weight: 700, tracking: 0, lineHeight: 1.0 },
-        PULLQUOTE: { sizePx: 24, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
+        PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         SUBTITLE: { sizePx: 20, weight: 400, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 10, weight: 700, tracking: 0.12, lineHeight: 1.4 },
         FOOTER: { sizePx: 10, weight: 400, tracking: 0.04, lineHeight: 1.4 },
@@ -444,9 +444,9 @@ const VISIBILITY_TIERS = {
         // TODO: tune for mobile — copied from desktop as placeholder
         TF0: 10,
         TF100: 20,
-        BF100: 70,
+        BF100: 78,
         BF0: 86,
-        gradientHeight: 80,
+        gradientHeight: 60,
         gradientOpacity: 0.95,
         revealMs: 800,
         staggerMs: 400,
@@ -526,21 +526,23 @@ export const BACKGROUND = {
 }
 
 // ─── FOOTER ──────────────────────────────────────────────────────────────────
+//"Creative concepting, direction and execution – often before lunch.",
+
 
 export const FOOTER = {
     blurbs: {
         welcome: [
             "25 years of learning to make things look the way I meant.",
-            "Creative concepting, direction and execution – often before lunch.",
+            "Concepting, direction and execution — often all before lunch.",
             "Making maps to places I've never been – one step at a time.",
         ],
         work: [
             "The work was real and so were the deadlines.",
             "Work will teach you as much about yourself as anything else.",
-            "While I'm not all things to all people I am many things to some.",
+            "While not all things to all people, I am many things to some.",
         ],
         about: [
-            "While I'm not all things to all people I am many things to some.",
+            "While not all things to all people, I am many things to some.",
             "Still learning to see and appreciate things in new ways.",
             "Making maps to places I've never been – one step at a time.",
         ],

@@ -32,7 +32,7 @@ const SCROLL_FADE = {
 // ─── TEXT ANIMATION ───────────────────────────────────────────────────────────
 
 export const TIMING = {
-    duration: 1750,
+    duration: 1100,
     pushY: 20,
     pushX: 0,
     feather: 60,
@@ -55,7 +55,7 @@ export const CHUNKS = [
     {
         text: "shall we {connect?}",
         line: 2,
-        delay: 500,
+        delay: 300,
         wipe: 0,
         fade: 1,
         push: 1,

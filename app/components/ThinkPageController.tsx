@@ -73,8 +73,8 @@ const cardFile = openIdx >= 0 ? contentFileFor(THINK_GRID[openIdx]) : null;
       />
 
 {/* Detail text — document-positioned when open, right below the
-          band, so it scrolls naturally with the page instead of living
-          in its own fixed/scrolling box. */}
+band, so it scrolls naturally with the page instead of living
+in its own fixed/scrolling box. */}
       <div
         style={{
           width: '100%',

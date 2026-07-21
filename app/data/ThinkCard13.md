@@ -1,5 +1,5 @@
 ---
-title: The problem is not married to your ideas
+title: The problem is not[br]married to your ideas
 narrowtitle: The problem is not[br]married to your ideas
 subtitle: Fall in love with the problem, not your solutions.
 imagePath: /images/think/13/

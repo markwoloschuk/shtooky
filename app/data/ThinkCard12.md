@@ -1,5 +1,5 @@
 ---
-title: Sincerity is the soul of design
+title: Sincerity is the[br]soul of design
 narrowtitle: Sincerity is the[br]soul of design
 subtitle: The best story is usually the true one.
 imagePath: /images/think/12/

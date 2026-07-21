@@ -51,13 +51,13 @@ let _hlPadNative = 104  // updated in scaleStage: col.marginVw * CW / 100 in nat
 
 // ── Carousel headlines drawn on canvas ───────────────────────────────────────
 const HEADLINES = [
-  '12 products. 1 Holiday hook.',
+  '12 products.\n1 Holiday hook.',
   'Time was short so we\nthrew away the best idea.',
   '360° of vibes',
   'Punching a signal\nthrough the noise.',
   //'Designing my escape from\nplanning department jail.',
   'Designing my escape\nfrom city planning jail.',
-  'Hiding a secret in plain sight',
+  'Hiding a secret\nin plain sight',
   'It was a beautiful day,\nit was beautiful data.',
 ]
 

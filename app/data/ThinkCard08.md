@@ -1,5 +1,5 @@
 ---
-title: Done is better than perfect
+title: Done is better[br]than perfect
 narrowtitle: Done is better[br]than perfect
 subtitle: Creative work is never finished, only abandoned.
 imagePath: /images/think/08/
