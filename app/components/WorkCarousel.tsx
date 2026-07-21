@@ -55,7 +55,8 @@ const HEADLINES = [
   'Time was short so we\nthrew away the best idea.',
   '360° of vibes',
   'Punching a signal\nthrough the noise.',
-  'Designing my escape from\nplanning department jail.',
+  //'Designing my escape from\nplanning department jail.',
+  'Designing my escape\nfrom city planning jail.',
   'Hiding a secret in plain sight',
   'It was a beautiful day,\nit was beautiful data.',
 ]
@@ -117,7 +118,9 @@ interface Props {
 }
 
 // TYPE ROLES USED IN THIS FILE:
-//   resting-state headline → TYPE_TIERS.OPENING   (sizeVw, weight, tracking, lineHeight)
+//   resting-state headline (below-carousel pullquote) → TYPE_TIERS.OPENING
+//     (sizeVw, weight, tracking, lineHeight — mobile gets an additional
+//     fit-to-width scale-down pass so it never wraps; see fitPullquote)
 //   in-image title (canvas) → TYPE_TIERS.PULLQUOTE (sizePx — mobile minimum; desktop = 52px native)
 
 export default function WorkCarousel({ onOpen, onClose, activeIdx, onRegisterControls }: Props) {
@@ -201,6 +204,40 @@ const stageRef     = useRef<HTMLDivElement>(null)
 
   // For the carousel-text (headline + blurb) rendered in JSX below:
   const carTextRef = useRef<HTMLDivElement>(null)
+  const pullWrapRef  = useRef<HTMLParagraphElement>(null)
+  const pullLine1Ref = useRef<HTMLSpanElement>(null)
+  const pullLine2Ref = useRef<HTMLSpanElement>(null)
+
+// Fit the below-carousel pullquote to the column without wrapping. It's
+// rendered at OPENING size; on mobile that can be wide enough to break
+// onto a third line within one of these two spans, so this measures the
+// natural (nowrap) width of each line and scales the font down only if
+// it actually overflows the 90% column. Desktop already fits at OPENING
+// size, so this resolves to scale 1 there and does nothing visible.
+useEffect(() => {
+  function fitPullquote() {
+    const wrap = carTextRef.current
+    const p = pullWrapRef.current
+    const l1 = pullLine1Ref.current
+    const l2 = pullLine2Ref.current
+    if (!wrap || !p || !l1 || !l2) return
+
+    // Reset to the token's real size first — measuring a stale, already
+    // scaled-down value from a prior pass would compound the shrink.
+    const openingPx = window.innerWidth * (type.OPENING.sizeVw / 100)
+    p.style.fontSize = `${openingPx}px`
+
+    const availablePx = wrap.clientWidth
+    const widest = Math.max(l1.scrollWidth, l2.scrollWidth)
+    const scale = widest > availablePx ? availablePx / widest : 1
+    p.style.fontSize = `${openingPx * scale}px`
+  }
+
+  fitPullquote()
+  window.addEventListener('resize', fitPullquote)
+  return () => window.removeEventListener('resize', fitPullquote)
+}, [type.OPENING.sizeVw, type.OPENING.weight, type.OPENING.tracking, col.vw])
+
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const carouselCX = (i: number) => i * BASE_W + BASE_W / 2 + offsetsH[i]
@@ -742,13 +779,13 @@ style={{ width: '100%', position: 'relative', background: '#000', overflow: 'hid
   ref={carTextRef}
   style={{ position: 'absolute', top: '100%', left: `${col.marginVw}vw`, width: `${col.vw}vw`, pointerEvents: 'none', zIndex: 1, marginTop: 24, opacity: 0, transform: 'translateY(12px)' }}
 >
-<p style={{ fontSize: `${type.PULLQUOTE.sizePx}px`, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, letterSpacing: `${type.PULLQUOTE.tracking}em`, color: '#fff', margin: '0 0 10px 0', fontFamily: TYPE.display }}>
-  <span style={{ display: 'block' }}><span style={{ color: COLORS.work }}>The work</span> reveals the process.</span>
-  <span style={{ display: 'block' }}>The process reveals <span style={{ color: COLORS.work }}>the person.</span></span>
+<p
+  ref={pullWrapRef}
+  style={{ fontSize: `${type.OPENING.sizeVw}vw`, fontWeight: type.OPENING.weight, lineHeight: type.OPENING.lineHeight, letterSpacing: `${type.OPENING.tracking}em`, color: '#fff', margin: '0 0 10px 0', fontFamily: TYPE.display }}
+>
+  <span ref={pullLine1Ref} style={{ display: 'block', whiteSpace: 'nowrap' }}><span style={{ color: COLORS.work }}>The work</span> reveals the process.</span>
+  <span ref={pullLine2Ref} style={{ display: 'block', whiteSpace: 'nowrap' }}>The process reveals <span style={{ color: COLORS.work }}>the person.</span></span>
 </p>
-
-
-
 
             <p style={{ fontSize: 20, color: 'rgba(255,255,255,0.65)', fontFamily: TYPE.display, lineHeight: 1.5 }}>
               This is how I apply curiosity with empathy to solve creative problems.
