@@ -1,14 +1,22 @@
 'use client';
 
+// TYPE ROLES USED IN THIS FILE:
+//   band title (canvas) → TYPE_TIERS.PULLQUOTE (sizePx — mobile minimum; desktop = 52 * scale)
+
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useColumn, NAV, COLORS, TYPE } from './SiteTokens';
+import { useColumn, NAV, COLORS, TYPE, MOBILE_BAND_HEIGHT_SCALE, getType } from './SiteTokens';
 import { THINK_GRID, coverImageFor, offsetFor } from '../data/ThinkManifest';
 
 // ── Layout — 13 cells, native units on a 1440-wide reference canvas ────────
 // adjust gap value here 6 is current setting
 const NATIVE_W = 1440;
 const GAP = 6;
+
+// _bandH (effective band height) — desktop/tablet = BAND_HEIGHT;
+// mobile = BAND_HEIGHT * MOBILE_BAND_HEIGHT_SCALE. Updated by scaleStage.
+let _bandH = 480; // initialised to BAND_HEIGHT — can't reference it before declaration
+let _bandTitlePx = 52; // canvas pixels for band title font; updated by scaleStage to meet PULLQUOTE min on mobile
 
 const ROW1_H = 357, ROW2_H = 300, ROW3_H = 355.5, ROW4_H = 280;
 const row1Quarter = (NATIVE_W - 2 * GAP) / 4;
@@ -229,10 +237,11 @@ function drawBandTitle(
   ctx.clip();
   ctx.globalAlpha = alpha;
   // All values match WorkCarousel.drawHeadline, scaled to screen pixels
-  const fontSize = 52 * scale;
-  const padL = 104 * scale;
-  const lineH = 55 * scale;
-  const padB = 28 * scale; // Work carousel: CH(480) - 48 + HL_Y(20) = 452 → 28 from bottom
+  const unitPx = _bandTitlePx / 52; // proportional unit; on desktop = scale, on mobile = larger
+  const fontSize = _bandTitlePx;
+  const padL = 104 * unitPx;
+  const lineH = 55 * unitPx;
+  const padB = 28 * unitPx; // Work carousel: CH(480) - 48 + HL_Y(20) = 452 → 28 from bottom
   ctx.font = `700 ${fontSize}px ${TYPE.display}`;
   ctx.fillStyle = COLORS.white;
   ctx.textAlign = 'left';
@@ -498,7 +507,7 @@ for (let i = 0; i < N; i++) {
     const oi = openIdx.current;
     if (oi < 0) return;
     const m = mode.current;
-    const bandH = canvas.width * (BAND_HEIGHT / NATIVE_W);
+    const bandH = canvas.width * (_bandH / NATIVE_W);
     const to: Rect = { x: 0, y: 0, w: canvas.width, h: bandH };
     const s = canvas.width / NATIVE_W;
 
@@ -537,15 +546,20 @@ for (let i = 0; i < N; i++) {
         ctx.restore();
       }
 
-      // Incoming title — fades in + slides from nav direction (after swap)
+      // Incoming title — clips + translates in lockstep with incoming card (matches WorkCarousel)
       const rawTP = bandTitleProg.current;
       const tp = titleEaseOut(rawTP);
       if (tp > 0) {
-        const titleInSlide = nd * 30 * s * (1 - tp);
-        ctx.save();
-        ctx.translate(titleInSlide, 0);
-        drawBandTitle(ctx, to, to, bandTitleForSlot(nt), tp, s, 0);
-        ctx.restore();
+        const clipX = nd > 0 ? inX : 0;
+        const clipW = nd > 0 ? to.w - inX : to.w + inX;
+        if (clipW > 0) {
+          drawBandTitle(
+            ctx,
+            { x: clipX, y: 0, w: clipW, h: to.h },
+            { x: inX, y: 0, w: to.w, h: to.h },
+            bandTitleForSlot(nt), tp, s, 0
+          );
+        }
       }
       return;
     }
@@ -656,7 +670,7 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     // Only close if click is within the band's visible area — the canvas
     // is viewport-height for animation room, but the band itself is much shorter.
     if (e && bandCanvasRef.current) {
-      const bandH = bandCanvasRef.current.width * (BAND_HEIGHT / NATIVE_W);
+      const bandH = bandCanvasRef.current.width * (_bandH / NATIVE_W);
       if (e.nativeEvent.offsetY > bandH) return;
     }
     // Snap back to exactly where the page was when this card was
@@ -703,7 +717,7 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     // anywhere along its travel path, so keep the looser grid-bound clip.
     const bandCanvas = bandCanvasRef.current;
     if (bandCanvas) {
-      const bandHpx = bandCanvas.width * (BAND_HEIGHT / NATIVE_W);
+      const bandHpx = bandCanvas.width * (_bandH / NATIVE_W);
       if (m === 'fullview' || m === 'nav') {
         bandCanvas.style.clipPath = `inset(0px 0px ${Math.max(0, bandCanvas.height - bandHpx)}px 0px)`;
       } else {
@@ -736,8 +750,8 @@ if (Math.abs(openProg.current - target) < 0.006) {
           openProg.current = target;
           if (m === 'opening') {
             mode.current = 'fullview';
-            const delta = (TOTAL_H - BAND_HEIGHT) * scaleRef.current;
-            if (wrapRef.current) wrapRef.current.style.height = `${BAND_HEIGHT * scaleRef.current}px`;
+            const delta = (TOTAL_H - _bandH) * scaleRef.current;
+            if (wrapRef.current) wrapRef.current.style.height = `${_bandH * scaleRef.current}px`;
             if (spacerRef.current) spacerRef.current.style.height = `${delta}px`;
             // Shift the whole canvas up so the band's ACTUAL drawn
             // location (previously at a value that could be anywhere down the
@@ -809,7 +823,7 @@ if (Math.abs(openProg.current - target) < 0.006) {
         if (canvas) {
           const ep = easeIO(openProg.current);
           const from = fromRectRef.current;
-          const bandH = canvas.width * (BAND_HEIGHT / NATIVE_W);
+          const bandH = canvas.width * (_bandH / NATIVE_W);
           const curX = lerp(from.x, 0, ep);
           const curY = lerp(from.y, 0, ep);
           const curW = lerp(from.w, canvas.width, ep);
@@ -845,9 +859,8 @@ if (navProg.current >= 0.5 && !navSwapped.current) {
         // into the ORIGINALLY opened card's cell, not the current
         // one (the intermittent wrong-slot-then-pop bug).
         fromRectRef.current = computeCellRect(navToIdx.current);
-        // Incoming title: start immediately (no geometric trigger during nav),
-        // shorter duration (350ms vs 1000ms for initial open)
-        bandTitleStart.current = now;
+        // Incoming title: delay matches WorkCarousel's HL_RIGHT_DELAY for right-nav; none for left
+        bandTitleStart.current = now + (navDir.current > 0 ? 175 : 0);
         onOpenRef.current(navToIdx.current);
       }
       
@@ -918,6 +931,12 @@ imgsRef.current = Array.from({ length: N }, (_, i) => {
       const wrap = wrapRef.current;
       const stage = stageRef.current;
       if (!wrap || !stage) return;
+      const isMobile = window.innerWidth < 768;
+      _bandH = isMobile
+        ? Math.round(BAND_HEIGHT * MOBILE_BAND_HEIGHT_SCALE)
+        : BAND_HEIGHT;
+      const titleScale = window.innerWidth / NATIVE_W;
+      _bandTitlePx = isMobile ? getType().PULLQUOTE.sizePx : Math.round(52 * titleScale);
       const s = wrap.clientWidth / NATIVE_W;
       scaleRef.current = s;
       gridInsetRef.current = { offset: NATIVE_W * col.marginVw / 100, scale: col.vw / 100 };

@@ -139,7 +139,7 @@ const TYPE_TIERS = {
 
         // "I'm a creative problem solver"
         OPENING: {
-            sizeVw: 5.0,
+            sizeVw: 5.5,
             weight: 700,
             tracking: -0.025,
             lineHeight: 1.05,
@@ -314,9 +314,9 @@ const TYPE_TIERS = {
             extrabold: 800,
             black: 900,
         },
-        OPENING: { sizeVw: 8, weight: 700, tracking: -0.025, lineHeight: 1.05 },
+        OPENING: { sizeVw: 10, weight: 700, tracking: -0.025, lineHeight: 1.05 },
         DISPLAY_HERO: {
-            sizeVw: 12,
+            sizeVw: 30,
             weight: 700,
             tracking: -0.025,
             lineHeight: 0.95,
@@ -335,9 +335,9 @@ const TYPE_TIERS = {
         CAPTION: { sizePx: 13, weight: 300, tracking: 0.08, lineHeight: 1.4 },
         NAV_NAME: { sizePx: 30, weight: 700, tracking: 0, lineHeight: 1.0 },
         PULLQUOTE: { sizePx: 24, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
-        SUBTITLE: { sizePx: 18, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
-        JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 },
-        FOOTER: { sizePx: 13, weight: 400, tracking: 0.04, lineHeight: 1.4 },
+        SUBTITLE: { sizePx: 20, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
+        JOB_LABEL: { sizePx: 10, weight: 700, tracking: 0.12, lineHeight: 1.4 },
+        FOOTER: { sizePx: 10, weight: 400, tracking: 0.04, lineHeight: 1.4 },
         CTA_LINK: { sizePx: 20, weight: 600, tracking: -0.01, lineHeight: 1.0 },
     },
 }
@@ -383,6 +383,10 @@ export const TIMING = {
 // NavBar and Footer share the same left inset — both sit to the left of all
 // page content at every breakpoint. Page content uses COLUMN_TIERS.marginVw.
 export const FRAME_INSET_VW = 2.5
+
+// Confirmed on-device 2026-07-20. Shared by WorkCarousel and ThinkGridCanvas
+// so the two pages' mobile band heights always move together.
+export const MOBILE_BAND_HEIGHT_SCALE = 1.65
 
 export const NAV = {
     height: 87, // measured desktop height in px — update if navbar changes

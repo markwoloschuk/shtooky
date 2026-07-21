@@ -4,7 +4,9 @@
 //   intro blurb → TYPE_TIERS.SUBTITLE  (sizePx — replaces local clamp CONFIG)
 
 import { useEffect, useState } from 'react';
-import { useColumn, useType, bodyMaxWidth } from './SiteTokens';
+import { useColumn, useType, useBreakpoint, bodyMaxWidth } from './SiteTokens';
+
+const GAP_BELOW_CONTENT_MOBILE = 16; // px — starting guess, tune live on device
 
 // ── Tunable constants ────────────────────────────────────────────────────
 const CONFIG = {
@@ -24,7 +26,10 @@ const CONFIG = {
 export default function ThinkBlurb() {
   const col  = useColumn();
   const type = useType();
+  const bp   = useBreakpoint();
   const [visible, setVisible] = useState(false);
+
+  const gapBelowContent = bp === 'mobile' ? GAP_BELOW_CONTENT_MOBILE : CONFIG.GAP_BELOW_CONTENT;
 
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), CONFIG.FADE_DELAY_MS);
@@ -35,8 +40,7 @@ export default function ThinkBlurb() {
     <div
       style={{
         width: bodyMaxWidth(col),
-        margin: `${CONFIG.GAP_BELOW_CONTENT}px 0 0 ${col.marginVw}vw`,
-        opacity: visible ? 1 : 0,
+        margin: `${gapBelowContent}px 0 0 ${col.marginVw}vw`,        opacity: visible ? 1 : 0,
         transition: `opacity ${CONFIG.FADE_DURATION_MS}ms linear`,
       }}
     >

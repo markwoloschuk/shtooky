@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { WORK_MANIFEST } from '../data/WorkManifest'
-import { TYPE, COLORS, useType, useColumn } from './SiteTokens'
+import { TYPE, COLORS, useType, useColumn, MOBILE_BAND_HEIGHT_SCALE, getType } from './SiteTokens'
 
 // ── Locked animation constants (from work_carousel_v30.html) ─────────────────
 const CFG = {
@@ -41,6 +41,11 @@ const N    = 7
 const CW   = 1440
 const CH   = 480
 const BASE_W = CW / N
+
+// _ech (effective CH) — desktop/tablet = CH; mobile = CH * MOBILE_BAND_HEIGHT_SCALE.
+// Updated by scaleStage on every resize. All drawing functions read this.
+let _ech = CH
+let _hlNativeSize = 52 // updated in scaleStage: mobile drives this to meet PULLQUOTE min-size on screen
 
 
 // ── Carousel headlines drawn on canvas ───────────────────────────────────────
@@ -111,13 +116,15 @@ interface Props {
 }
 
 // TYPE ROLES USED IN THIS FILE:
-//   resting-state headline → TYPE_TIERS.OPENING  (sizeVw, weight, tracking, lineHeight)
+//   resting-state headline → TYPE_TIERS.OPENING   (sizeVw, weight, tracking, lineHeight)
+//   in-image title (canvas) → TYPE_TIERS.PULLQUOTE (sizePx — mobile minimum; desktop = 52px native)
 
 export default function WorkCarousel({ onOpen, onClose, activeIdx, onRegisterControls }: Props) {
 const col  = useColumn()
 const type = useType()
 const canvasRef    = useRef<HTMLCanvasElement>(null)
 const fadeRan = useRef(false)
+const isMobileRef  = useRef(false)
   const hitRef       = useRef<HTMLDivElement>(null)
 const fullHitRef   = useRef<HTMLDivElement>(null)
 const navRef       = useRef<HTMLDivElement>(null)
@@ -252,32 +259,32 @@ function showNav() {
   ) => {
     if (clipW < 0.5) return
     ctx.save()
-    ctx.beginPath(); ctx.rect(clipX, 0, clipW, CH); ctx.clip()
-    ctx.translate(contentCX, CH / 2); ctx.scale(zoom, zoom); ctx.translate(-contentCX, -CH / 2)
+    ctx.beginPath(); ctx.rect(clipX, 0, clipW, _ech); ctx.clip()
+    ctx.translate(contentCX, _ech / 2); ctx.scale(zoom, zoom); ctx.translate(-contentCX, -_ech / 2)
     const img = imgsRef.current[idx]
     if (img && img.complete && img.naturalWidth > 0) {
       const iw = img.naturalWidth, ih = img.naturalHeight
-      const scale = Math.max(CW / iw, CH / ih)
+      const scale = Math.max(CW / iw, _ech / ih)
       const dw = iw * scale, dh = ih * scale
-      ctx.drawImage(img, contentCX - dw / 2, (CH - dh) / 2 + offsetsV[idx], dw, dh)
+      ctx.drawImage(img, contentCX - dw / 2, (_ech - dh) / 2 + offsetsV[idx], dw, dh)
     } else {
       ctx.fillStyle = '#222'
-      ctx.fillRect(0, 0, CW, CH)
+      ctx.fillRect(0, 0, CW, _ech)
     }
-    if (chroma > 0) { ctx.fillStyle = `rgba(0,0,0,${chroma * 0.6})`; ctx.fillRect(0, 0, CW, CH) }
+    if (chroma > 0) { ctx.fillStyle = `rgba(0,0,0,${chroma * 0.6})`; ctx.fillRect(0, 0, CW, _ech) }
     ctx.restore()
   }, [offsetsV])
 
   const drawVignette = useCallback((ctx: CanvasRenderingContext2D, clipX: number, clipW: number) => {
     if (CFG.VIG_OPACITY <= 0 || clipW < 0.5) return
     ctx.save()
-    ctx.beginPath(); ctx.rect(clipX, 0, clipW, CH); ctx.clip()
-    const gradY = CH * (1 - CFG.VIG_HEIGHT)
-    const vg = ctx.createLinearGradient(0, gradY, 0, CH)
+    ctx.beginPath(); ctx.rect(clipX, 0, clipW, _ech); ctx.clip()
+    const gradY = _ech * (1 - CFG.VIG_HEIGHT)
+    const vg = ctx.createLinearGradient(0, gradY, 0, _ech)
     vg.addColorStop(0, 'rgba(0,0,0,0)')
     vg.addColorStop(1, `rgba(0,0,0,${CFG.VIG_OPACITY})`)
     ctx.fillStyle = vg
-    ctx.fillRect(clipX, gradY, clipW, CH - gradY)
+    ctx.fillRect(clipX, gradY, clipW, _ech - gradY)
     ctx.restore()
   }, [])
 
@@ -290,16 +297,17 @@ function showNav() {
     if (clipW !== undefined && clipW < 1) return
     const lines = HEADLINES[idx].split('\n')
     ctx.save()
-    if (clipX !== undefined) { ctx.beginPath(); ctx.rect(clipX, 0, clipW, CH); ctx.clip() }
+    if (clipX !== undefined) { ctx.beginPath(); ctx.rect(clipX, 0, clipW, _ech); ctx.clip() }
     if (translateX) ctx.translate(translateX, 0)
     ctx.globalAlpha = Math.max(0, Math.min(1, alpha))
-    ctx.font = 'bold 52px Archivo'
+    const hlScale = _hlNativeSize / 52
+    ctx.font = `bold ${_hlNativeSize}px Archivo`
     ctx.fillStyle = '#fff'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'bottom'
-    const pad = 104, lineH = 55
+    const pad = Math.round(104 * hlScale), lineH = Math.round(55 * hlScale)
     const totalH = lines.length * lineH
-    const baseY = CH - 48 - totalH + CFG.HL_Y - rise
+    const baseY = _ech - 48 - totalH + CFG.HL_Y - rise
     lines.forEach((line, i) => ctx.fillText(line, pad, baseY + (i + 1) * lineH))
     ctx.restore()
   }, [])
@@ -311,7 +319,7 @@ function showNav() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    ctx.clearRect(0, 0, CW, CH)
+    ctx.clearRect(0, 0, CW, _ech)
     const w = widths.current
     const z = zooms.current
     const c = chromas.current
@@ -343,7 +351,7 @@ const ep = easeIO(m === 'nav' ? navProg.current : m === 'fullview' ? 1 : op)
         const ox = i < oi ? i * lerp(BASE_W, 0, ep) : clipX + clipW + (i - oi - 1) * lerp(BASE_W, 0, ep)
         const closingOff = closingIO.current[i] * ep
         drawImage(ctx, i, ox, Math.max(0, ow), carouselCX(i) + closingOff, 1, ct)
-        if (sliceFadeOp > 0) { ctx.save(); ctx.globalAlpha = sliceFadeOp; ctx.fillStyle = sliceColors.current[i]; ctx.fillRect(ox, 0, Math.max(0, ow), CH); ctx.restore() }
+        if (sliceFadeOp > 0) { ctx.save(); ctx.globalAlpha = sliceFadeOp; ctx.fillStyle = sliceColors.current[i]; ctx.fillRect(ox, 0, Math.max(0, ow), _ech); ctx.restore() }
         drawVignette(ctx, ox, Math.max(0, ow))
       }
       drawImage(ctx, oi, clipX, clipW, cCX, cZoom, lerp(ct, 0, ep))
@@ -363,7 +371,7 @@ const ep = easeIO(m === 'nav' ? navProg.current : m === 'fullview' ? 1 : op)
         const sw = snapW.current[i], ow = lerp(sw, 0, ep)
         const ox = i < oi ? lerp(sx, 0, ep) : clipX + clipW + lerp(sx - snapLeft.current - snapW.current[oi], 0, ep)
         drawImage(ctx, i, ox, Math.max(0, ow), ox + Math.max(0, ow) / 2, lerp(snapZ.current[i], 1, ep), lerp(snapC.current[i], 0, ep))
-        if (sliceFadeOp > 0) { ctx.save(); ctx.globalAlpha = sliceFadeOp; ctx.fillStyle = sliceColors.current[i]; ctx.fillRect(ox, 0, Math.max(0, ow), CH); ctx.restore() }
+        if (sliceFadeOp > 0) { ctx.save(); ctx.globalAlpha = sliceFadeOp; ctx.fillStyle = sliceColors.current[i]; ctx.fillRect(ox, 0, Math.max(0, ow), _ech); ctx.restore() }
         drawVignette(ctx, ox, Math.max(0, ow)); sx += sw
       }
       drawImage(ctx, oi, clipX, clipW, cCX, cZoom, 0)
@@ -383,10 +391,10 @@ const ep = easeIO(m === 'nav' ? navProg.current : m === 'fullview' ? 1 : op)
       ctx.save(); ctx.translate(-outOff, 0)
       if (nd > 0) {
         drawImage(ctx, nf, outOff, CW, fCX, fZ, 0); drawVignette(ctx, outOff, CW)
-        if (navColOp > 0) { ctx.save(); ctx.globalAlpha = navColOp; ctx.fillStyle = navOutColor.current; ctx.fillRect(outOff, 0, CW, CH); ctx.restore() }
+        if (navColOp > 0) { ctx.save(); ctx.globalAlpha = navColOp; ctx.fillStyle = navOutColor.current; ctx.fillRect(outOff, 0, CW, _ech); ctx.restore() }
       } else {
         drawImage(ctx, nf, 0, CW + outOff, fCX, fZ, 0); drawVignette(ctx, 0, CW + outOff)
-        if (navColOp > 0) { ctx.save(); ctx.globalAlpha = navColOp; ctx.fillStyle = navOutColor.current; ctx.fillRect(0, 0, CW + outOff, CH); ctx.restore() }
+        if (navColOp > 0) { ctx.save(); ctx.globalAlpha = navColOp; ctx.fillStyle = navOutColor.current; ctx.fillRect(0, 0, CW + outOff, _ech); ctx.restore() }
       }
       if (!navSwapped.current) {
         if (nd > 0) { drawHL(ctx, hlOutIdx.current, hlOutAlpha.current, 0, outOff, Math.max(0, inOff - outOff), -outOff) }
@@ -395,8 +403,8 @@ const ep = easeIO(m === 'nav' ? navProg.current : m === 'fullview' ? 1 : op)
       ctx.restore()
 
       ctx.save()
-      if (nd > 0) { ctx.beginPath(); ctx.rect(inOff, 0, CW - inOff, CH); ctx.clip() }
-      else { ctx.beginPath(); ctx.rect(0, 0, CW + inOff, CH); ctx.clip() }
+      if (nd > 0) { ctx.beginPath(); ctx.rect(inOff, 0, CW - inOff, _ech); ctx.clip() }
+      else { ctx.beginPath(); ctx.rect(0, 0, CW + inOff, _ech); ctx.clip() }
       ctx.translate(inOff, 0); drawImage(ctx, nt, 0, CW, fCX, fZ, 0); drawVignette(ctx, 0, CW)
       if (nd > 0) { drawHL(ctx, hlInIdx.current, hlInAlpha.current, hlInRise.current, inOff, CW - inOff, inOff) }
       else { drawHL(ctx, hlInIdx.current, hlInAlpha.current, hlInRise.current, 0, CW + inOff, inOff) }
@@ -414,7 +422,7 @@ const ep = easeIO(m === 'nav' ? navProg.current : m === 'fullview' ? 1 : op)
       hit.style.display = 'flex'; full.style.display = 'none'
       for (let i = 0; i < N; i++) {
         const sl = document.createElement('div')
-        sl.style.cssText = `height:${CH}px;flex-shrink:0;cursor:pointer;flex-basis:${BASE_W}px`
+        sl.style.cssText = `height:${_ech}px;flex-shrink:0;cursor:pointer;flex-basis:${BASE_W}px`
         const idx = i
         sl.addEventListener('mouseenter', () => {
           if (mode.current !== 'carousel') return
@@ -533,13 +541,15 @@ const stepCase = useCallback((dir: number) => {
     const m = mode.current
 
     if (m === 'carousel') {
+      const isMobile = isMobileRef.current
       const sp = clamp(dt / (CFG.HOV_SPEED * 0.45), 0, 1)
-      const ct = CFG.CHROMA_ON ? CFG.CHROMA_AMT : 0
       let dirty = false, allSettled = true
       for (let i = 0; i < N; i++) {
         const nw = lerp(widths.current[i], targetW.current[i], sp)
         const nz = lerp(zooms.current[i], targetZ.current[i], sp)
-        const nc = lerp(chromas.current[i], CFG.CHROMA_ON && i !== hovIdx.current ? ct : 0, sp)
+        // Mobile: no hover system — all slices stay at full brightness always
+        const chromaTarget = (!isMobile && CFG.CHROMA_ON && i !== hovIdx.current) ? CFG.CHROMA_AMT : 0
+        const nc = lerp(chromas.current[i], chromaTarget, sp)
         const no = lerp(imgOffsets.current[i], targetIO.current[i], sp)
         if (Math.abs(nw - widths.current[i]) > 0.05 || Math.abs(nz - zooms.current[i]) > 0.0001 || Math.abs(nc - chromas.current[i]) > 0.001 || Math.abs(no - imgOffsets.current[i]) > 0.1) dirty = true
         if (Math.abs(nw - BASE_W) > 1) allSettled = false
@@ -547,8 +557,8 @@ const stepCase = useCallback((dir: number) => {
       }
       if (pendingHov.current && allSettled) {
         pendingHov.current = false
-        // re-activate hover at cursor position if over carousel
-        if (mouseY.current >= 0 && mouseY.current <= CH) {
+        // Re-activate hover at cursor position — mouse-only, skip on touch
+        if (!isMobile && mouseY.current >= 0 && mouseY.current <= _ech) {
           let x = 0
           for (let i = 0; i < N; i++) {
             x += BASE_W
@@ -575,7 +585,7 @@ const stepCase = useCallback((dir: number) => {
           targetW.current = new Array(N).fill(BASE_W)
           targetZ.current = new Array(N).fill(1)
           targetIO.current = new Array(N).fill(0)
-          chromas.current = new Array(N).fill(CFG.CHROMA_ON ? CFG.CHROMA_AMT : 0)
+          chromas.current = new Array(N).fill(CFG.CHROMA_ON && !isMobileRef.current ? CFG.CHROMA_AMT : 0)
           hovIdx.current = -1
           elOp.current = [0, 0, 0]; elTarget.current = [0, 0, 0]
           hlInAlpha.current = 0; hlInIdx.current = -1; hlInRun.current = false
@@ -642,10 +652,20 @@ if (m === 'nav') {
  const scaleStage = () => {
   const wrap = wrapRef.current
   const stage = stageRef.current
+  const canvas = canvasRef.current
+  const hit = hitRef.current
+  const full = fullHitRef.current
   if (!wrap || !stage) return
+  isMobileRef.current = window.innerWidth < 768
+  _ech = isMobileRef.current ? Math.round(CH * MOBILE_BAND_HEIGHT_SCALE) : CH
   const s = wrap.clientWidth / CW
+  _hlNativeSize = isMobileRef.current ? Math.round(getType().PULLQUOTE.sizePx / s) : 52
   stage.style.transform = `scale(${s})`
-  wrap.style.height = `${CH * s}px`
+  stage.style.height = `${_ech}px`
+  wrap.style.height = `${_ech * s}px`
+  if (canvas) { canvas.width = CW; canvas.height = _ech; canvas.style.height = `${_ech}px` }
+  if (hit) hit.style.height = `${_ech}px`
+  if (full) full.style.height = `${_ech}px`
 }
     window.addEventListener('resize', scaleStage)
     scaleStage()
@@ -720,12 +740,15 @@ style={{ width: '100%', position: 'relative', background: '#000', overflow: 'hid
   ref={carTextRef}
   style={{ position: 'absolute', top: '100%', left: `${col.marginVw}vw`, width: `${col.vw}vw`, pointerEvents: 'none', zIndex: 1, marginTop: 24, opacity: 0, transform: 'translateY(12px)' }}
 >
-           <p style={{ fontSize: `${type.OPENING.sizeVw}vw`, fontWeight: type.OPENING.weight, lineHeight: type.OPENING.lineHeight, letterSpacing: `${type.OPENING.tracking}em`, color: '#fff', margin: '0 0 10px 0', fontFamily: TYPE.display }}>
+<p style={{ fontSize: `${type.PULLQUOTE.sizePx}px`, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, letterSpacing: `${type.PULLQUOTE.tracking}em`, color: '#fff', margin: '0 0 10px 0', fontFamily: TYPE.display }}>
   <span style={{ display: 'block' }}><span style={{ color: COLORS.work }}>The work</span> reveals the process.</span>
   <span style={{ display: 'block' }}>The process reveals <span style={{ color: COLORS.work }}>the person.</span></span>
 </p>
 
-            <p style={{ fontSize: 24, color: 'rgba(255,255,255,0.65)', fontFamily: TYPE.display, lineHeight: 1.5 }}>
+
+
+
+            <p style={{ fontSize: 20, color: 'rgba(255,255,255,0.65)', fontFamily: TYPE.display, lineHeight: 1.5 }}>
               This is how I apply curiosity with empathy to solve creative problems.
             </p>
           </div>

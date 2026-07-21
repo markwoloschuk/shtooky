@@ -7,7 +7,7 @@
 // v02 — ported to Next.js 2026-06-22
 
 import { useEffect, useRef } from "react"
-import { COLORS, TYPE, useColumn, bodyMaxWidth } from "./SiteTokens"
+import { COLORS, TYPE, useColumn, useType, bodyMaxWidth } from "./SiteTokens"
 import { CONTENT as ABOUT_CONTENT, SPACING as ABOUT_SPACING } from "../data/AboutContent"
 import { CONTENT as CONTACT_CONTENT, SPACING as CONTACT_SPACING } from "../data/TalkContent"
 import {
@@ -52,12 +52,14 @@ const SCROLL_FADE_PULL = {
 
 // ─── Paragraph type style ─────────────────────────────────────────────────────
 
-const PARA_STYLE = {
-    fontFamily: TYPE.display,
-    fontSize: 24,
-    fontWeight: 300,
-    letterSpacing: "0.010em",
-    lineHeight: 1.72,
+function getParaStyle(type: ReturnType<typeof useType>) {
+    return {
+        fontFamily: TYPE.display,
+        fontSize: `${type.BODY.sizePx}px`,
+        fontWeight: type.BODY.weight,
+        letterSpacing: `${type.BODY.tracking}em`,
+        lineHeight: type.BODY.lineHeight,
+    }
 }
 
 // ─── Link style ───────────────────────────────────────────────────────────────
@@ -211,23 +213,16 @@ const rect2 = el.getBoundingClientRect()
 
 // ─── ParagraphItem ────────────────────────────────────────────────────────────
 
-function ParagraphItem({
-    text,
-    unlocked,
-    mountIndex = 0,
-}: {
-    text: string
-    unlocked: boolean
-    mountIndex?: number
-}) {
+function ParagraphItem({ text, unlocked, mountIndex = 0 }: { text: string; unlocked: boolean; mountIndex?: number }) {
     const ref = useScrollFade(unlocked, SCROLL_FADE, false, mountIndex)
     const col = useColumn()
+    const type = useType()
 
     return (
         <div ref={ref} style={{ width: "100%" }}>
             <p
                 style={{
-                    ...PARA_STYLE,
+                    ...getParaStyle(type),
                     color: "#ffffff",
                     maxWidth: bodyMaxWidth(col),
                     margin: 0,
@@ -258,20 +253,7 @@ function LinkItem({
     const wrapRef = useScrollFade(unlocked, SCROLL_FADE, false, mountIndex)
     const spanRef = useRef<HTMLSpanElement>(null)
     const lingerT = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-    // SSR-safe font size
-    useEffect(() => {
-        const el = spanRef.current
-        if (!el) return
-        const getFontPx = () =>
-            Math.round((LINK_DEFAULTS.fontSizeVw / 100) * window.innerWidth)
-        el.style.fontSize = getFontPx() + "px"
-        const onResize = () => {
-            el.style.fontSize = getFontPx() + "px"
-        }
-        window.addEventListener("resize", onResize)
-        return () => window.removeEventListener("resize", onResize)
-    }, [])
+    const type = useType() 
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -334,22 +316,22 @@ function LinkItem({
 
     return (
         <div ref={wrapRef} style={{ width: "100%" }}>
-            <span
-                ref={spanRef}
-                style={{
-                    display: "inline-block",
-                    fontFamily: TYPE.display,
-                    fontWeight: LINK_DEFAULTS.fontWeight,
-                    fontSize: "2vw",
-                    letterSpacing: LINK_DEFAULTS.letterSpacing,
-                    lineHeight: 1,
-                    color: color,
-                    cursor: "pointer",
-                    userSelect: "none",
-                    transformOrigin: "left center",
-                    willChange: "transform, color",
-                }}
-            >
+<span
+    ref={spanRef}
+    style={{
+        display: "inline-block",
+        fontFamily: TYPE.display,
+        fontWeight: type.CTA_LINK.weight,
+        fontSize: `${type.CTA_LINK.sizePx}px`,
+        letterSpacing: `${type.CTA_LINK.tracking}em`,
+        lineHeight: 1,
+        color: color,
+        cursor: "pointer",
+        userSelect: "none",
+        transformOrigin: "left center",
+        willChange: "transform, color",
+    }}
+>
                 {text}
             </span>
         </div>

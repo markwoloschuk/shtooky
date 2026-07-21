@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useColumn, COLORS } from './SiteTokens';
+import { useColumn, COLORS, MOBILE_BAND_HEIGHT_SCALE } from './SiteTokens';
 import ThinkOpenAnimation from './ThinkOpenAnimation';
 import ThinkBlurb from './ThinkBlurb';
 import ThinkGridCanvas, { BAND_HEIGHT, NATIVE_W } from './ThinkGridCanvas';
@@ -50,7 +50,10 @@ export default function ThinkPageController() {
 
   // Band height as a CSS calc — responsive, no window measurement needed.
   // 480/1440 = 33.333...vw, matching the band canvas's own sizing.
-const bandHeightPx = viewportW * (BAND_HEIGHT / NATIVE_W);
+const effectiveBandH = (viewportW > 0 && viewportW < 768)
+    ? BAND_HEIGHT * MOBILE_BAND_HEIGHT_SCALE
+    : BAND_HEIGHT;
+  const bandHeightPx = viewportW * (effectiveBandH / NATIVE_W);
   const detailTopPx = bandDocY + bandHeightPx + 56;
 const cardFile = openIdx >= 0 ? contentFileFor(THINK_GRID[openIdx]) : null;
 

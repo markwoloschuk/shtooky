@@ -10,13 +10,14 @@ import { unlock } from "../components/SequenceController"
 import SkillsSphere from "../components/WhoSkillsSphere"
 import VennDiagram from "../components/WhoVennDiagram"
 import SiteTextBlock from "../components/SiteTextBlock"
-import { useColumn } from "../components/SiteTokens"
+import { useColumn, useBreakpoint } from "../components/SiteTokens"
 
 export default function WhoIAm() {
     const col = useColumn()
-    unlock(1)
+    const bp = useBreakpoint()
 
     useEffect(() => {
+        unlock(1)
         window.scrollTo(0, 0)
     }, [])
 
@@ -28,19 +29,19 @@ export default function WhoIAm() {
             }}
         >
             {/* ── Sphere section ── */}
-            <div
-                style={{
-                    width: "100%",
-                    height: "40vh",
-                    display: "flex",
-                }}
-            >
-                <div style={{ width: "3%" }} />
-                <div style={{ width: "76%", height: "100%" }}>
+            {bp === "mobile" ? (
+                <div style={{ width: `${col.vw}vw`, marginLeft: "auto", marginRight: "auto", height: "40vh" }}>
                     <SkillsSphere />
                 </div>
-                <div style={{ width: "21%" }} />
-            </div>
+            ) : (
+                <div style={{ width: "100%", height: "40vh", display: "flex" }}>
+                    <div style={{ width: "3%" }} />
+                    <div style={{ width: "76%", height: "100%" }}>
+                        <SkillsSphere />
+                    </div>
+                    <div style={{ width: "21%" }} />
+                </div>
+            )}
 
             {/* ── 2vh spacer ── */}
             <div style={{ height: "2vh" }} />

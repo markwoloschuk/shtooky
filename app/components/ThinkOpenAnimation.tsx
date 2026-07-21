@@ -5,7 +5,9 @@
 
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Lottie from 'lottie-react';
-import { useColumn, useType, NAV, COLORS } from './SiteTokens';
+import { useColumn, useType, useBreakpoint, NAV, COLORS } from './SiteTokens';
+
+const GAP_ABOVE_TEXT_MOBILE = 30; // px — starting guess, tune live on device
 
 // ── Tunable constants ────────────────────────────────────────────────────
 export const CONFIG = {
@@ -117,8 +119,11 @@ export default function ThinkOpenAnimation() {
   const particleRAF = useRef<number | null>(null);
   const lastFrameTime = useRef(0);
 
-  const col  = useColumn();
-  const type = useType();
+const col  = useColumn();
+const type = useType();
+const bp   = useBreakpoint();
+
+const gapAboveText = bp === 'mobile' ? GAP_ABOVE_TEXT_MOBILE : CONFIG.GAP_ABOVE_TEXT;
 
   // Scale the Lottie so its authored 120px text appears at the OPENING token size.
   // Derivation: text_vw = (120 / NATIVE_W) * col.vw * lottieScale = OPENING.sizeVw
@@ -309,7 +314,7 @@ export default function ThinkOpenAnimation() {
       style={{
         position: 'relative',
         width: `${col.vw}vw`,
-        marginTop: `${NAV.height + CONFIG.GAP_ABOVE_TEXT}px`,
+        marginTop: `${NAV.height + gapAboveText}px`,
         marginLeft: 'auto',
         marginRight: 'auto',
         // Height matches the artwork's own real rendered size — not the

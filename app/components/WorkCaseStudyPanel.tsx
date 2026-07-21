@@ -7,7 +7,7 @@
 //   video counter    → TYPE_TIERS.CAPTION     (sizePx — matched, not yet wired)
 
 import { useEffect, useState } from 'react'
-import { TYPE, COLORS, useType, useColumn, bodyMaxWidth } from './SiteTokens'
+import { TYPE, COLORS, useType, useColumn, useBreakpoint, bodyMaxWidth } from './SiteTokens'
 import SiteGallery from './SiteGallery'
 
 const PINK = COLORS.work
@@ -160,8 +160,11 @@ interface Props {
 export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
   const type = useType()
   const col = useColumn()
+    const bp = useBreakpoint()
   const [parsed, setParsed] = useState<ParsedCase | null>(null)
   const [blockOps, setBlockOps] = useState<number[]>([])
+  const panelPaddingTop = bp === 'mobile' ? 16 : 40
+  const jobBoxPaddingTop = bp === 'mobile' ? 8 : 20
 
   useEffect(() => {
     if (!caseFile) { setParsed(null); setBlockOps([]); return }
@@ -200,8 +203,8 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
     <div style={{
       paddingLeft: `${col.marginVw}vw`,
       paddingRight: `${col.marginVw}vw`,
-      paddingTop: 40,
-      paddingBottom: 80,
+        paddingTop: panelPaddingTop,
+        paddingBottom: 80,
       position: 'relative',
       zIndex: 1,
     }}>
@@ -211,7 +214,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
         gridTemplateColumns: '1fr 1fr',
         gap: '24px 30px',
         marginBottom: 28,
-        paddingTop: 20,
+        paddingTop: jobBoxPaddingTop,
         opacity: blockOps[0] ?? 0,
         transition: `opacity ${FADE_DUR}ms ease`,
       }}>
