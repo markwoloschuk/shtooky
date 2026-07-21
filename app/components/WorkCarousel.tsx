@@ -702,8 +702,13 @@ if (m === 'nav') {
   stage.style.transform = `scale(${s})`
   stage.style.height = `${_ech}px`
   wrap.style.height = `${_ech * s}px`
-  if (canvas) { canvas.width = CW; canvas.height = _ech; canvas.style.height = `${_ech}px` }
-  if (hit) hit.style.height = `${_ech}px`
+if (canvas) {
+  if (canvas.width !== CW || canvas.height !== _ech) {
+    canvas.width = CW
+    canvas.height = _ech
+  }
+  canvas.style.height = `${_ech}px`
+}  if (hit) hit.style.height = `${_ech}px`
   if (full) full.style.height = `${_ech}px`
 }
     window.addEventListener('resize', scaleStage)
