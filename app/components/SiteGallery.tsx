@@ -26,7 +26,16 @@ const CFG = {
   LIGHTBOX_BTN_BG: '#000000',
   LIGHTBOX_BTN_ICON: '#FFFFFF',
   LIGHTBOX_BTN_GAP: 8,
-  LIGHTBOX_BTN_INSET_PX: 16, // distance from the image's own bottom-right corner
+  LIGHTBOX_BTN_INSET_PX: 16, // distance from the media's own bottom-right corner
+
+  // Video-specific additions.
+  VIDEO_DEFAULT_ASPECT: 16 / 9, // used for the lightbox embed box when no crop is set
+  VIDEO_MAX_WIDTH_VW: 90,
+  VIDEO_MAX_WIDTH_PX: 1200,
+
+  GRID_PLAY_BTN_SIZE: 48,
+  GRID_PLAY_BTN_BG: 'rgba(0,0,0,0.55)',
+  GRID_PLAY_BTN_ICON: '#FFFFFF',
 }
 
 const CROP_RATIOS: Record<string, number> = {
@@ -40,12 +49,23 @@ const CROP_RATIOS: Record<string, number> = {
 // in ThinkCasePanel.tsx / WorkCaseStudyPanel.tsx. Kept as a duplicate here
 // (not imported) since those files own the markdown-parsing concern and this
 // component only needs the resulting data shape.
+//
+// NOTE: parseGalleryBlock() will need a corresponding update to emit `videos`
+// — that's out of scope for this file, flagging so it isn't forgotten.
 
 export interface GalleryOffset {
   index: number   // 1-based position in the FULL sorted folder list (hero included)
   x: number       // % nudge
   y: number       // % nudge
   scale: number   // % (100 = no change)
+}
+
+export interface GalleryVideoLink {
+  index: number                        // same 1-based full-folder-list numbering as offsets
+  source: 'youtube' | 'vimeo' | 'file'
+  id?: string                          // YouTube or Vimeo video ID (source: 'youtube' | 'vimeo')
+  src?: string                         // path to the video file (source: 'file')
+  poster?: string                      // explicit override; skips auto-derivation entirely
 }
 
 export interface GalleryData {
@@ -55,6 +75,7 @@ export interface GalleryData {
   noClick?: boolean
   heroHeight?: number
   offsets: GalleryOffset[]
+  videos?: GalleryVideoLink[]
 }
 
 interface Props {
@@ -66,6 +87,25 @@ function columnsForBreakpoint(desktopCols: number, bp: 'mobile' | 'tablet' | 'de
   if (bp === 'desktop') return desktopCols
   if (bp === 'tablet') return Math.max(1, desktopCols - CFG.TABLET_COL_STEP)
   return Math.max(1, desktopCols - CFG.MOBILE_COL_STEP)
+}
+
+// Ordered list of poster URLs to try for a given grid position, most-specific
+// first. An explicit `poster` override wins outright. Otherwise YouTube gets
+// its free auto-thumbnail (with a resolution fallback), and everything else
+// — including a YouTube video whose thumbnails somehow both fail — falls
+// through to the folder image at that position, which is always guaranteed
+// to exist since every video slot still has a real file backing it.
+function posterCandidates(video: GalleryVideoLink | undefined, folderSrc: string): string[] {
+  if (!video) return [folderSrc]
+  if (video.poster) return [video.poster]
+  if (video.source === 'youtube' && video.id) {
+    return [
+      `https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`,
+      `https://img.youtube.com/vi/${video.id}/hqdefault.jpg`,
+      folderSrc,
+    ]
+  }
+  return [folderSrc]
 }
 
 export default function Gallery({ path, gallery }: Props) {
@@ -92,7 +132,7 @@ export default function Gallery({ path, gallery }: Props) {
   // Hero (if present) is lightbox position 0, grid images follow — so
   // prev/next cycles through everything in one continuous sequence and
   // the hero is reachable by clicking it, same as any grid cell.
-  const lightboxImages = hasHero ? [heroSrc!, ...gridImages] : gridImages
+  const lightboxFilenames = hasHero ? [heroSrc!, ...gridImages] : gridImages
 
   // Column count: full declared Nup once image count >= Nup (trailing cells
   // left empty by the grid's own row-wrapping); shrunk down to image count
@@ -102,8 +142,20 @@ export default function Gallery({ path, gallery }: Props) {
   const cols = Math.min(columnsForBreakpoint(desktopCols, bp), gridImages.length || 1)
 
   const offsetByIndex = new Map(gallery.offsets.map(o => [o.index, o]))
+  const videoByIndex = new Map((gallery.videos ?? []).map(v => [v.index, v]))
   const aspectRatio = CROP_RATIOS[gallery.crop ?? '4by3']
   const clickable = !gallery.noClick
+
+  // Build the full lightbox item list (video-aware) in the same order as
+  // lightboxFilenames, so lightboxIdx stays a single source of truth for
+  // both the grid's onClick handlers and the lightbox's own content.
+  // lightboxFilenames is always [hero?, ...grid] in full-folder order, so
+  // its position i maps 1:1 onto the 1-based full-folder-list index (i+1)
+  // — the same numbering offsets/videos already key off of.
+  const lightboxItems = lightboxFilenames.map((filename, i) => ({
+    filename,
+    video: videoByIndex.get(i + 1),
+  }))
 
   function openLightbox(i: number) {
     if (!clickable) return
@@ -112,10 +164,12 @@ export default function Gallery({ path, gallery }: Props) {
   function closeLightbox() { setLightboxIdx(null) }
   function step(dir: number) {
     setLightboxIdx(prev => {
-      if (prev === null || lightboxImages.length === 0) return prev
-      return (prev + dir + lightboxImages.length) % lightboxImages.length
+      if (prev === null || lightboxItems.length === 0) return prev
+      return (prev + dir + lightboxItems.length) % lightboxItems.length
     })
   }
+
+  const heroVideo = hasHero ? videoByIndex.get(heroFolderIndex) : undefined
 
   return (
     <div style={{ marginBottom: 28 }}>
@@ -124,6 +178,7 @@ export default function Gallery({ path, gallery }: Props) {
           src={`${path}/${heroSrc}`}
           height={gallery.heroHeight!}
           offset={offsetByIndex.get(heroFolderIndex)}
+          video={heroVideo}
           clickable={clickable}
           onClick={() => openLightbox(0)}
         />
@@ -140,6 +195,7 @@ export default function Gallery({ path, gallery }: Props) {
         {gridImages.map((filename, i) => {
           const folderIndex = (hasHero ? 1 : 0) + i + 1
           const offset = offsetByIndex.get(folderIndex)
+          const video = videoByIndex.get(folderIndex)
           const lightboxIndexForThisCell = (hasHero ? 1 : 0) + i
           return (
             <GridCell
@@ -147,6 +203,7 @@ export default function Gallery({ path, gallery }: Props) {
               src={`${path}/${filename}`}
               aspectRatio={aspectRatio}
               offset={offset}
+              video={video}
               clickable={clickable}
               onClick={() => openLightbox(lightboxIndexForThisCell)}
             />
@@ -156,9 +213,10 @@ export default function Gallery({ path, gallery }: Props) {
 
       {lightboxIdx !== null && createPortal(
         <Lightbox
-          images={lightboxImages}
+          items={lightboxItems}
           path={path}
           index={lightboxIdx}
+          videoAspect={gallery.crop ? CROP_RATIOS[gallery.crop] : CFG.VIDEO_DEFAULT_ASPECT}
           onClose={closeLightbox}
           onStep={step}
         />,
@@ -175,23 +233,74 @@ function offsetTransform(offset?: GalleryOffset): string {
   return `translate(${x}%, ${y}%) scale(${scale})`
 }
 
+// ─── POSTER IMAGE (photo cell OR video poster, with fallback chain) ─────────
+
+function PosterImg({
+  video, folderSrc, style,
+}: {
+  video?: GalleryVideoLink
+  folderSrc: string
+  style: React.CSSProperties
+}) {
+  const candidates = posterCandidates(video, folderSrc)
+  const [attempt, setAttempt] = useState(0)
+  const src = candidates[Math.min(attempt, candidates.length - 1)]
+
+  return (
+    <img
+      src={src}
+      alt=""
+      style={style}
+      onError={() => {
+        if (attempt < candidates.length - 1) setAttempt(a => a + 1)
+      }}
+    />
+  )
+}
+
+function PlayBadge() {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: CFG.GRID_PLAY_BTN_SIZE,
+        height: CFG.GRID_PLAY_BTN_SIZE,
+        borderRadius: '50%',
+        background: CFG.GRID_PLAY_BTN_BG,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+      }}
+    >
+      <svg viewBox="0 0 100 100" style={{ width: '38%', height: '38%' }}>
+        <polygon points="30,20 80,50 30,80" fill={CFG.GRID_PLAY_BTN_ICON} />
+      </svg>
+    </div>
+  )
+}
+
 function HeroImage({
-  src, height, offset, clickable, onClick,
+  src, height, offset, video, clickable, onClick,
 }: {
   src: string
   height: number
   offset?: GalleryOffset
+  video?: GalleryVideoLink
   clickable: boolean
   onClick: () => void
 }) {
   return (
     <div
       onClick={clickable ? onClick : undefined}
-      style={{ width: '100%', height, overflow: 'hidden', background: COLORS.dark, cursor: clickable ? 'pointer' : 'default' }}
+      style={{ width: '100%', height, overflow: 'hidden', background: COLORS.dark, cursor: clickable ? 'pointer' : 'default', position: 'relative' }}
     >
-      <img
-        src={src}
-        alt=""
+      <PosterImg
+        video={video}
+        folderSrc={src}
         style={{
           width: '100%',
           height: '100%',
@@ -200,16 +309,18 @@ function HeroImage({
           transform: offsetTransform(offset),
         }}
       />
+      {video && <PlayBadge />}
     </div>
   )
 }
 
 function GridCell({
-  src, aspectRatio, offset, clickable, onClick,
+  src, aspectRatio, offset, video, clickable, onClick,
 }: {
   src: string
   aspectRatio?: number
   offset?: GalleryOffset
+  video?: GalleryVideoLink
   clickable: boolean
   onClick: () => void
 }) {
@@ -224,9 +335,9 @@ function GridCell({
         cursor: clickable ? 'pointer' : 'default',
       }}
     >
-      <img
-        src={src}
-        alt=""
+      <PosterImg
+        video={video}
+        folderSrc={src}
         style={{
           width: '100%',
           height: aspectRatio ? '100%' : 'auto',
@@ -235,6 +346,7 @@ function GridCell({
           transform: offsetTransform(offset),
         }}
       />
+      {video && <PlayBadge />}
     </div>
   )
 }
@@ -242,18 +354,27 @@ function GridCell({
 // ─── LIGHTBOX ────────────────────────────────────────────────────────────────
 // Fade-up, portaled to document.body per the project's established pattern for
 // position:fixed overlays escaping transformed-ancestor stacking contexts.
-// Shows the image at full native size/ratio, ignoring the grid's crop.
+// Shows the image at full native size/ratio, ignoring the grid's crop — or,
+// for a video item, swaps in an embed/self-hosted player sized to a fixed
+// aspect box (the gallery's own crop ratio if set, else 16:9).
+
+interface LightboxItem {
+  filename: string
+  video?: GalleryVideoLink
+}
 
 function Lightbox({
-  images, path, index, onClose, onStep,
+  items, path, index, videoAspect, onClose, onStep,
 }: {
-  images: string[]
+  items: LightboxItem[]
   path: string
   index: number
+  videoAspect: number
   onClose: () => void
   onStep: (dir: number) => void
 }) {
   const [entered, setEntered] = useState(false)
+  const current = items[index]
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setEntered(true))
@@ -289,18 +410,27 @@ function Lightbox({
         onClick={e => e.stopPropagation()}
         style={{ position: 'relative', display: 'inline-block' }}
       >
-        <img
-          src={`${path}/${images[index]}`}
-          alt=""
-          style={{
-            maxWidth: '90vw',
-            maxHeight: '90vh',
-            objectFit: 'contain',
-            display: 'block',
-            transform: entered ? 'translateY(0)' : `translateY(${CFG.LIGHTBOX_FADE_OFFSET_PX}px)`,
-            transition: `transform ${CFG.LIGHTBOX_FADE_MS}ms ease`,
-          }}
-        />
+        {current.video ? (
+          <VideoEmbed
+            key={index /* forces unmount+remount on nav, so playback stops cleanly */}
+            video={current.video}
+            aspect={videoAspect}
+            entered={entered}
+          />
+        ) : (
+          <img
+            src={`${path}/${current.filename}`}
+            alt=""
+            style={{
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              objectFit: 'contain',
+              display: 'block',
+              transform: entered ? 'translateY(0)' : `translateY(${CFG.LIGHTBOX_FADE_OFFSET_PX}px)`,
+              transition: `transform ${CFG.LIGHTBOX_FADE_MS}ms ease`,
+            }}
+          />
+        )}
 
         <div
           style={{
@@ -311,7 +441,7 @@ function Lightbox({
             gap: CFG.LIGHTBOX_BTN_GAP,
           }}
         >
-          {images.length > 1 && (
+          {items.length > 1 && (
             <LightboxBtn onClick={e => { e.stopPropagation(); onStep(-1) }}>
               <polyline points="60,20 35,50 60,80" fill="none" stroke={CFG.LIGHTBOX_BTN_ICON} strokeWidth={10} strokeLinecap="round" strokeLinejoin="round" />
             </LightboxBtn>
@@ -320,7 +450,7 @@ function Lightbox({
             <line x1="25" y1="25" x2="75" y2="75" stroke={CFG.LIGHTBOX_BTN_ICON} strokeWidth={12} strokeLinecap="round" />
             <line x1="75" y1="25" x2="25" y2="75" stroke={CFG.LIGHTBOX_BTN_ICON} strokeWidth={12} strokeLinecap="round" />
           </LightboxBtn>
-          {images.length > 1 && (
+          {items.length > 1 && (
             <LightboxBtn onClick={e => { e.stopPropagation(); onStep(1) }}>
               <polyline points="40,20 65,50 40,80" fill="none" stroke={CFG.LIGHTBOX_BTN_ICON} strokeWidth={10} strokeLinecap="round" strokeLinejoin="round" />
             </LightboxBtn>
@@ -329,6 +459,62 @@ function Lightbox({
       </div>
     </div>
   )
+}
+
+function VideoEmbed({
+  video, aspect, entered,
+}: {
+  video: GalleryVideoLink
+  aspect: number
+  entered: boolean
+}) {
+  const boxStyle: React.CSSProperties = {
+    width: `min(${CFG.VIDEO_MAX_WIDTH_VW}vw, ${CFG.VIDEO_MAX_WIDTH_PX}px)`,
+    aspectRatio: String(aspect),
+    display: 'block',
+    background: '#000000',
+    transform: entered ? 'translateY(0)' : `translateY(${CFG.LIGHTBOX_FADE_OFFSET_PX}px)`,
+    transition: `transform ${CFG.LIGHTBOX_FADE_MS}ms ease`,
+  }
+
+  if (video.source === 'youtube' && video.id) {
+    return (
+      <iframe
+        src={`https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&rel=0`}
+        style={{ ...boxStyle, border: 'none' }}
+        allow="autoplay; encrypted-media; picture-in-picture"
+        allowFullScreen
+      />
+    )
+  }
+
+  if (video.source === 'vimeo' && video.id) {
+    return (
+      <iframe
+        src={`https://player.vimeo.com/video/${video.id}?autoplay=1`}
+        style={{ ...boxStyle, border: 'none' }}
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowFullScreen
+      />
+    )
+  }
+
+  if (video.source === 'file' && video.src) {
+    return (
+      <video
+        src={video.src}
+        style={{ ...boxStyle, objectFit: 'contain' }}
+        controls
+        autoPlay
+        playsInline
+      />
+    )
+  }
+
+  // Malformed video entry (missing id/src for its declared source) — render
+  // nothing rather than a broken player; the underlying folder poster still
+  // showed correctly in the grid, so this fails quietly, not visibly.
+  return null
 }
 
 function LightboxBtn({ children, onClick }: { children: React.ReactNode; onClick: (e: React.MouseEvent) => void }) {
