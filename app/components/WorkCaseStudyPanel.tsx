@@ -34,6 +34,14 @@ interface GalleryOffset {
   scale: number   // % (default 100 = no change)
 }
 
+interface GalleryVideoLink {
+  index: number                        // same 1-based full-folder-list numbering as offsets
+  source: 'youtube' | 'vimeo' | 'file'
+  id?: string                          // YouTube or Vimeo video ID (source: 'youtube' | 'vimeo')
+  src?: string                         // path to the video file (source: 'file')
+  poster?: string                      // explicit override; omitted = auto (YouTube thumbnail, else folder image)
+}
+
 interface GalleryData {
   source: string          // folder name (relative to imagePath) or full path
   columns: number         // desktop grid column count ("Nup")
@@ -41,6 +49,7 @@ interface GalleryData {
   noClick?: boolean       // true = disable lightbox
   heroHeight?: number     // px; omitted = no hero, straight grid
   offsets: GalleryOffset[]
+  videos: GalleryVideoLink[]
 }
 
 interface ParsedCase {
@@ -104,7 +113,15 @@ function resolveImagePath(imagePath: string, filename: string): string {
 //     [1, 20x, 50y, 100s],
 //     [4, -50x, 25y, 120s]
 //   }
+//   video {
+//     [3, youtube, dQw4w9WgXcQ],
+//     [9, file, /videos/reel-01.mp4],
+//     [12, vimeo, 76979871, /images/custom-poster.jpg]
+//   }
 // Missing offset x/y/s values default to 0/0/100 (no change).
+// video entries: index, source (youtube|vimeo|file), id-or-path, poster(optional
+// override — omitted means auto: YouTube gets its free thumbnail, everything
+// else falls back to the folder image already sitting at that index).
 // Kept identical to ThinkCasePanel.tsx's copy — same block syntax, same parser.
 function parseGalleryBlock(content: string): GalleryData {
   const lines = content.split('\n').map(l => l.trim()).filter(Boolean)
@@ -131,7 +148,10 @@ function parseGalleryBlock(content: string): GalleryData {
 
   const offsets: GalleryOffset[] = []
   const remaining = lines.slice(offsetStartLine).join(' ')
-  const offsetMatch = remaining.match(/offset\s*\{([\s\S]*)\}/)
+  // Non-greedy — with two possible bracketed blocks (offset, video) now
+  // sharing `remaining`, a greedy `[\s\S]*` would swallow past its own
+  // closing brace into whichever block comes second.
+  const offsetMatch = remaining.match(/offset\s*\{([\s\S]*?)\}/)
   if (offsetMatch) {
     const entries = offsetMatch[1].match(/\[[^\]]+\]/g) ?? []
     for (const entry of entries) {
@@ -148,7 +168,24 @@ function parseGalleryBlock(content: string): GalleryData {
     }
   }
 
-  return { source, columns, crop, noClick, heroHeight, offsets }
+  const videos: GalleryVideoLink[] = []
+  const videoMatch = remaining.match(/video\s*\{([\s\S]*?)\}/)
+  if (videoMatch) {
+    const entries = videoMatch[1].match(/\[[^\]]+\]/g) ?? []
+    for (const entry of entries) {
+      const parts = entry.slice(1, -1).split(',').map(s => s.trim())
+      const index = parseInt(parts[0], 10)
+      const source = parts[1] as GalleryVideoLink['source']
+      if (isNaN(index) || !['youtube', 'vimeo', 'file'].includes(source)) continue
+      const video: GalleryVideoLink = { index, source }
+      if (source === 'file') video.src = parts[2]
+      else video.id = parts[2]
+      if (parts[3]) video.poster = parts[3]
+      videos.push(video)
+    }
+  }
+
+  return { source, columns, crop, noClick, heroHeight, offsets, videos }
 }
 
 interface Props {
