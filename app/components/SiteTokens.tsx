@@ -45,7 +45,7 @@ export const PAGES = [
         url: "/how-i-think",
         color: "#D6DE23",
     },
-    { id: "contact", label: "Let's Talk", url: "/lets-talk", color: "#885198" },
+    { id: "contact", label: "Let’s Talk", url: "/lets-talk", color: "#885198" },
 ]
 
 // ─── BREAKPOINTS ─────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ const COLUMN_TIERS = {
     desktop: {
         vw: 76, // content column width as % of viewport
         marginVw: 12, // margin each side = (100 - vw) / 2
-        bodyColPct: 50, // body copy column as % of content column (~38vw at 1440px)
+        bodyColPct: 70, // body copy column as % of content column (~38vw at 1440px)
         referenceW: 1440,
         referenceH: 900,
     },
@@ -84,7 +84,7 @@ const COLUMN_TIERS = {
         // TODO: tune for tablet
         vw: 88,
         marginVw: 6,
-        bodyColPct: 60,
+        bodyColPct: 80,
         referenceW: 768,
         referenceH: 1024,
     },
@@ -147,7 +147,7 @@ const TYPE_TIERS = {
 
         // "interesting"
         DISPLAY_HERO: {
-            sizeVw: 6.5,
+            sizeVw: 5.5,
             weight: 700,
             tracking: -0.025,
             lineHeight: 0.95,
@@ -179,7 +179,7 @@ const TYPE_TIERS = {
 
         // Welcome page body copy
         BODY_WELCOME: {
-            sizePx: 28,
+            sizePx: 24,
             weight: 300,
             tracking: 0.02,
             lineHeight: 1.72,
@@ -187,7 +187,7 @@ const TYPE_TIERS = {
 
         // Essay / case study body copy
         BODY: {
-            sizePx: 20,
+            sizePx: 24,
             weight: 300,
             tracking: 0.01,
             lineHeight: 1.72,
@@ -196,7 +196,7 @@ const TYPE_TIERS = {
         // Case-panel body copy — mirrors BODY intentionally.
         // Kept separate in case dense-layout or line-length adjustments are needed for case panels later.
         CASE_BODY: {
-            sizePx: 20,
+            sizePx: 24,
             weight: 300,
             tracking: 0.01,
             lineHeight: 1.72,
@@ -429,10 +429,10 @@ const VISIBILITY_TIERS = {
 
     tablet: {
         // TODO: tune for tablet — copied from desktop as placeholder
-        TF0: 8,
-        TF100: 18,
-        BF100: 76,
-        BF0: 88,
+        TF0: 4,
+        TF100: 16,
+        BF100: 84,
+        BF0: 94,
         gradientHeight: 100,
         gradientOpacity: 0.95,
         revealMs: 800,
@@ -442,10 +442,10 @@ const VISIBILITY_TIERS = {
 
     mobile: {
         // TODO: tune for mobile — copied from desktop as placeholder
-        TF0: 10,
-        TF100: 20,
-        BF100: 78,
-        BF0: 86,
+        TF0: 3,
+        TF100: 13,
+        BF100: 84,
+        BF0: 93,
         gradientHeight: 60,
         gradientOpacity: 0.95,
         revealMs: 800,

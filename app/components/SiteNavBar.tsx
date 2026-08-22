@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { PAGES, COLORS, NAV, FOOTER, FRAME_INSET_VW, getActivePage, getType } from "../components/SiteTokens"
+import { PAGES, COLORS, NAV, FOOTER, FRAME_INSET_VW, getActivePage, getType, useBreakpoint, useType } from "../components/SiteTokens"
 
 // ── Locked defaults (from v18 prototype) ─────────────────────
 const S = {
@@ -47,6 +47,19 @@ const S = {
     openStagger: 97,
     openY: 16,
     openDelay: 500,
+}
+
+// Darkening gradient behind the fixed navbar — keeps the white nav text
+// readable over bright hero imagery/canvases underneath it. Was a flat
+// 180px at every breakpoint. Now that mobile/tablet NAV_CLEARANCE values
+// (see lets-talk/page.tsx and similar) pull page content much closer to
+// the top of the viewport, a full desktop-height gradient reaches far
+// enough down to darken text that used to sit safely below it. Scaled
+// down for mobile/tablet as a starting point — tune live.
+const NAV_GRADIENT_HEIGHT = {
+    desktop: 180,
+    tablet: 120,
+    mobile: 90,
 }
 
 const FONT_DISPLAY = '"Archivo", sans-serif'
@@ -184,6 +197,14 @@ export default function NavBar() {
     const pathname = usePathname()
     const [activePage, setActivePage] = useState(getActivePage())
 
+    // Mobile/tablet hamburger menu — desktop keeps the existing hover-labeled
+    // color strips; touch breakpoints have no hover state, so they get this
+    // instead. Simple placeholder: plain white icon, opens a left-aligned
+    // vertical page list. Not shown on desktop.
+    const breakpoint = useBreakpoint()
+    const type = useType()
+    const [menuOpen, setMenuOpen] = useState(false)
+
     const stateRef = useRef({
         activePage,
         hoveredWrap: null as HTMLDivElement | null,
@@ -207,6 +228,7 @@ useEffect(() => {
     if (stateRef.current?.glitched) return
     const page = getActivePage()
     setActivePage(page)
+    setMenuOpen(false)
 }, [pathname])
 
 
@@ -847,7 +869,7 @@ useEffect(() => {
         top: 0,
         left: 0,
         right: 0,
-        height: 180,
+        height: NAV_GRADIENT_HEIGHT[breakpoint],
         // background gradient behind navbar - (r,g, b, transparency 0-1)
         background:
             "linear-gradient(to bottom,rgba(13,13,13,1) 0%,transparent 100%)",
@@ -1022,6 +1044,107 @@ useEffect(() => {
                     </div>
                 </div>
             </nav>
+
+            {breakpoint !== "desktop" && (
+                <>
+                    {menuOpen && (
+                        <div
+                            onClick={() => setMenuOpen(false)}
+                            style={{
+                                position: "fixed",
+                                inset: 0,
+                                zIndex: 44,
+                                pointerEvents: "auto",
+                            }}
+                        />
+                    )}
+                    <button
+                        onClick={() => setMenuOpen((o) => !o)}
+                        aria-label={menuOpen ? "Close menu" : "Open menu"}
+                        style={{
+                            position: "fixed",
+                            top: "2.4vw",
+                            right: `${FRAME_INSET_VW}vw`,
+                            zIndex: 45,
+                            pointerEvents: "auto",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 8,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 5,
+                        }}
+                    >
+                        <span
+                            style={{
+                                display: "block",
+                                width: 24,
+                                height: 2,
+                                background: "#fff",
+                                transition: "transform 200ms ease, opacity 200ms ease",
+                                transform: menuOpen ? "translateY(7px) rotate(45deg)" : "none",
+                            }}
+                        />
+                        <span
+                            style={{
+                                display: "block",
+                                width: 24,
+                                height: 2,
+                                background: "#fff",
+                                transition: "opacity 200ms ease",
+                                opacity: menuOpen ? 0 : 1,
+                            }}
+                        />
+                        <span
+                            style={{
+                                display: "block",
+                                width: 24,
+                                height: 2,
+                                background: "#fff",
+                                transition: "transform 200ms ease, opacity 200ms ease",
+                                transform: menuOpen ? "translateY(-7px) rotate(-45deg)" : "none",
+                            }}
+                        />
+                    </button>
+                    {menuOpen && (
+                        <div
+                            style={{
+                                position: "fixed",
+                                top: "calc(2.4vw + 44px)",
+                                right: `${FRAME_INSET_VW}vw`,
+                                zIndex: 45,
+                                pointerEvents: "auto",
+                                background: "rgba(13,13,13,0.85)",
+                                padding: "20px 24px",
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "flex-start",
+                                gap: 14,
+                            }}
+                        >
+                            {PAGES.map((page) => (
+                                <Link
+                                    key={page.id}
+                                    href={page.url}
+                                    onClick={() => setMenuOpen(false)}
+                                    style={{
+                                        fontFamily: FONT_DISPLAY,
+                                        fontSize: type.SUBTITLE.sizePx,
+                                        fontWeight: type.SUBTITLE.weight,
+                                        color: page.id === activePage ? page.color : "#fff",
+                                        textDecoration: "none",
+                                        whiteSpace: "nowrap",
+                                    }}
+                                >
+                                    {page.label}
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </>
+            )}
+
             <style>{`
         .strip-wrap::before,.strip-wrap::after{content:'';position:absolute;left:0;right:0;pointer-events:auto;}
         .strip-wrap::before{bottom:100%;height:10px;}

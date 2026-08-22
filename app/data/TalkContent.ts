@@ -24,7 +24,7 @@ export const CONTENT: ContentItem[] = [
         seq: 1,
         size: "subtitle",   // NEW
         fast: true,
-        text: "I aim to take people at their word — and I hope they will take me at mine.",
+        text: "I aim to take people at their word — and hope they'll take me at mine.",
     },
     
     {
