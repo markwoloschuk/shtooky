@@ -18,7 +18,7 @@
 // value on top of that — no ratio, no guessing.
 
 import { useEffect, useRef, useState } from "react"
-import { TYPE, COLORS, TIMING, getType, getBreakpoint } from "./SiteTokens"
+import { TYPE, COLORS, TIMING, getType, getSpace, SPACE } from "./SiteTokens"
 
 // ─── TUNING ──────────────────────────────────────────────────────────────────
 
@@ -34,28 +34,11 @@ const CFG = {
     NUM_ENTRIES: 8,        // pool has 14 unique words — tune how many cycle through
     LINE_GAP_PX: 1.5,        // gap between line 1 and line 2, plain pixels at reference scale — tune by eye, 0 = touching
 
-    TAGLINE_GAP_PX: 35,   // gap between "problem solver" and the subtitle below it — tune by eye
 
     TAGLINE_DELAY: 2050,   // same starting point as HeroAnimation.tsx — may need nudging
     TAGLINE_DUR: 1500,
     TAGLINE_Y: 10,
 
-}
-
-// ── TAGLINE SIZE — explicit px per breakpoint ────────────────────────────
-// Was a single flat `TAGLINE_SIZE_VW: 1.944`, calibrated against desktop
-// (1.944% of 1440px = 28px, the desktop TAGLINE token). The same percentage
-// on a narrower viewport collapses: 14.9px at tablet's 768, 7.6px at
-// mobile's 390 — which is why the tagline read as tiny below the carousel.
-// Now three explicit pixel values, deliberately hardcoded rather than
-// derived, so each tier is tuned by eye and nothing drifts with viewport
-// width. All three tiers live in BOTH hero files with the same numbers, so
-// moving tablet between the one-line and two-line hero changes nothing
-// about the tagline's size.
-const TAGLINE_SIZE_PX = {
-    desktop: 28,   // unchanged — matches what 1.944vw rendered at 1440
-    tablet: 26,
-    mobile: 22,
 }
 
 const SCROLL_FADE = {
@@ -66,7 +49,7 @@ const SCROLL_FADE = {
 // Container height used to be `width * RATIO` (0.22, "starting point... tune
 // by eye") — a fixed aspect-ratio guess completely disconnected from what's
 // actually inside: two headline lines + a tagline positioned at
-// glyphH+lineGap+glyphH+TAGLINE_GAP_PX below them. Since all three children
+// glyphH+lineGap+glyphH+welcomeHeroTaglineGap below them. Since all three children
 // are position:absolute, none of them contribute to the wrap div's own
 // intrinsic height, so an undersized guess doesn't clip — it just lets the
 // tagline render outside the reserved box, spilling into whatever comes
@@ -98,12 +81,12 @@ const POOL = [
 const FINAL = "problem solver"
 
 const TAGLINES = [
-    "I like to make things, but even more I like to figure out what they should be.",
-    "I\u2019ve got empathy for clients AND their audience. It gets us on the same page.",
-    "I ask a lot of questions at the start. It prevents a lot of problems in the end.",
-    "I\u2019ve shipped some great ideas – but also improved some less great ones.",
-    "I zoom between details and big picture so I don\u2019t get lost in either.",
-    "From concept to completion — or any stop along the way.",
+    "I like to make things, but even more\nI like to figure out what they should be.",
+    //"I\u2019ve got empathy for my clients AND their audience.\nIt gets us on the same page.",
+    "I ask a lot of questions at the start.\nIt prevents a lot of problems in the end.",
+    "I\u2019ve shipped some great ideas and\nimproved some not-so-great ones.",
+    "I zoom between details and big picture\nso I don\u2019t get lost in either.",
+    "From concept to completion\nor any stop along the way.",
     "There are no bad stories. Only bad storytelling.",
 ]
 
@@ -331,9 +314,10 @@ export default function HeroAnimationTwoLine({
                 position: absolute;
                 left: 0;
                 top: 0;
-                white-space: nowrap;
+                white-space: pre-line;
+                width: 100%;
                 font-family: ${FONT_DISPLAY};
-                font-size: ${TAGLINE_SIZE_PX[getBreakpoint()]}px;
+                font-size: ${getType().TAGLINE.sizePx}px;
                 font-weight: ${getType().TAGLINE.weight};
                 letter-spacing: ${getType().TAGLINE.tracking}em;
                 line-height: ${getType().TAGLINE.lineHeight};
@@ -381,24 +365,38 @@ export default function HeroAnimationTwoLine({
             const padding = Math.max(travelPx, lineH + reachStart + 4)
             const lineGap = Math.round(CFG.LINE_GAP_PX * scale)
 
-            // Real content height: line1's glyph height + lineGap + line2's
-            // glyph height + the gap above the tagline + the tagline's own
-            // rendered line height. The tagline is white-space:nowrap (never
-            // wraps to a second line), so its height is always exactly one
-            // line at this font-size — no text-content-dependent measuring
-            // needed, just the same math positionTagline() already uses for
-            // its `top` offset, plus one more line for the tagline itself.
-            const taglineFontSize = TAGLINE_SIZE_PX[getBreakpoint()]
-            const taglineLineH = taglineFontSize * getType().TAGLINE.lineHeight
-            const contentH = glyphH + lineGap + glyphH + CFG.TAGLINE_GAP_PX + taglineLineH
+            // Tagline size comes from TYPE_TIERS.<tier>.TAGLINE.sizePx in
+            // SiteTokens.tsx — explicit px per breakpoint, one place, shared
+            // with the rest of the site. It briefly lived here as a local
+            // TAGLINE_SIZE_PX trio; that meant editing the token did nothing,
+            // so it moved back.
+            //
+            // Real rendered tagline height — MEASURED, not derived.
+            // This used to be white-space:nowrap, so its height could be
+            // assumed to be exactly one line at the current font-size. It
+            // wraps now, so the height depends on which tagline was randomly
+            // picked and how wide the column is. Getting this wrong doesn't
+            // clip (every child here is position:absolute) — it lets the
+            // tagline spill into whatever section follows, which is exactly
+            // the overlap bug this container-height calculation exists to
+            // prevent. Falls back to the old single-line math only if the
+            // element isn't laid out yet.
+            const taglineFontSize = getType().TAGLINE.sizePx
+            taglineEl.style.fontSize = taglineFontSize + "px"
+            const taglineMeasuredH = taglineEl.offsetHeight
+            const taglineLineH =
+                taglineMeasuredH > 0
+                    ? taglineMeasuredH
+                    : taglineFontSize * getType().TAGLINE.lineHeight
+            const contentH = glyphH + lineGap + glyphH + getSpace(SPACE.layout.welcomeHeroTaglineGap) + taglineLineH
 
             return { fontSize, fontSizeStr, lineH, glyphH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding, lineGap, contentH }
         }
 
 
 function positionTagline(glyphH: number, lineGap: number) {
-    taglineEl.style.fontSize = TAGLINE_SIZE_PX[getBreakpoint()] + "px"
-    taglineEl.style.top = glyphH + lineGap + glyphH + CFG.TAGLINE_GAP_PX + "px"
+    taglineEl.style.fontSize = getType().TAGLINE.sizePx + "px"
+    taglineEl.style.top = glyphH + lineGap + glyphH + getSpace(SPACE.layout.welcomeHeroTaglineGap) + "px"
 }
 
         function applyResolvedState(

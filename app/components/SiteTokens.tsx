@@ -275,7 +275,7 @@ const TYPE_TIERS = {
             extrabold: 800,
             black: 900,
         },
-        OPENING: { sizeVw: 7, weight: 700, tracking: -0.025, lineHeight: 1.05 }, // interpolated placeholder — needs visual tuning
+        OPENING: { sizeVw: 9, weight: 700, tracking: -0.025, lineHeight: 1.05 }, // interpolated placeholder — needs visual tuning
         DISPLAY_HERO: {
             sizeVw: 9,   // interpolated placeholder — needs visual tuning
             weight: 700,
@@ -286,7 +286,7 @@ const TYPE_TIERS = {
         SUBHEAD: { sizeVw: 3.8, weight: 300, tracking: -0.01, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         TAGLINE: { sizePx: 26, weight: 300, tracking: 0.015, lineHeight: 1.45 },
         BODY_WELCOME: {
-            sizePx: 26,
+            sizePx: 18,
             weight: 300,
             tracking: 0.02,
             lineHeight: 1.72,
@@ -329,7 +329,7 @@ const TYPE_TIERS = {
         },
         DISPLAY: { sizeVw: 4.5, weight: 300, tracking: -0.01, lineHeight: 1.1 },
         SUBHEAD: { sizeVw: 4.5, weight: 300, tracking: -0.01, lineHeight: 1.2 },
-        TAGLINE: { sizePx: 22, weight: 300, tracking: 0.015, lineHeight: 1.45 },
+        TAGLINE: { sizePx: 17, weight: 300, tracking: 0.01, lineHeight: 1.45 },
         BODY_WELCOME: {
             sizePx: 16,
             weight: 300,
@@ -362,11 +362,86 @@ export function getType() {
 // Legacy direct export — use getType() for breakpoint-aware access
 export const TYPE = TYPE_TIERS.desktop
 
-// ─── SPACING RHYTHM ──────────────────────────────────────────────────────────
-// Base unit 8px. All spacing is a multiple of 8.
-// Scale proportionally in vw-based components.
+// ─── SPACING ─────────────────────────────────────────────────────────────────
+// Two kinds of value live here, and the difference is the point:
+//
+//   SPACE.layout.*  Spacing unrelated to type — nav clearances, box heights,
+//                   gaps between UI elements. Explicit pixels per breakpoint,
+//                   all three tiers on one line so they can be compared and
+//                   tuned together.
+//
+//   SPACE.text.*    Spacing between blocks of copy. An `em` RATIO, not pixels,
+//                   because an em is relative to the paragraph's own font size
+//                   — and font size is already tiered in TYPE_TIERS. One number
+//                   therefore stays correct at every breakpoint, and stays
+//                   correct if body copy is ever resized. Three pixel values
+//                   would be three numbers to maintain that silently drift the
+//                   moment BODY changes.
+//
+// Resolving a layout value:
+//   const space = useSpace()                       // in a component
+//   paddingTop: space(SPACE.layout.whoNavClearance)
+//   getSpace(SPACE.layout.welcomeCtaGap)           // in imperative/canvas code
+
+export type TieredPx = { desktop: number; tablet: number; mobile: number }
 
 export const SPACE = {
+    layout: {
+        // Gap between the fixed navbar and the first element on each page.
+        // Deliberately different per page — each opening element carries its
+        // own optical weight. Three separate values, not drift.
+        whoNavClearance:    { desktop:  80, tablet:  70, mobile:  60 },
+        thinkNavClearance:  { desktop: 177, tablet: 136, mobile: 104 },
+        talkNavClearance:   { desktop:  75, tablet:  45, mobile:  45 },
+
+        // Who I Am — height of the skills-sphere section. Was 40vh, which
+        // made the sphere drift vertically on resize (its size comes from
+        // container WIDTH, so a vh box grows while the sphere doesn't).
+        whoSphereBoxHeight: { desktop: 360, tablet: 260, mobile: 180 },
+
+        // How I Think — gap from the opening animation down to the blurb.
+        thinkBlurbGap:      { desktop:  32, tablet:  24, mobile:  16 },
+
+        // Let's Talk — negative on purpose: pulls the blurb up under the
+        // ripple network, whose box reserves more height than it paints.
+        talkBlurbGap:       { desktop: -100, tablet: -60, mobile: -25 },
+
+        // Let's Talk — gap between Contact / Resume / Location.
+        talkLabelGap:       { desktop: 120, tablet:  80, mobile:  60 },
+
+        // Welcome — gap between the three bottom CTA links.
+        welcomeCtaGap:      { desktop: 160, tablet:  120, mobile:  26 },
+
+        // Welcome hero — gap between the headline/carousel and the tagline
+        // under it. Desktop and tablet are served by WelcomeHeroAnimation,
+        // mobile by WelcomeHero2Line; each file used to carry its own copy
+        // of this number (5 and 35), so the 7x difference was invisible.
+        welcomeHeroTaglineGap: { desktop: 5, tablet: 35, mobile: 18 },
+    },
+
+    text: {
+        // Shared by every page — one paragraph rhythm site-wide.
+        // Who I Am previously used a flat 24px and vh pull-quote gaps;
+        // Let's Talk already used these em values. Unified on the em form.
+        paragraphGap:  "2.2em",
+        pullGapBefore: "3.5em",
+        pullGapAfter:  "2.5em",
+    },
+}
+
+export function getSpace(v: TieredPx): number {
+    return v[getBreakpoint()]
+}
+
+export function useSpace(): (v: TieredPx) => number {
+    const bp = useBreakpoint()
+    return (v: TieredPx) => v[bp]
+}
+
+// ─── SPACING RHYTHM (legacy 8px scale) ───────────────────────────────────────
+// Base unit 8px. Predates SPACE above; only one consumer left.
+
+export const SPACE_SCALE = {
     xs: 4,
     sm: 8,
     md: 16,

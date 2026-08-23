@@ -4,17 +4,8 @@
 //   intro blurb → TYPE_TIERS.SUBTITLE  (sizePx — replaces local clamp CONFIG)
 
 import { useEffect, useState } from 'react';
-import { useColumn, useType, useBreakpoint, bodyMaxWidth } from './SiteTokens';
+import { useColumn, useType, bodyMaxWidth, SPACE, useSpace } from './SiteTokens';
 
-// Gap from the animation's real visible bottom edge down to this blurb.
-// Three explicit per-breakpoint px values, same shape as the
-// NAV_CLEARANCE_* trio in ThinkOpenAnimation.tsx and lets-talk/page.tsx.
-// Tablet previously had no tier of its own and silently inherited
-// desktop's 32; 24 is a straight-line interpolation between desktop and
-// mobile — starting guess only, not yet tuned live.
-const GAP_BELOW_CONTENT_DESKTOP = 32; // px
-const GAP_BELOW_CONTENT_TABLET = 24;  // px — interpolated guess, tune live
-const GAP_BELOW_CONTENT_MOBILE = 16;  // px — starting guess, tune live on device
 
 // ── Tunable constants ────────────────────────────────────────────────────
 const CONFIG = {
@@ -32,13 +23,9 @@ const CONFIG = {
 export default function ThinkBlurb() {
   const col  = useColumn();
   const type = useType();
-  const bp   = useBreakpoint();
   const [visible, setVisible] = useState(false);
 
-  const gapBelowContent =
-    bp === 'mobile' ? GAP_BELOW_CONTENT_MOBILE :
-    bp === 'tablet' ? GAP_BELOW_CONTENT_TABLET :
-    GAP_BELOW_CONTENT_DESKTOP;
+  const gapBelowContent = useSpace()(SPACE.layout.thinkBlurbGap);
 
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), CONFIG.FADE_DELAY_MS);

@@ -19,34 +19,9 @@ import { unlock, reset } from "../components/SequenceController"
 import RippleNetwork, { TEXT_DELAY, CHUNKS, TIMING } from "../components/TalkRippleNetwork"
 import SiteTextBlock, { SCROLL_FADE_FAST } from "../components/SiteTextBlock"
 import TalkOptions from "../components/TalkOptions"
-import { useColumn, useBreakpoint } from "../components/SiteTokens"
+import { useColumn, SPACE, useSpace } from "../components/SiteTokens"
 
-// Gap between RippleNetwork's box and the blurb below it — was a flat
-// -80px, tuned for the old taller desktop-shaped ripple box. Now that
-// TalkRippleNetwork's mobile HEIGHT/TEXT_BOTTOM_PADDING are their own
-// (shorter) tunables, the headline sits much closer to the box's bottom
-// on mobile, so mobile needs a much smaller (or positive) gap here
-// instead of inheriting desktop's negative pull. Desktop/mobile tuned
-// live; tablet is a straight-line interpolation between them as a
-// starting point — not yet tuned live.
-const BLURB_GAP_DESKTOP = -100
-const BLURB_GAP_TABLET = -60
-const BLURB_GAP_MOBILE = -25
 
-// Gap between the fixed NavBar and the page's first content (the ripple
-// headline). Was a flat "11vh" — a percentage of the user's window
-// HEIGHT, which has no relationship to the nav's own size or position.
-// That's why it looked fine in one window and too far down in another
-// even at the same "desktop" breakpoint — window height varies for
-// reasons (monitor size, browser chrome) that have nothing to do with
-// the page. Replaced with set values per breakpoint instead.
-// Desktop: eyeballed live at ~2x the distance from the top of the
-// screen down to the bottom of the color chips — set directly from
-// looking at the real render, not derived from a formula.
-// Tablet/mobile: still the first-pass ballpark, not yet tuned live.
-const NAV_CLEARANCE_DESKTOP = 75
-const NAV_CLEARANCE_TABLET = 20
-const NAV_CLEARANCE_MOBILE = 45
 
 // Real completion time of RippleNetwork's one-shot text overlay —
 // last chunk's own delay + its animation duration, on top of the
@@ -62,15 +37,9 @@ const ID1_FADE_DONE_MS = SCROLL_FADE_FAST.mountDelay + SCROLL_FADE_FAST.mountFad
 
 export default function LetsTalk() {
     const col = useColumn()
-    const bp = useBreakpoint()
-    const blurbGap =
-        bp === "mobile" ? BLURB_GAP_MOBILE :
-        bp === "tablet" ? BLURB_GAP_TABLET :
-        BLURB_GAP_DESKTOP
-    const navClearance =
-        bp === "mobile" ? NAV_CLEARANCE_MOBILE :
-        bp === "tablet" ? NAV_CLEARANCE_TABLET :
-        NAV_CLEARANCE_DESKTOP
+    const space = useSpace()
+    const blurbGap = space(SPACE.layout.talkBlurbGap)
+    const navClearance = space(SPACE.layout.talkNavClearance)
 
     useEffect(() => {
         reset()

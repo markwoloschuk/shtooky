@@ -7,10 +7,14 @@ import type { ContentItem } from "../components/SiteTextBlock"
 
 // ─── Spacing ──────────────────────────────────────────────────────────────────
 
+import { SPACE } from "../components/SiteTokens"
+
 export const SPACING = {
-    paragraphGap: "2.2em",
-    pullGapBefore: "3.5em",
-    pullGapAfter: "2.5em",
+    // Shared site-wide rhythm — see SPACE.text in SiteTokens.tsx.
+    // These em values are where the shared rhythm came from.
+    paragraphGap: SPACE.text.paragraphGap,
+    pullGapBefore: SPACE.text.pullGapBefore,
+    pullGapAfter: SPACE.text.pullGapAfter,
     entryDelay: 0,
     paragraphStagger: 400,
 }

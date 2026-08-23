@@ -10,23 +10,16 @@
 
 import { useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { COLORS, TIMING, TYPE, getBreakpoint, useType } from "./SiteTokens"
+import { COLORS, TIMING, TYPE, getBreakpoint, useType, SPACE, getSpace } from "./SiteTokens"
 
 // ─────────────────────────────────────────────────────────────
 // DEFAULTS — all tuning lives here
 // ─────────────────────────────────────────────────────────────
 
 const DEFAULTS = {
-    // Layout — horizontal at every breakpoint, each with its own tunable
-    // gap (kept separate from TalkOptions.tsx's LABEL_GAP_* on Let's
-    // Talk — different component, different numbers). Tablet used to be
-    // a vertical stack (verticalGapPx between rows); gapPxTablet below is
-    // Mark-tuned live. Mobile used to auto-fill the row width instead of
-    // a real settable number — gapPxMobile is a starting guess, not yet
-    // tuned live.
-    gapPxDesktop: 160,
-    gapPxTablet: 80,
-    gapPxMobile: 26,   // starting guess, tune live
+    // The gap between the three links now lives in
+    // SPACE.layout.welcomeCtaGap (SiteTokens.tsx). Kept separate from
+    // SPACE.layout.talkLabelGap — different component, different numbers.
     lineGapPx: 30,
 
     // Horizontal rule
@@ -103,8 +96,8 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
         const rule = ruleRef.current
 
         // Horizontal at every breakpoint — same absolute-position math,
-        // each breakpoint reading its own tunable gap (gapPxDesktop /
-        // gapPxTablet / gapPxMobile). Mobile used to auto-fill the row
+        // each breakpoint reading its own tunable gap from
+        // SPACE.layout.welcomeCtaGap. Mobile used to auto-fill the row
         // width instead of a real settable number (a computed gap with an
         // 8px floor) — switched to a fixed gap like desktop/tablet so
         // there's an actual number to tune. The underline rule still
@@ -113,9 +106,7 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
         // else it hugs just the label cluster.
         const bp = getBreakpoint()
         const gap =
-            bp === "desktop" ? DEFAULTS.gapPxDesktop :
-            bp === "tablet" ? DEFAULTS.gapPxTablet :
-            DEFAULTS.gapPxMobile
+            getSpace(SPACE.layout.welcomeCtaGap)
         const [w0, w1, w2] = ws.current
         const x1 = w0 + gap
         const x2 = w0 + gap + w1 + gap
@@ -294,15 +285,20 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
     // based left positions from before the edit while the text itself
     // visually resizes, producing exactly the "gap looks wrong, third item
     // still clipped" symptom regardless of what the new numbers are. ──
+    // ESLint flags the SPACE.* entries below as "unnecessary dependencies"
+    // because module-scope values can't themselves trigger a re-render. That
+    // is true and beside the point: on a Fast Refresh the module re-evaluates
+    // AND the component re-renders, so the changed value is seen here and
+    // layout() re-runs. That is exactly what this effect is for. Deliberate.
     useEffect(() => {
         requestAnimationFrame(layout)
     }, [
         type.CTA_LINK.sizePx,
         type.CTA_LINK.weight,
         type.CTA_LINK.tracking,
-        DEFAULTS.gapPxDesktop,
-        DEFAULTS.gapPxTablet,
-        DEFAULTS.gapPxMobile,
+        SPACE.layout.welcomeCtaGap.desktop,
+        SPACE.layout.welcomeCtaGap.tablet,
+        SPACE.layout.welcomeCtaGap.mobile,
     ])
 
     // ── scroll + entrance effect — re-runs when enabled changes ──

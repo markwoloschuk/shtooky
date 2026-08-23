@@ -11,7 +11,7 @@
 // \u2019 will give you an apostrophe
 
 import { useEffect, useRef, useState } from "react"
-import { TYPE, COLORS, TIMING, getType, getBreakpoint } from "./SiteTokens"
+import { TYPE, COLORS, TIMING, getType, getSpace, SPACE } from "./SiteTokens"
 
 // ─── TUNING ──────────────────────────────────────────────────────────────────
 
@@ -30,25 +30,6 @@ const CFG = {
     TAGLINE_DUR: 1500,
     TAGLINE_Y: 10,
 
-    TAGLINE_GAP_PX: 5,        // gap between the headline's cap-height and
-                               // the tagline below it (was a local literal
-                               // inside positionTagline())
-}
-
-// ── TAGLINE SIZE — explicit px per breakpoint ────────────────────────────
-// Was a single flat `TAGLINE_SIZE_VW: 1.944`, calibrated against desktop
-// (1.944% of 1440px = 28px, the desktop TAGLINE token). The same percentage
-// on a narrower viewport collapses: 14.9px at tablet's 768, 7.6px at
-// mobile's 390 — which is why the tagline read as tiny below the carousel.
-// Now three explicit pixel values, deliberately hardcoded rather than
-// derived, so each tier is tuned by eye and nothing drifts with viewport
-// width. All three tiers live in BOTH hero files with the same numbers, so
-// moving tablet between the one-line and two-line hero changes nothing
-// about the tagline's size.
-const TAGLINE_SIZE_PX = {
-    desktop: 28,   // unchanged — matches what 1.944vw rendered at 1440
-    tablet: 26,
-    mobile: 22,
 }
 
 const SCROLL_FADE = {
@@ -331,9 +312,10 @@ export default function HeroAnimation({
                 position: absolute;
                 left: 0;
                 top: 0;
-                white-space: nowrap;
+                white-space: pre-line;
+                width: 100%;
                 font-family: ${FONT_DISPLAY};
-                font-size: ${TAGLINE_SIZE_PX[getBreakpoint()]}px;
+                font-size: ${getType().TAGLINE.sizePx}px;
                 font-weight: ${TYPE.TAGLINE.weight};
                 letter-spacing: ${TYPE.TAGLINE.tracking}em;
                 line-height: ${TYPE.TAGLINE.lineHeight};
@@ -394,16 +376,31 @@ export default function HeroAnimation({
             })
             const padding = Math.max(travelPx, lineH + reachStart + 4)
 
-            // Real content height: headline cap-height + gap + the
-            // tagline's own rendered line height. The tagline is
-            // white-space:nowrap (never wraps), so its height is always
-            // exactly one line at this font-size — same capH math
-            // positionTagline() already uses for its `top` offset, plus
-            // one more line for the tagline itself.
             const capH = Math.round(lineH * 0.76)
-            const taglineFontSize = TAGLINE_SIZE_PX[getBreakpoint()]
-            const taglineLineH = taglineFontSize * TYPE.TAGLINE.lineHeight
-            const contentH = capH + CFG.TAGLINE_GAP_PX + taglineLineH
+            // Tagline size comes from TYPE_TIERS.<tier>.TAGLINE.sizePx in
+            // SiteTokens.tsx — explicit px per breakpoint, one place, shared
+            // with the rest of the site. It briefly lived here as a local
+            // TAGLINE_SIZE_PX trio; that meant editing the token did nothing,
+            // so it moved back.
+            //
+            // Real rendered tagline height — MEASURED, not derived.
+            // This used to be white-space:nowrap, so its height could be
+            // assumed to be exactly one line at the current font-size. It
+            // wraps now, so the height depends on which tagline was randomly
+            // picked and how wide the column is. Getting this wrong doesn't
+            // clip (every child here is position:absolute) — it lets the
+            // tagline spill into whatever section follows, which is exactly
+            // the overlap bug this container-height calculation exists to
+            // prevent. Falls back to the old single-line math only if the
+            // element isn't laid out yet.
+            const taglineFontSize = getType().TAGLINE.sizePx
+            taglineEl.style.fontSize = taglineFontSize + "px"
+            const taglineMeasuredH = taglineEl.offsetHeight
+            const taglineLineH =
+                taglineMeasuredH > 0
+                    ? taglineMeasuredH
+                    : taglineFontSize * getType().TAGLINE.lineHeight
+            const contentH = capH + getSpace(SPACE.layout.welcomeHeroTaglineGap) + taglineLineH
 
             return {
                 fontSize,
@@ -422,10 +419,10 @@ export default function HeroAnimation({
         }
 
         function positionTagline(lineH: number) {
-    taglineEl.style.fontSize = TAGLINE_SIZE_PX[getBreakpoint()] + "px"
+    taglineEl.style.fontSize = getType().TAGLINE.sizePx + "px"
             // Sits just below the opening text line
             const capH = Math.round(lineH * 0.76)
-            taglineEl.style.top = capH + CFG.TAGLINE_GAP_PX + "px"
+            taglineEl.style.top = capH + getSpace(SPACE.layout.welcomeHeroTaglineGap) + "px"
         }
 
         function applyResolvedState(

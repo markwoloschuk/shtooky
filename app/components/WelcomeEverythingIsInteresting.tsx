@@ -6,7 +6,7 @@
 import * as React from "react"
 import ReactDOM from "react-dom"
 import { useEffect, useRef, useState } from "react"
-import { COLORS, SPACE, TIMING, useType } from "./SiteTokens"
+import { COLORS, SPACE_SCALE, TIMING, useType } from "./SiteTokens"
 
 // ─── Tuning ───────────────────────────────────────────────────────────────────
 
@@ -546,7 +546,7 @@ if (autoFired.current) return
                 paddingBottom: "0",
                 display: "flex",
                 flexDirection: "column",
-                gap: `${SPACE.xs}px`,
+                gap: `${SPACE_SCALE.xs}px`,
                 pointerEvents: "auto",
             }}
         >

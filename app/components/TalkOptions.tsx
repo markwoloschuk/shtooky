@@ -19,24 +19,19 @@
 // spirit to ThinkCasePanel's block fade-in than anything canvas-based.
 
 import { useState, useRef, useEffect } from "react"
-import { COLORS, TYPE, useBreakpoint, useType } from "./SiteTokens"
+import { COLORS, TYPE, useType, SPACE, useSpace } from "./SiteTokens"
 import { useSequence, unlock } from "./SequenceController"
 
 const ACCENT = COLORS.contact
 
 // ── Tunable constants ───────────────────────────────────────────────────
 const CONFIG = {
-    // Gap between the three labels — explicit per-breakpoint px values, same
-    // shape as NAV_CLEARANCE_*/GAP_BELOW_CONTENT_* elsewhere on the site.
-    // Desktop (100) is Mark's original tuned number, unchanged. Tablet/
-    // mobile used to be "space-between" (auto-fills the row width, ignores
-    // any gap value) rather than a real tunable — replaced with explicit
-    // gaps below so all three are actually adjustable. Tablet/mobile are
+    // Gap between the three labels now lives in SPACE.layout.talkLabelGap
+    // (SiteTokens.tsx). Tablet/mobile used to be "space-between" (auto-fills
+    // the row width, ignores any gap value) rather than a real tunable.
+    // Tablet/mobile are
     // reasoned starting guesses (scaled down from desktop for the narrower
     // column), not yet tuned live.
-    LABEL_GAP_DESKTOP: 120,
-    LABEL_GAP_TABLET: 80,   // starting guess, tune live
-    LABEL_GAP_MOBILE: 60,   // starting guess, tune live
     ROW_GAP_TOP: 16,        // space between a label and its open content
     ROW_GAP_BOTTOM: 40,     // space after open content, before next label
     TRANSITION_MS: 500,
@@ -264,7 +259,7 @@ function ResumePanel() {
 // ── Top-level accordion ──────────────────────────────────────────────────
 export default function TalkOptions() {
     const [open, setOpen] = useState<PanelKey | null>(null)
-    const bp = useBreakpoint()
+    const space = useSpace()
     const revealed = useSequence(2)
     const [visible, setVisible] = useState(false)
     const firedNextRef = useRef(false)
@@ -298,17 +293,14 @@ export default function TalkOptions() {
             }}
         >
             {/* Horizontal at every breakpoint, explicit tunable gap at each
-                (LABEL_GAP_DESKTOP/TABLET/MOBILE above) — was column at
+                (SPACE.layout.talkLabelGap) — was column at
                 tablet only (768–1279px), and mobile/tablet used
                 "space-between" (auto-fills the row, not a real tunable)
                 instead of a settable gap. */}
             <div style={{
                     display: "flex",
                     flexDirection: "row",
-                    gap:
-                        bp === "mobile" ? CONFIG.LABEL_GAP_MOBILE :
-                        bp === "tablet" ? CONFIG.LABEL_GAP_TABLET :
-                        CONFIG.LABEL_GAP_DESKTOP,
+                    gap: space(SPACE.layout.talkLabelGap),
                 }}>
                 <OptionLabel label="Contact" active={open === "contact"} onClick={() => toggle("contact")} />
                 <OptionLabel label="Resume" active={open === "resume"} onClick={() => toggle("resume")} />

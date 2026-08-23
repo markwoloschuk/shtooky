@@ -7,10 +7,15 @@ import type { ContentItem } from "../components/SiteTextBlock"
 
 // ─── Spacing ──────────────────────────────────────────────────────────────────
 
+import { SPACE } from "../components/SiteTokens"
+
 export const SPACING = {
-    paragraphGap: 24,
-    pullGapBefore: "4vh",
-    pullGapAfter: "3vh",
+    // Shared site-wide rhythm — see SPACE.text in SiteTokens.tsx.
+    // Was a flat 24px gap and vh-based pull-quote gaps, both of which
+    // ignored the breakpoint the body copy was actually rendering at.
+    paragraphGap: SPACE.text.paragraphGap,
+    pullGapBefore: SPACE.text.pullGapBefore,
+    pullGapAfter: SPACE.text.pullGapAfter,
     entryDelay: 200,
     paragraphStagger: 150,
 }

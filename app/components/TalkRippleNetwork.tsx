@@ -42,7 +42,7 @@ const playOnce = true
 // block's top has gone above the viewport).
 //
 // IMPORTANT: at rest (scroll 0) this block's top sits exactly at the page's
-// paddingTop — i.e. NAV_CLEARANCE_* in lets-talk/page.tsx (75/20/45).
+// paddingTop — i.e. SPACE.layout.talkNavClearance in SiteTokens.tsx (75/20/45).
 // fadeOutStart must therefore be <= that tier's clearance, or the block
 // renders partly faded before the user has scrolled at all. The old flat
 // value of 100 was above all three, which is why the network arrived at
