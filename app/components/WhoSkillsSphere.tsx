@@ -5,8 +5,8 @@
 // Who I Am page — animated skills cloud
 // v03 — ported to Next.js 2026-06-22
 
-import { useEffect, useRef } from "react"
-import { COLORS, DEBUG } from "./SiteTokens"
+import { useEffect, useMemo, useRef } from "react"
+import { COLORS, DEBUG, getBreakpoint, useBreakpoint } from "./SiteTokens"
 
 // ─── TUNING ───────────────────────────────────────────────────────────────────
 
@@ -42,12 +42,46 @@ const TEXTS = [
     "Producing",
 ]
 
-const CFG = {
+// ── SPHERE RADIUS — breakpoint-tiered ────────────────────────────────────
+// The sphere's rendered size is a function of its container's WIDTH only:
+//   baseR = RADIUS * (containerWidth / REFERENCE_W)
+// Height never enters that math — H is used solely to centre it. So on a
+// narrow viewport the sphere shrinks no matter how tall its box is, which
+// is why mobile/tablet read as "too small AND too low" at the same time.
+// Desktop keeps the original 160 so its appearance is unchanged.
+// Tablet/mobile are reasoned starting guesses — tune live.
+const SPHERE_RADIUS_DESKTOP = 160
+// Recalibrated when the tablet/mobile canvas went full-bleed. Sphere size
+// is driven by container WIDTH, so widening the box made everything bigger
+// for free — these numbers came down by the same ratio so the sphere stays
+// visually where it was tuned. Tablet: box 584px -> 768px. Mobile: 351 -> 390.
+const SPHERE_RADIUS_TABLET = 152
+const SPHERE_RADIUS_MOBILE = 196
+
+// ── BASE TUNING (desktop) ────────────────────────────────────────────────
+// Every key below can be overridden per breakpoint — see
+// CFG_TABLET_OVERRIDES / CFG_MOBILE_OVERRIDES underneath this object. To
+// make any value tunable at a tier, just add that key to the relevant
+// override object; nothing else needs changing. Same pattern as
+// TalkRippleNetwork.tsx.
+const CFG_BASE = {
+    // Still read by the fog/atmosphere gradient below (coreR) — deliberately
+    // left flat so the ambient layer doesn't shift while sphere size is being
+    // tuned. Sphere geometry itself uses SPHERE_RADIUS_* above.
     sphereRadius: 160,
     scaleX: 1.4,
     scaleY: 0.6,
+
+    // Horizontal nudge for the WHOLE composition — sphere, labels, fog and
+    // particles all shift together. Plain pixels: negative = left.
+    // Applied as a canvas translate, so it moves what is drawn without
+    // moving the canvas box — the clipping edges stay at the viewport edges.
+    // Desktop is 0: its off-centre composition comes from the 3%/76%/21%
+    // flex split in who-i-am/page.tsx instead.
+    offsetX: 0,
+
     heightPad: 48,
-    orbitSpeedMin: 3,
+    orbitSpeedMin: 4,
     orbitSpeedMax: 60,
     proxRadius: -10,
     textCase: "normal" as "normal" | "lower",
@@ -70,7 +104,7 @@ const CFG = {
     breatheSpeed: 0.05,
     bgFadeDuration: 2.0,
     textFadeDuration: 2.5,
-    textStagger: 60,
+    textStagger: 60, 
     fogOpacity: 0.25,
     fogRadius: 0.25,
     fogFeather: 0.75,
@@ -94,6 +128,61 @@ const CFG = {
     partRange: 35,
     travVariation: 100,
     travRange: 60,
+}
+
+// ── PER-BREAKPOINT OVERRIDES ─────────────────────────────────────────────
+// Sparse — list ONLY the keys that differ from CFG_BASE. Anything absent
+// falls through to the desktop value. Add any CFG_BASE key here to make it
+// tunable at that tier.
+//
+// NOTE: `sphereRadius` here only affects the fog/atmosphere gradient. The
+// sphere's own geometry comes from the SPHERE_RADIUS_* constants at the top
+// of this file — change those, not this.
+//
+// All values below are reasoned starting guesses, not yet tuned live.
+
+const CFG_TABLET_OVERRIDES = {
+    // Label size is already width-scaled (textSizeW * W/800), which at a
+    // 584px container means desktop's 32 renders at ~23px vs ~44px on
+    // desktop. Bumped so labels land near 30px.
+    textSizeW: 31,   // recalibrated for the full-bleed 768px box (was 41 at 584px)
+
+    // Particle/traveller counts are flat, but the canvas is ~2.6x smaller
+    // in area than desktop — same count reads as much denser.
+    particleCount: 55,   // was 100
+    travCount: 12,       // was 20
+
+    // Sphere aspect ratio — same as desktop for now, here so it can be
+    // moved independently once the box height settles.
+    scaleX: 1.5,
+    scaleY: 0.65,
+
+    offsetX: -30,   // px, negative = left. Starting nudge — tune by eye.
+
+    orbitSpeedMin: 10,    
+    breatheAmt: 0.04,
+    breatheSpeed: 0.08,
+}
+
+const CFG_MOBILE_OVERRIDES = {
+    // At a 351px container, desktop's 32 renders at ~14px — too small to
+    // read. Bumped so labels land near 22px.
+    textSizeW: 44,   // recalibrated for the full-bleed 390px box (was 50 at 351px)
+
+    // Canvas is ~5.6x smaller in area than desktop.
+    particleCount: 40,   // was 100
+    travCount: 8,        // was 20
+
+    // Sphere aspect ratio — same as desktop for now. This is the knob to
+    // move if the sphere reads too wide/flat in a short mobile box.
+    scaleX: 1.3,
+    scaleY: 0.6,
+
+    offsetX: -15,   // px, negative = left. Starting nudge — tune by eye.
+
+    orbitSpeedMin: 10,
+    breatheAmt: 0.04,
+    breatheSpeed: 0.08,
 }
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -316,6 +405,22 @@ export default function SkillsSphere() {
     const containerRef = useRef<HTMLDivElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const debugRef = useRef<HTMLDivElement>(null)
+    const bp = useBreakpoint()
+
+    // Merged tuning for the current breakpoint. Deliberately shadows the
+    // module-level name so every existing `CFG.x` read below picks this up
+    // without needing to be rewritten.
+    const CFG = useMemo(
+        () => ({
+            ...CFG_BASE,
+            ...(bp === "mobile"
+                ? CFG_MOBILE_OVERRIDES
+                : bp === "tablet"
+                  ? CFG_TABLET_OVERRIDES
+                  : {}),
+        }),
+        [bp]
+    )
 
     useEffect(() => {
         const container = containerRef.current
@@ -330,11 +435,20 @@ export default function SkillsSphere() {
 
         const REFERENCE_W = 800
         let SCALE = 1
+        let RADIUS = SPHERE_RADIUS_DESKTOP
 
         function resize() {
             W = container!.clientWidth
             H = container!.clientHeight
             SCALE = W / REFERENCE_W
+            // Resolved here, inside the ResizeObserver callback, so it
+            // re-resolves on every real box change rather than being read
+            // once at mount and frozen.
+            const bpNow = getBreakpoint()
+            RADIUS =
+                bpNow === "mobile" ? SPHERE_RADIUS_MOBILE :
+                bpNow === "tablet" ? SPHERE_RADIUS_TABLET :
+                SPHERE_RADIUS_DESKTOP
             canvas!.width = Math.round(W * dpr)
             canvas!.height = Math.round(H * dpr)
             canvas!.style.width = W + "px"
@@ -622,7 +736,7 @@ export default function SkillsSphere() {
                 Math.sin(breathT * CFG.breatheSpeed * Math.PI * 2) *
                     CFG.breatheAmt
 
-            const baseR = CFG.sphereRadius * SCALE * breathe
+            const baseR = RADIUS * SCALE * breathe
             const cloudPx = (W / 2 / CFG.scaleX) * 0.85
             const boostPx = cloudPx * (1 + CFG.proxRadius / 100)
             const dx = mcx - W / 2,
@@ -727,6 +841,10 @@ export default function SkillsSphere() {
 
             ctx!.clearRect(0, 0, W, H)
             ctx!.save()
+            // Whole-composition horizontal nudge. Inside the save/restore
+            // pair, so it applies to fog, particles and labels alike and is
+            // cleanly undone each frame.
+            if (CFG.offsetX) ctx!.translate(CFG.offsetX, 0)
 
             drawFog(dt, bgIntro)
 
@@ -889,7 +1007,10 @@ export default function SkillsSphere() {
             canvas.removeEventListener("touchmove", onTouchMove)
             window.removeEventListener("scroll", handleScrollFade)
         }
-    }, [])
+        // CFG is in the dep array on purpose: it changes identity when the
+        // breakpoint changes, so the canvas rebuilds with the right tier
+        // instead of silently keeping the values it mounted with.
+    }, [CFG])
 
     return (
         <div
