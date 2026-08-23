@@ -29,6 +29,14 @@ const CFG = {
     TAGLINE_DELAY: 2050,
     TAGLINE_DUR: 1500,
     TAGLINE_Y: 10,
+
+    TAGLINE_SIZE_VW: 1.944,   // tagline font-size, vw — also used below to
+                               // compute the tagline's own rendered line
+                               // height for the container's real content
+                               // height (was a separate magic number inline)
+    TAGLINE_GAP_PX: 5,        // gap between the headline's cap-height and
+                               // the tagline below it (was a local literal
+                               // inside positionTagline())
 }
 
 const SCROLL_FADE = {
@@ -36,7 +44,14 @@ const SCROLL_FADE = {
     fadeEnd: 340, // scrollY where fade-out completes
 }
 
-const RATIO = 0.12 // height = width × RATIO — adjust to taste
+// Container height used to be `width * RATIO` (0.12, "adjust to taste") — a
+// fixed aspect-ratio guess disconnected from the actual content (headline +
+// a tagline positioned at capH+gap below it). Since both are position:
+// absolute, an undersized guess doesn't clip — the tagline just renders
+// outside the reserved box and spills into whatever's next in document
+// flow. Replaced with the real measured content height — see calcLayout()'s
+// `contentH`. (Companion fix to the same issue in WelcomeHero2Line.tsx,
+// which showed it more visibly at mobile widths.)
 
 // ─── CONTENT ─────────────────────────────────────────────────────────────────
 
@@ -223,11 +238,8 @@ export default function HeroAnimation({
         let resolvedColors: [number, number, number][] = []
 
         // ── ResizeObserver — sets component height ──────────────────────────
-        const resizeObserver = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                const w = entry.contentRect.width
-                setHeight(w * RATIO)
-            }
+        const resizeObserver = new ResizeObserver(() => {
+            setHeight(calcLayout().contentH)
         })
         resizeObserver.observe(wrap)
 
@@ -309,7 +321,7 @@ export default function HeroAnimation({
                 top: 0;
                 white-space: nowrap;
                 font-family: ${FONT_DISPLAY};
-                font-size: 1.944vw;
+                font-size: ${CFG.TAGLINE_SIZE_VW}vw;
                 font-weight: ${TYPE.TAGLINE.weight};
                 letter-spacing: ${TYPE.TAGLINE.tracking}em;
                 line-height: ${TYPE.TAGLINE.lineHeight};
@@ -369,6 +381,18 @@ export default function HeroAnimation({
                 if (w > maxW) maxW = w
             })
             const padding = Math.max(travelPx, lineH + reachStart + 4)
+
+            // Real content height: headline cap-height + gap + the
+            // tagline's own rendered line height. The tagline is
+            // white-space:nowrap (never wraps), so its height is always
+            // exactly one line at this font-size — same capH math
+            // positionTagline() already uses for its `top` offset, plus
+            // one more line for the tagline itself.
+            const capH = Math.round(lineH * 0.76)
+            const taglineFontSize = window.innerWidth * (CFG.TAGLINE_SIZE_VW / 100)
+            const taglineLineH = taglineFontSize * TYPE.TAGLINE.lineHeight
+            const contentH = capH + CFG.TAGLINE_GAP_PX + taglineLineH
+
             return {
                 fontSize,
                 fontSizeStr,
@@ -381,14 +405,14 @@ export default function HeroAnimation({
                 allColors,
                 maxW,
                 padding,
+                contentH,
             }
         }
 
         function positionTagline(lineH: number) {
             // Sits just below the opening text line
-            const gap = 5
             const capH = Math.round(lineH * 0.76)
-            taglineEl.style.top = capH + gap + "px"
+            taglineEl.style.top = capH + CFG.TAGLINE_GAP_PX + "px"
         }
 
         function applyResolvedState(
@@ -428,7 +452,9 @@ export default function HeroAnimation({
                 allColors,
                 maxW,
                 padding,
+                contentH,
             } = calcLayout()
+            setHeight(contentH)
 
             resolvedNCar = nCar
             resolvedColors = allColors

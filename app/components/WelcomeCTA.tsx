@@ -17,9 +17,16 @@ import { COLORS, TIMING, TYPE, getBreakpoint, useType } from "./SiteTokens"
 // ─────────────────────────────────────────────────────────────
 
 const DEFAULTS = {
-    // Layout
-    gapPx: 220,
-    verticalGapPx: 24,
+    // Layout — horizontal at every breakpoint, each with its own tunable
+    // gap (kept separate from TalkOptions.tsx's LABEL_GAP_* on Let's
+    // Talk — different component, different numbers). Tablet used to be
+    // a vertical stack (verticalGapPx between rows); gapPxTablet below is
+    // Mark-tuned live. Mobile used to auto-fill the row width instead of
+    // a real settable number — gapPxMobile is a starting guess, not yet
+    // tuned live.
+    gapPxDesktop: 160,
+    gapPxTablet: 80,
+    gapPxMobile: 26,   // starting guess, tune live
     lineGapPx: 30,
 
     // Horizontal rule
@@ -47,7 +54,7 @@ const DEFAULTS = {
 // ─────────────────────────────────────────────────────────────
 
 const LINKS = [
-    { label: "See the work", color: COLORS.work, href: "/work" },
+    { label: "See my work", color: COLORS.work, href: "/work" },
     { label: "Who I am", color: COLORS.about, href: "/who-i-am" },
     { label: "How I think", color: COLORS.thinking, href: "/how-i-think" },
 ]
@@ -95,48 +102,32 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
         ws.current = textRefs.current.map((el) => el?.offsetWidth ?? 0)
         const rule = ruleRef.current
 
-        if (getBreakpoint() === "desktop") {
-            // Horizontal layout
-            const [w0, w1, w2] = ws.current
-            const gap = DEFAULTS.gapPx
-            const x1 = w0 + gap
-            const x2 = w0 + gap + w1 + gap
-            const totalSpan = x2 + w2
-            textRefs.current.forEach((el, i) => {
-                if (!el) return
-                el.style.left = [0, x1, x2][i] + "px"
-                el.style.top = "0px"
-                el.style.transformOrigin = "left center"
-            })
-            row.style.height = textH + "px"
-            if (rule) rule.style.width = totalSpan + "px"
-        } else if (getBreakpoint() === "mobile") {
-            // Horizontal row — mobile
-            const rowWidth = row.offsetWidth
-            const totalTextWidth = ws.current.reduce((a, b) => a + b, 0)
-            const gap = Math.max(8, (rowWidth - totalTextWidth) / (LINKS.length - 1))
-            let x = 0
-            textRefs.current.forEach((el, i) => {
-                if (!el) return
-                el.style.left = x + "px"
-                el.style.top = "0px"
-                el.style.transformOrigin = "left center"
-                x += ws.current[i] + gap
-            })
-            row.style.height = textH + "px"
-            if (rule) rule.style.width = "100%"
-        } else {
-            // Vertical stack — tablet
-            const vGap = DEFAULTS.verticalGapPx
-            textRefs.current.forEach((el, i) => {
-                if (!el) return
-                el.style.left = "0px"
-                el.style.top = i * (textH + vGap) + "px"
-                el.style.transformOrigin = "left center"
-            })
-            row.style.height = 3 * textH + 2 * vGap + "px"
-            if (rule) rule.style.width = Math.max(...ws.current) + "px"
-        }
+        // Horizontal at every breakpoint — same absolute-position math,
+        // each breakpoint reading its own tunable gap (gapPxDesktop /
+        // gapPxTablet / gapPxMobile). Mobile used to auto-fill the row
+        // width instead of a real settable number (a computed gap with an
+        // 8px floor) — switched to a fixed gap like desktop/tablet so
+        // there's an actual number to tune. The underline rule still
+        // spans the full row width on mobile specifically (a deliberate
+        // edge-to-edge visual, unrelated to the label gap) — everywhere
+        // else it hugs just the label cluster.
+        const bp = getBreakpoint()
+        const gap =
+            bp === "desktop" ? DEFAULTS.gapPxDesktop :
+            bp === "tablet" ? DEFAULTS.gapPxTablet :
+            DEFAULTS.gapPxMobile
+        const [w0, w1, w2] = ws.current
+        const x1 = w0 + gap
+        const x2 = w0 + gap + w1 + gap
+        const totalSpan = x2 + w2
+        textRefs.current.forEach((el, i) => {
+            if (!el) return
+            el.style.left = [0, x1, x2][i] + "px"
+            el.style.top = "0px"
+            el.style.transformOrigin = "left center"
+        })
+        row.style.height = textH + "px"
+        if (rule) rule.style.width = bp === "mobile" ? "100%" : totalSpan + "px"
     }
 
     const playEntrance = useCallback(() => {
@@ -293,6 +284,26 @@ export default function WelcomeCTA({ enabled = true }: { enabled?: boolean }) {
         window.addEventListener("resize", onResize)
         return () => window.removeEventListener("resize", onResize)
     }, [])
+
+    // ── relayout on tunable changes — catches live edits to CTA_LINK or
+    // the gapPx* constants that hot-reload without a real window resize
+    // event. fontSize itself is already reactive (set declaratively in
+    // the span's own style below), but the label WIDTHS/positions layout()
+    // computes are only ever refreshed on mount or on resize — without
+    // this, editing a token and hot-reloading leaves stale offsetWidth-
+    // based left positions from before the edit while the text itself
+    // visually resizes, producing exactly the "gap looks wrong, third item
+    // still clipped" symptom regardless of what the new numbers are. ──
+    useEffect(() => {
+        requestAnimationFrame(layout)
+    }, [
+        type.CTA_LINK.sizePx,
+        type.CTA_LINK.weight,
+        type.CTA_LINK.tracking,
+        DEFAULTS.gapPxDesktop,
+        DEFAULTS.gapPxTablet,
+        DEFAULTS.gapPxMobile,
+    ])
 
     // ── scroll + entrance effect — re-runs when enabled changes ──
     useEffect(() => {

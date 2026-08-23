@@ -5,9 +5,34 @@
 
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Lottie from 'lottie-react';
-import { useColumn, useType, useBreakpoint, NAV, COLORS } from './SiteTokens';
+import { useColumn, useType, useBreakpoint, COLORS } from './SiteTokens';
 
-const GAP_ABOVE_TEXT_MOBILE = 30; // px — starting guess, tune live on device
+// Gap from the top of the page to the artwork's real visible top edge
+// (CONTENT_TOP_Y, not the comp's edge). Structured to match
+// lets-talk/page.tsx's NAV_CLEARANCE_* trio: three explicit per-breakpoint
+// px values, measured from y=0, no vh and no NAV.height arithmetic.
+//
+// Was `NAV.height + GAP_ABOVE_TEXT` (87 + 90 desktop/tablet, 87 + 30
+// mobile). Two problems with that: NAV.height is a flat desktop-measured
+// 87 while the nav actually renders shorter at tablet/mobile (it scales
+// with NAV_NAME), and there was no tablet tier at all — tablet silently
+// inherited desktop's 90, which put the headline roughly twice as far
+// below the nav as Let's Talk's at the same breakpoint.
+//
+// Desktop 177 is exactly where it sat before (87 + 90) — deliberately
+// unchanged, since desktop already matched Let's Talk. Tablet and mobile
+// are derived to land the artwork's top edge the same distance below the
+// nav as Let's Talk's headline cap-top at those tiers (ripple box HEIGHT +
+// TEXT_BOTTOM_PADDING + OPENING at each tier, cross-checked against
+// Archivo's real cap-height metric). Reasoned starting values — tune live.
+//
+// Note: neither page accounts for the nav being `position: fixed; top:
+// 2.4vw`, a WIDTH-relative offset, so the real gap under the nav still
+// drifts as the window widens. Both pages are consistently wrong the same
+// way on purpose — fixing it properly is a separate pass.
+const NAV_CLEARANCE_DESKTOP = 177;
+const NAV_CLEARANCE_TABLET = 136;
+const NAV_CLEARANCE_MOBILE = 104;
 
 // ── Tunable constants ────────────────────────────────────────────────────
 export const CONFIG = {
@@ -30,11 +55,8 @@ export const CONFIG = {
                            // off the comp's left side, so this isn't the comp's edge)
   SAFE_LEFT_INSET: 0,     // vw — true anchor-pinned-to-edge position; confirmed no clipping issue
 
-  // Direct vertical placement — no reserved box, no anchor-percentage math.
-  // This is the actual gap from the nav's bottom edge to the artwork's
-  // real visible top (CONTENT_TOP_Y, not the comp's edge). Move this
-  // number directly if the top spacing ever looks wrong.
-  GAP_ABOVE_TEXT: 90,     // px
+  // Vertical placement now lives in the NAV_CLEARANCE_* constants at the
+  // top of this file (breakpoint-tiered, matching lets-talk/page.tsx).
 
   // Burst origin — the dot of the "i", within the comp's own coordinate space
   BURST_X: 621,
@@ -82,7 +104,7 @@ export const CONFIG = {
 // against the TRANSFORMED ELEMENT'S OWN size, not its parent's, so
 // shifting by -ANCHOR_X_PCT always lands the anchor point at the column's
 // left edge regardless of what SCALE currently is. (No vertical equivalent
-// anymore — see CONFIG.GAP_ABOVE_TEXT.)
+// anymore — see the NAV_CLEARANCE_* constants at the top of this file.)
 const ANCHOR_X_PCT = (CONFIG.ANCHOR_X / CONFIG.NATIVE_W) * 100;
 
 // Burst placement as a % of the comp box — resolves fine as a plain
@@ -123,7 +145,10 @@ const col  = useColumn();
 const type = useType();
 const bp   = useBreakpoint();
 
-const gapAboveText = bp === 'mobile' ? GAP_ABOVE_TEXT_MOBILE : CONFIG.GAP_ABOVE_TEXT;
+const navClearance =
+  bp === 'mobile' ? NAV_CLEARANCE_MOBILE :
+  bp === 'tablet' ? NAV_CLEARANCE_TABLET :
+  NAV_CLEARANCE_DESKTOP;
 
   // Scale the Lottie so its authored 120px text appears at the OPENING token size.
   // Derivation: text_vw = (120 / NATIVE_W) * col.vw * lottieScale = OPENING.sizeVw
@@ -314,7 +339,7 @@ const gapAboveText = bp === 'mobile' ? GAP_ABOVE_TEXT_MOBILE : CONFIG.GAP_ABOVE_
       style={{
         position: 'relative',
         width: `${col.vw}vw`,
-        marginTop: `${NAV.height + gapAboveText}px`,
+        marginTop: `${navClearance}px`,
         marginLeft: 'auto',
         marginRight: 'auto',
         // Height matches the artwork's own real rendered size — not the

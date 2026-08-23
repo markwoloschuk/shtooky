@@ -1,8 +1,13 @@
 "use client"
 
 // TYPE ROLES USED IN THIS FILE:
-//   option labels (Contact / Resume / Location) → CONFIG.LABEL_FONT_SIZE (30px) desktop/tablet
-//                                               → TYPE_TIERS.CTA_LINK (sizePx) mobile — read via useType()
+//   option labels (Contact / Resume / Location) → TYPE_TIERS.CTA_LINK
+//     (sizePx, weight, tracking, lineHeight — read via useType()) at every
+//     breakpoint, matching WelcomeCTA.tsx's "See the work" / "Who I am" /
+//     "How I think" links. Previously desktop/tablet used a local flat
+//     CONFIG.LABEL_FONT_SIZE (30px, fontWeight hardcoded 700) and only
+//     mobile borrowed the token's sizePx — everything else (weight,
+//     tracking) was ignored even there. Now fully token-driven, all tiers.
 
 // TalkOptions.tsx
 // app/components/
@@ -21,9 +26,17 @@ const ACCENT = COLORS.contact
 
 // ── Tunable constants ───────────────────────────────────────────────────
 const CONFIG = {
-    LABEL_FONT_SIZE: 30,
-    LABEL_GAP: 100,          // gap between labels — horizontal (desktop)
-    LABEL_GAP_VERTICAL: 24, // gap between labels — vertical stack (tablet/mobile)
+    // Gap between the three labels — explicit per-breakpoint px values, same
+    // shape as NAV_CLEARANCE_*/GAP_BELOW_CONTENT_* elsewhere on the site.
+    // Desktop (100) is Mark's original tuned number, unchanged. Tablet/
+    // mobile used to be "space-between" (auto-fills the row width, ignores
+    // any gap value) rather than a real tunable — replaced with explicit
+    // gaps below so all three are actually adjustable. Tablet/mobile are
+    // reasoned starting guesses (scaled down from desktop for the narrower
+    // column), not yet tuned live.
+    LABEL_GAP_DESKTOP: 120,
+    LABEL_GAP_TABLET: 80,   // starting guess, tune live
+    LABEL_GAP_MOBILE: 32,   // starting guess, tune live
     ROW_GAP_TOP: 16,        // space between a label and its open content
     ROW_GAP_BOTTOM: 40,     // space after open content, before next label
     TRANSITION_MS: 500,
@@ -97,9 +110,8 @@ function OptionLabel({
     active: boolean
     onClick: () => void
 }) {
-    const bp = useBreakpoint()
     const type = useType()
-    const fontSize = bp === "mobile" ? type.CTA_LINK.sizePx : CONFIG.LABEL_FONT_SIZE
+    const ct = type.CTA_LINK
     return (
         <button
             onClick={onClick}
@@ -109,8 +121,10 @@ function OptionLabel({
                 padding: 0,
                 cursor: "pointer",
                 fontFamily: TYPE.display,
-                fontSize,
-                fontWeight: 700,
+                fontSize: ct.sizePx,
+                fontWeight: ct.weight,
+                letterSpacing: `${ct.tracking}em`,
+                lineHeight: ct.lineHeight,
                 color: ACCENT,
                 opacity: active ? 1 : 0.65,
                 transition: `opacity ${CONFIG.TRANSITION_MS}ms ease`,
@@ -283,11 +297,18 @@ export default function TalkOptions() {
                 pointerEvents: visible ? "auto" : "none",
             }}
         >
+            {/* Horizontal at every breakpoint, explicit tunable gap at each
+                (LABEL_GAP_DESKTOP/TABLET/MOBILE above) — was column at
+                tablet only (768–1279px), and mobile/tablet used
+                "space-between" (auto-fills the row, not a real tunable)
+                instead of a settable gap. */}
             <div style={{
                     display: "flex",
-                    flexDirection: bp === "desktop" || bp === "mobile" ? "row" : "column",
-                    justifyContent: bp === "mobile" ? "space-between" : undefined,
-                    gap: bp === "desktop" ? CONFIG.LABEL_GAP : bp === "mobile" ? 0 : CONFIG.LABEL_GAP_VERTICAL,
+                    flexDirection: "row",
+                    gap:
+                        bp === "mobile" ? CONFIG.LABEL_GAP_MOBILE :
+                        bp === "tablet" ? CONFIG.LABEL_GAP_TABLET :
+                        CONFIG.LABEL_GAP_DESKTOP,
                 }}>
                 <OptionLabel label="Contact" active={open === "contact"} onClick={() => toggle("contact")} />
                 <OptionLabel label="Resume" active={open === "resume"} onClick={() => toggle("resume")} />

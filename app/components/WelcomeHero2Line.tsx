@@ -39,6 +39,11 @@ const CFG = {
     TAGLINE_DELAY: 2050,   // same starting point as HeroAnimation.tsx — may need nudging
     TAGLINE_DUR: 1500,
     TAGLINE_Y: 10,
+
+    TAGLINE_SIZE_VW: 1.944,   // tagline font-size, vw — also used below to
+                               // compute the tagline's own rendered line
+                               // height for the container's real content
+                               // height (was a separate magic number inline)
 }
 
 const SCROLL_FADE = {
@@ -46,7 +51,17 @@ const SCROLL_FADE = {
     fadeEnd: 340,
 }
 
-const RATIO = 0.22 // height = width × RATIO — starting point for 2-line + tagline, tune by eye
+// Container height used to be `width * RATIO` (0.22, "starting point... tune
+// by eye") — a fixed aspect-ratio guess completely disconnected from what's
+// actually inside: two headline lines + a tagline positioned at
+// glyphH+lineGap+glyphH+TAGLINE_GAP_PX below them. Since all three children
+// are position:absolute, none of them contribute to the wrap div's own
+// intrinsic height, so an undersized guess doesn't clip — it just lets the
+// tagline render outside the reserved box, spilling into whatever comes
+// next in normal document flow. At mobile widths specifically, 0.22 was
+// too small for that real vertical stack, so the tagline overlapped the
+// next page section. Replaced below with the actual measured content
+// height — see calcLayout()'s `contentH`.
 
 // ─── CONTENT ─────────────────────────────────────────────────────────────────
 
@@ -229,11 +244,8 @@ export default function HeroAnimationTwoLine({
         let resolvedColors: [number, number, number][] = []
         let resolvedLineH = 0
 
-        const resizeObserver = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                const w = entry.contentRect.width
-                setHeight(w * RATIO)
-            }
+        const resizeObserver = new ResizeObserver(() => {
+            setHeight(calcLayout().contentH)
         })
         resizeObserver.observe(wrap)
 
@@ -309,7 +321,7 @@ export default function HeroAnimationTwoLine({
                 top: 0;
                 white-space: nowrap;
                 font-family: ${FONT_DISPLAY};
-                font-size: 1.944vw;
+                font-size: ${CFG.TAGLINE_SIZE_VW}vw;
                 font-weight: ${getType().TAGLINE.weight};
                 letter-spacing: ${getType().TAGLINE.tracking}em;
                 line-height: ${getType().TAGLINE.lineHeight};
@@ -356,7 +368,19 @@ export default function HeroAnimationTwoLine({
             })
             const padding = Math.max(travelPx, lineH + reachStart + 4)
             const lineGap = Math.round(CFG.LINE_GAP_PX * scale)
-            return { fontSize, fontSizeStr, lineH, glyphH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding, lineGap }
+
+            // Real content height: line1's glyph height + lineGap + line2's
+            // glyph height + the gap above the tagline + the tagline's own
+            // rendered line height. The tagline is white-space:nowrap (never
+            // wraps to a second line), so its height is always exactly one
+            // line at this font-size — no text-content-dependent measuring
+            // needed, just the same math positionTagline() already uses for
+            // its `top` offset, plus one more line for the tagline itself.
+            const taglineFontSize = window.innerWidth * (CFG.TAGLINE_SIZE_VW / 100)
+            const taglineLineH = taglineFontSize * getType().TAGLINE.lineHeight
+            const contentH = glyphH + lineGap + glyphH + CFG.TAGLINE_GAP_PX + taglineLineH
+
+            return { fontSize, fontSizeStr, lineH, glyphH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding, lineGap, contentH }
         }
 
 
@@ -397,7 +421,8 @@ function positionTagline(glyphH: number, lineGap: number) {
         }
 
         function play() {
-            const { fontSizeStr, lineH, glyphH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding, lineGap } = calcLayout()
+            const { fontSizeStr, lineH, glyphH, travelPx, reachStart, reachEnd, carSeq, nCar, allColors, maxW, padding, lineGap, contentH } = calcLayout()
+            setHeight(contentH)
 
             resolvedNCar = nCar
             resolvedColors = allColors

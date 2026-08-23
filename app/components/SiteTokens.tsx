@@ -82,7 +82,7 @@ const COLUMN_TIERS = {
     },
     tablet: {
         // TODO: tune for tablet
-        vw: 88,
+        vw: 86,
         marginVw: 6,
         bodyColPct: 80,
         referenceW: 768,
@@ -252,8 +252,8 @@ const TYPE_TIERS = {
 
         // Welcome page bottom CTA nav links ("See the work" / "Who I am" / "How I think")
         CTA_LINK: {
-            sizePx: 28,
-            weight: 600,
+            sizePx: 36,
+            weight: 700,
             tracking: -0.01,
             lineHeight: 1.0,
         },
@@ -298,7 +298,7 @@ const TYPE_TIERS = {
         SUBTITLE: { sizePx: 20, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
         FOOTER: { sizePx: 13, weight: 400, tracking: 0.04, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
-        CTA_LINK: { sizePx: 26, weight: 600, tracking: -0.01, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
+        CTA_LINK: { sizePx: 30, weight: 700, tracking: -0.01, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
     },
 
     mobile: {
@@ -325,20 +325,27 @@ const TYPE_TIERS = {
         SUBHEAD: { sizeVw: 4.5, weight: 300, tracking: -0.01, lineHeight: 1.2 },
         TAGLINE: { sizePx: 22, weight: 300, tracking: 0.015, lineHeight: 1.45 },
         BODY_WELCOME: {
-            sizePx: 22,
+            sizePx: 16,
             weight: 300,
             tracking: 0.02,
             lineHeight: 1.72,
         },
-        BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 },
-        CASE_BODY: { sizePx: 18, weight: 300, tracking: 0.01, lineHeight: 1.72 }, // mirrors BODY
+        BODY: { sizePx: 16, weight: 300, tracking: 0.01, lineHeight: 1.72 },
+        CASE_BODY: { sizePx: 16, weight: 300, tracking: 0.01, lineHeight: 1.72 }, // mirrors BODY
         CAPTION: { sizePx: 13, weight: 300, tracking: 0.08, lineHeight: 1.4 },
         NAV_NAME: { sizePx: 30, weight: 700, tracking: 0, lineHeight: 1.0 },
         PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         SUBTITLE: { sizePx: 20, weight: 400, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 10, weight: 700, tracking: 0.12, lineHeight: 1.4 },
         FOOTER: { sizePx: 10, weight: 400, tracking: 0.04, lineHeight: 1.4 },
-        CTA_LINK: { sizePx: 20, weight: 600, tracking: -0.01, lineHeight: 1.0 },
+        // Was 24 — at weight 700, "See my work" / "Who I am" / "How I think"
+        // (WelcomeCTA.tsx) don't fit on one line in the mobile column
+        // (~90vw of a ~390px phone, ≈351px) at any gap, including 0.
+        // Dropped to 16 as a reasoned starting point with room for a real
+        // gap on top — not a measured/confirmed value, tune live. Also
+        // drives TalkOptions.tsx's Contact/Resume/Location labels on
+        // mobile (shorter words, shouldn't be tight there).
+        CTA_LINK: { sizePx: 20, weight: 700, tracking: -0.02, lineHeight: 1.0 },
     },
 }
 

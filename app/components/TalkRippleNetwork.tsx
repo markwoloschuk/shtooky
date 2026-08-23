@@ -18,8 +18,19 @@ import { COLORS, TYPE, getType, useBreakpoint } from "./SiteTokens"
 
 // ─── LAYOUT ───────────────────────────────────────────────────────────────────
 
-const PLAY_DELAY = 0
+// Real completion time of RippleNetwork's one-shot text overlay (see
+// lets-talk/page.tsx's RIPPLE_TEXT_DONE_MS) also anchors the ripple
+// network's own start now. Previously the network began spawning (and was
+// fully opaque) at mount — t=0 — while the "Thanks for visiting" headline
+// waited until TEXT_DELAY to appear, so the network was already visible
+// and partly built before any text showed up. PLAY_DELAY now equals
+// TEXT_DELAY (converted to seconds, since wallAge below is measured in
+// seconds) so ripple spawning and the headline both start at the same
+// moment, and the canvas fades in over TIMING.duration — the same
+// duration the headline chunk's own fade uses — so the two entrances read
+// as one synchronized beat rather than two independently-timed pieces.
 export const TEXT_DELAY = 1000
+const PLAY_DELAY = TEXT_DELAY / 1000
 const playOnce = true
 
 // ─── SCROLL FADE ─────────────────────────────────────────────────────────────
@@ -662,7 +673,27 @@ export default function RippleNetwork() {
             })
         }
 
-        const textDelayTimer = setTimeout(playText, TEXT_DELAY)
+        // Canvas starts fully invisible (nothing's drawn yet anyway — see
+        // PLAY_DELAY above) and fades in over TIMING.duration once
+        // playText fires, so the network's entrance and the headline's own
+        // per-chunk fade read as a single synchronized beat.
+        canvas.style.opacity = "0"
+        function fadeInNetwork() {
+            const start = performance.now()
+            const dur = TIMING.duration
+            const frame = (ts: number) => {
+                const p = Math.min((ts - start) / dur, 1)
+                canvas!.style.opacity = String(p)
+                if (p < 1) requestAnimationFrame(frame)
+                else canvas!.style.opacity = "1"
+            }
+            requestAnimationFrame(frame)
+        }
+
+        const textDelayTimer = setTimeout(() => {
+            playText()
+            fadeInNetwork()
+        }, TEXT_DELAY)
 
         // ── Scroll fade ───────────────────────────────────────────────────────
         function handleScrollFade() {
