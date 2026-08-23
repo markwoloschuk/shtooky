@@ -36,7 +36,7 @@ const CONFIG = {
     // column), not yet tuned live.
     LABEL_GAP_DESKTOP: 120,
     LABEL_GAP_TABLET: 80,   // starting guess, tune live
-    LABEL_GAP_MOBILE: 32,   // starting guess, tune live
+    LABEL_GAP_MOBILE: 60,   // starting guess, tune live
     ROW_GAP_TOP: 16,        // space between a label and its open content
     ROW_GAP_BOTTOM: 40,     // space after open content, before next label
     TRANSITION_MS: 500,

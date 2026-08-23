@@ -18,7 +18,7 @@
 // value on top of that — no ratio, no guessing.
 
 import { useEffect, useRef, useState } from "react"
-import { TYPE, COLORS, TIMING, getType } from "./SiteTokens"
+import { TYPE, COLORS, TIMING, getType, getBreakpoint } from "./SiteTokens"
 
 // ─── TUNING ──────────────────────────────────────────────────────────────────
 
@@ -40,10 +40,22 @@ const CFG = {
     TAGLINE_DUR: 1500,
     TAGLINE_Y: 10,
 
-    TAGLINE_SIZE_VW: 1.944,   // tagline font-size, vw — also used below to
-                               // compute the tagline's own rendered line
-                               // height for the container's real content
-                               // height (was a separate magic number inline)
+}
+
+// ── TAGLINE SIZE — explicit px per breakpoint ────────────────────────────
+// Was a single flat `TAGLINE_SIZE_VW: 1.944`, calibrated against desktop
+// (1.944% of 1440px = 28px, the desktop TAGLINE token). The same percentage
+// on a narrower viewport collapses: 14.9px at tablet's 768, 7.6px at
+// mobile's 390 — which is why the tagline read as tiny below the carousel.
+// Now three explicit pixel values, deliberately hardcoded rather than
+// derived, so each tier is tuned by eye and nothing drifts with viewport
+// width. All three tiers live in BOTH hero files with the same numbers, so
+// moving tablet between the one-line and two-line hero changes nothing
+// about the tagline's size.
+const TAGLINE_SIZE_PX = {
+    desktop: 28,   // unchanged — matches what 1.944vw rendered at 1440
+    tablet: 26,
+    mobile: 22,
 }
 
 const SCROLL_FADE = {
@@ -321,7 +333,7 @@ export default function HeroAnimationTwoLine({
                 top: 0;
                 white-space: nowrap;
                 font-family: ${FONT_DISPLAY};
-                font-size: ${CFG.TAGLINE_SIZE_VW}vw;
+                font-size: ${TAGLINE_SIZE_PX[getBreakpoint()]}px;
                 font-weight: ${getType().TAGLINE.weight};
                 letter-spacing: ${getType().TAGLINE.tracking}em;
                 line-height: ${getType().TAGLINE.lineHeight};
@@ -376,7 +388,7 @@ export default function HeroAnimationTwoLine({
             // line at this font-size — no text-content-dependent measuring
             // needed, just the same math positionTagline() already uses for
             // its `top` offset, plus one more line for the tagline itself.
-            const taglineFontSize = window.innerWidth * (CFG.TAGLINE_SIZE_VW / 100)
+            const taglineFontSize = TAGLINE_SIZE_PX[getBreakpoint()]
             const taglineLineH = taglineFontSize * getType().TAGLINE.lineHeight
             const contentH = glyphH + lineGap + glyphH + CFG.TAGLINE_GAP_PX + taglineLineH
 
@@ -385,6 +397,7 @@ export default function HeroAnimationTwoLine({
 
 
 function positionTagline(glyphH: number, lineGap: number) {
+    taglineEl.style.fontSize = TAGLINE_SIZE_PX[getBreakpoint()] + "px"
     taglineEl.style.top = glyphH + lineGap + glyphH + CFG.TAGLINE_GAP_PX + "px"
 }
 

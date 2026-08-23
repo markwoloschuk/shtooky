@@ -67,7 +67,7 @@ export const TIMING = {
     colorDurIn: 0,
     colorHold: 0,
     colorDurOut: 0,
-    highlightColor: COLORS.contact,
+    highlightColor: COLORS.contact2,
 }
 
 export const CHUNKS = [

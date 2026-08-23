@@ -28,6 +28,7 @@ export const COLORS = {
     about: "#FAAF40", // orange
     thinking: "#D6DE23", // yellow-green
     contact: "#885198", // purple
+    contact2: "#9d63af", // light-purple
     dark: "#0D0D0D", // base background
     white: "#FFFFFF",
     gradient: ["#EB008B", "#FAAF40", "#D6DE23", "#00ADEE", "#885198"],
@@ -228,7 +229,7 @@ const TYPE_TIERS = {
 
         // Bold lead-in subtitle; also governs intro blurbs below opening animations
         SUBTITLE: {
-            sizePx: 22,
+            sizePx: 29,
             weight: 400,
             tracking: 0,
             lineHeight: 1.35,
@@ -295,7 +296,7 @@ const TYPE_TIERS = {
         CAPTION: { sizePx: 13, weight: 300, tracking: 0.08, lineHeight: 1.4 },
         NAV_NAME: { sizePx: 34, weight: 700, tracking: 0, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
         PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
-        SUBTITLE: { sizePx: 20, weight: 700, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
+        SUBTITLE: { sizePx: 20, weight: 400, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
         FOOTER: { sizePx: 13, weight: 400, tracking: 0.04, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
         CTA_LINK: { sizePx: 30, weight: 700, tracking: -0.01, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
@@ -316,7 +317,12 @@ const TYPE_TIERS = {
         },
         OPENING: { sizeVw: 10, weight: 700, tracking: -0.025, lineHeight: 1.05 },
         DISPLAY_HERO: {
-            sizeVw: 30,
+            // Was 30. Until now this tier was never read — the component
+            // used the desktop-only TYPE export — so 30 has never rendered
+            // and is untested. At 390px it puts "interesting" at ~117px,
+            // roughly 1.6x wider than the screen. 14 is a reasoned starting
+            // point (fills ~85% of the mobile column) — tune live.
+            sizeVw: 10,
             weight: 700,
             tracking: -0.025,
             lineHeight: 0.95,

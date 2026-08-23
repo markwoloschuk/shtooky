@@ -793,6 +793,7 @@ style={{ width: '100%', position: 'relative', background: '#000', overflow: 'hid
 </p>
 
             <p style={{ fontSize: 20, color: 'rgba(255,255,255,0.65)', fontFamily: TYPE.display, lineHeight: 1.5 }}>
+            
               This is how I apply curiosity with empathy to solve creative problems.
             </p>
           </div>

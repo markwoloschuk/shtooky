@@ -6,7 +6,7 @@
 import * as React from "react"
 import ReactDOM from "react-dom"
 import { useEffect, useRef, useState } from "react"
-import { COLORS, TYPE, SPACE, TIMING } from "./SiteTokens"
+import { COLORS, SPACE, TIMING, useType } from "./SiteTokens"
 
 // ─── Tuning ───────────────────────────────────────────────────────────────────
 
@@ -122,11 +122,15 @@ function CACanvas({
         rafId: 0,
     })
 
+    // Was reading the legacy desktop-only TYPE export, so every viewport
+    // got desktop's DISPLAY_HERO/DISPLAY sizes regardless of breakpoint.
+    const type = useType()
+
     const [lineH, setLineH] = useState(74)
     useEffect(() => {
-        const fs = Math.round(window.innerWidth * (TYPE.DISPLAY_HERO.sizeVw / 100))
-        setLineH(Math.round(fs * TYPE.DISPLAY_HERO.lineHeight))
-    }, [])
+        const fs = Math.round(window.innerWidth * (type.DISPLAY_HERO.sizeVw / 100))
+        setLineH(Math.round(fs * type.DISPLAY_HERO.lineHeight))
+    }, [type])
 
     useEffect(() => {
         const canvas = canvasRef.current
@@ -201,9 +205,9 @@ function CACanvas({
 
             ctx!.clearRect(0, 0, W, H)
             const fs = Math.round(
-                window.innerWidth * (TYPE.DISPLAY_HERO.sizeVw / 100)
+                window.innerWidth * (type.DISPLAY_HERO.sizeVw / 100)
             )
-            const fontStr = `${TYPE.DISPLAY_HERO.weight} ${fs}px ${TYPE.display}`
+            const fontStr = `${type.DISPLAY_HERO.weight} ${fs}px ${type.display}`
             ctx!.font = fontStr
             s.textCenterX = ctx!.measureText("interesting").width * 0.5
 
@@ -248,7 +252,7 @@ function CACanvas({
 
         loop()
         return () => cancelAnimationFrame(s.rafId)
-    }, [])
+    }, [type])
 
     useEffect(() => {
         const el = containerRef.current
@@ -306,24 +310,27 @@ const TextLine = React.forwardRef<
         opacity?: number
         fontSize: number
     }
->(({ children, opacity = 1, fontSize }, ref) => (
+>(({ children, opacity = 1, fontSize }, ref) => {
+    const type = useType()
+    return (
     <div
         ref={ref}
         style={{
             opacity: opacity,
             transition: "opacity 1200ms linear",
             fontSize: fontSize,
-            fontFamily: TYPE.display,
-            fontWeight: TYPE.DISPLAY.weight,
-            letterSpacing: `${TYPE.DISPLAY.tracking}em`,
-            lineHeight: TYPE.DISPLAY.lineHeight,
+            fontFamily: type.display,
+            fontWeight: type.DISPLAY.weight,
+            letterSpacing: `${type.DISPLAY.tracking}em`,
+            lineHeight: type.DISPLAY.lineHeight,
             color: "#ffffff",
             whiteSpace: "normal",
         }}
     >
         {children}
     </div>
-))
+    )
+})
 
 function DebugOverlay() {
     if (!DEBUG) return null
@@ -405,6 +412,7 @@ interface Props {
 }
 
 export default function EverythingIsInteresting({ onComplete }: Props) {
+    const type = useType()
     const blockRef = useRef<HTMLDivElement>(null)
     const lineRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null])
     const [lineOpacity, setLineOpacity] = useState([0, 0, 0, 0])
@@ -426,8 +434,8 @@ export default function EverythingIsInteresting({ onComplete }: Props) {
 
     const [displayFontSize, setDisplayFontSize] = useState(31)
     useEffect(() => {
-        setDisplayFontSize(Math.round(window.innerWidth * (TYPE.DISPLAY.sizeVw / 100)))
-    }, [])
+        setDisplayFontSize(Math.round(window.innerWidth * (type.DISPLAY.sizeVw / 100)))
+    }, [type])
 
     // ── Fire onComplete once when line 3 reaches full opacity ────────────────
     function checkComplete(opacities: number[]) {
@@ -499,8 +507,8 @@ return () => timers.forEach(clearTimeout)
                         (typeof window !== "undefined"
                             ? window.innerWidth
                             : 1440) *
-                            (TYPE.DISPLAY_HERO.sizeVw / 100) *
-                            TYPE.DISPLAY_HERO.lineHeight
+                            (type.DISPLAY_HERO.sizeVw / 100) *
+                            type.DISPLAY_HERO.lineHeight
                     )
                     const bottom =
                         i === 1 ? lineRect.top + lineH : lineRect.bottom
@@ -528,7 +536,7 @@ return () => timers.forEach(clearTimeout)
 if (autoFired.current) return
         window.addEventListener("scroll", handleScroll, { passive: true })
         return () => window.removeEventListener("scroll", handleScroll)
-    }, [onComplete])
+    }, [onComplete, type])
 
     return (
         <div
