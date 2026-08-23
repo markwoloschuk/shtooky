@@ -35,9 +35,25 @@ const playOnce = true
 
 // ─── SCROLL FADE ─────────────────────────────────────────────────────────────
 
-const SCROLL_FADE = {
-    fadeOutStart: 100,
-    fadeOutEnd: -200,
+// fadeOutStart / fadeOutEnd are both measured as getBoundingClientRect().top
+// — the distance from the top of the viewport down to the top of this block.
+// Opacity is 1 at or above fadeOutStart, 0 at or below fadeOutEnd, linear
+// between. Both count DOWN as you scroll, so fadeOutEnd is negative (the
+// block's top has gone above the viewport).
+//
+// IMPORTANT: at rest (scroll 0) this block's top sits exactly at the page's
+// paddingTop — i.e. NAV_CLEARANCE_* in lets-talk/page.tsx (75/20/45).
+// fadeOutStart must therefore be <= that tier's clearance, or the block
+// renders partly faded before the user has scrolled at all. The old flat
+// value of 100 was above all three, which is why the network arrived at
+// 92% opacity on desktop, 82% on mobile and 73% on tablet.
+//
+// Set to match each tier's clearance: full opacity at rest, fade begins the
+// moment you scroll. Lower a value to buy a grace period before it starts.
+const SCROLL_FADE_TIERS = {
+    desktop: { fadeOutStart: 75, fadeOutEnd: -200 },
+    tablet: { fadeOutStart: 20, fadeOutEnd: -200 },
+    mobile: { fadeOutStart: 45, fadeOutEnd: -200 },
 }
 
 // ─── TEXT ANIMATION ───────────────────────────────────────────────────────────
@@ -93,7 +109,7 @@ const CFG = {
     // tunable that ties naturally to breakpoint overrides below.
     TEXT_BOTTOM_PADDING: 100,
 
-    maxPairs: 5,
+    maxPairs: 4,
     rampUp: 8,
     birthVar: 100,
     centerBias: 50,
@@ -111,12 +127,12 @@ const CFG = {
     fadePct: 25,
     rippleStroke: 1.5,
     rippleStrokeOp: 0.5,
-    rippleFillOp: 0.15,
+    rippleFillOp: 0.05,
     rippleOpVar: 20,
 
     lineSpeed: 80,
     lineSpeedVar: 100,
-    lineOp: 0.3,
+    lineOp: 0.5,
     lineOpVar: 30,
     lineWeight: 1.5,
     tailLen: 0.95,
@@ -136,7 +152,7 @@ const CFG_TABLET_OVERRIDES = {
     maxRadius: 44,  // was 60
     maxRadiusVar: 90,
     centerBias: 60,   // placeholder — tune live
-    maxPairs: 4,   // placeholder — tune live
+    maxPairs: 2,   // placeholder — tune live
 
     // Ripple area — starting guess: full width, matches HEIGHT, no offset.
     // Independently tunable now — placeholder, tune live.
@@ -152,7 +168,7 @@ const CFG_MOBILE_OVERRIDES = {
     maxRadius: 28,  // was 60
     maxRadiusVar: 90,
     centerBias: 70,   // placeholder — tune live
-    maxPairs: 3,   // placeholder — tune live
+    maxPairs: 2,   // placeholder — tune live
 
     // Ripple area — starting guess: full width (matching desktop's spread
     // across the headline), matches HEIGHT, no offset. This is the main
@@ -338,6 +354,7 @@ export default function RippleNetwork() {
     const textLayerRef = useRef<HTMLDivElement>(null)
 
     const breakpoint = useBreakpoint()
+    const scrollFade = SCROLL_FADE_TIERS[breakpoint]
     const cfg = {
         ...CFG,
         ...(breakpoint === "mobile" ? CFG_MOBILE_OVERRIDES
@@ -700,9 +717,9 @@ export default function RippleNetwork() {
             if (!container) return
             const rect = container.getBoundingClientRect()
             const top = rect.top
-            if (top >= SCROLL_FADE.fadeOutStart) { container.style.opacity = "1"; return }
-            if (top <= SCROLL_FADE.fadeOutEnd) { container.style.opacity = "0"; return }
-            const raw = (top - SCROLL_FADE.fadeOutEnd) / (SCROLL_FADE.fadeOutStart - SCROLL_FADE.fadeOutEnd)
+            if (top >= scrollFade.fadeOutStart) { container.style.opacity = "1"; return }
+            if (top <= scrollFade.fadeOutEnd) { container.style.opacity = "0"; return }
+            const raw = (top - scrollFade.fadeOutEnd) / (scrollFade.fadeOutStart - scrollFade.fadeOutEnd)
             container.style.opacity = String(Math.max(0, Math.min(1, raw)))
         }
         handleScrollFade()

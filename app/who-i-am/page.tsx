@@ -25,7 +25,7 @@ import { useColumn, useBreakpoint } from "../components/SiteTokens"
 
 const NAV_CLEARANCE_DESKTOP = 80;  // px — was 9vh (81px at the 900px reference)
 const NAV_CLEARANCE_TABLET = 70;   // px — starting guess, tune live
-const NAV_CLEARANCE_MOBILE = 50;   // px — starting guess, tune live
+const NAV_CLEARANCE_MOBILE = 60;   // px — starting guess, tune live
 
 // Sphere section box height. Desktop 360 == the old 40vh at the 900px
 // reference height, so desktop should look identical — it just stops
