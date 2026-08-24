@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { WORK_MANIFEST } from '../data/WorkManifest'
-import { TYPE, COLORS, useType, useColumn, MOBILE_BAND_HEIGHT_SCALE, getType, getColumn } from './SiteTokens'
+import { TYPE, COLORS, useType, useColumn, useBreakpoint, MOBILE_BAND_HEIGHT_SCALE, getType, getColumn } from './SiteTokens'
 
 // ── Locked animation constants (from work_carousel_v30.html) ─────────────────
 const CFG = {
@@ -48,6 +48,52 @@ let _ech = CH
 let _hlNativeSize = 52  // updated in scaleStage: mobile drives this to meet PULLQUOTE min-size on screen
 let _hlPadNative = 104  // updated in scaleStage: col.marginVw * CW / 100 in native units
 
+
+// ── Below-carousel pullquote ─────────────────────────────────────────────────
+// ONE sentence, same words at every breakpoint — only where it breaks changes.
+// The break points are the design: "The work" and "the person." are the two
+// accented ends of the mirror, and they need to land at the start of the first
+// line and the end of the last.
+//
+// Desktop breaks in two and is scaled to the column by fitPullquote() below.
+// Tablet and mobile break in three and are NOT scaled — they render at
+// OPENING.sizeVw as written, so that token is the real size control there.
+type PullSeg = { t: string; accent?: boolean }
+const PULLQUOTE_LINES: Record<'desktop' | 'tablet' | 'mobile', PullSeg[][]> = {
+  desktop: [
+    [{ t: 'The work', accent: true }, { t: ' reveals the process,' }],
+    [{ t: 'the process reveals ' }, { t: 'the person.', accent: true }],
+  ],
+  tablet: [
+    [{ t: 'The work', accent: true }, { t: ' reveals the' }],
+    [{ t: 'process, the process' }],
+    [{ t: 'reveals ' }, { t: 'the person.', accent: true }],
+  ],
+  mobile: [
+    [{ t: 'The work', accent: true }, { t: ' reveals the' }],
+    [{ t: 'process, the process' }],
+    [{ t: 'reveals ' }, { t: 'the person.', accent: true }],
+  ],
+}
+
+// The subhead under the pullquote. Same sentence everywhere; desktop runs it
+// as a single line, tablet and mobile break it deliberately rather than
+// letting it wrap wherever it happens to land. These are NOT nowrap — if a
+// chosen line is too long for its column it still wraps rather than
+// overflowing, so a bad break degrades instead of breaking the layout.
+const SUBHEAD_LINES: Record<'desktop' | 'tablet' | 'mobile', string[]> = {
+  desktop: [
+    'This is how I apply curiosity with empathy to solve creative problems.',
+  ],
+  tablet: [
+    'This is how I apply curiosity with empathy',
+    'to solve creative problems.',
+  ],
+  mobile: [
+    'This is how I apply curiosity with',
+    'empathy to solve creative problems.',
+  ],
+}
 
 // ── Carousel headlines drawn on canvas ───────────────────────────────────────
 const HEADLINES = [
@@ -203,24 +249,33 @@ const stageRef     = useRef<HTMLDivElement>(null)
   // The actual body elements live in CaseStudyPanel.
 
   // For the carousel-text (headline + blurb) rendered in JSX below:
+  const bp = useBreakpoint()
   const carTextRef = useRef<HTMLDivElement>(null)
   const pullWrapRef  = useRef<HTMLParagraphElement>(null)
-  const pullLine1Ref = useRef<HTMLSpanElement>(null)
-  const pullLine2Ref = useRef<HTMLSpanElement>(null)
+  const pullLineRefs = useRef<(HTMLSpanElement | null)[]>([])
 
-// Fit the below-carousel pullquote to the column without wrapping. It's
-// rendered at OPENING size; on mobile that can be wide enough to break
-// onto a third line within one of these two spans, so this measures the
-// natural (nowrap) width of each line and scales the font down only if
-// it actually overflows the 90% column. Desktop already fits at OPENING
-// size, so this resolves to scale 1 there and does nothing visible.
+// DESKTOP ONLY — shrink the two-line pullquote so the longer line lands on
+// the column edge. Measured live at ~0.95, so desktop is deliberately a
+// touch under OPENING size and that's accepted.
+//
+// Tablet and mobile deliberately DON'T run this. With three shorter lines
+// they should fit at the token size, and leaving the fitter on there meant
+// OPENING.sizeVw was silently overridden — raising it changed nothing,
+// because the fitter just scaled the result back down to whatever the
+// longest line allowed. Off here, the token is the real control: if the
+// lines overflow, lower OPENING.sizeVw for that tier until they don't.
 useEffect(() => {
   function fitPullquote() {
     const wrap = carTextRef.current
     const p = pullWrapRef.current
-    const l1 = pullLine1Ref.current
-    const l2 = pullLine2Ref.current
-    if (!wrap || !p || !l1 || !l2) return
+    if (!wrap || !p) return
+
+    if (bp !== 'desktop') {
+      // Hand size back to the token — undoes any px left over from a
+      // previous desktop pass after a resize across the breakpoint.
+      p.style.fontSize = `${type.OPENING.sizeVw}vw`
+      return
+    }
 
     // Reset to the token's real size first — measuring a stale, already
     // scaled-down value from a prior pass would compound the shrink.
@@ -228,7 +283,10 @@ useEffect(() => {
     p.style.fontSize = `${openingPx}px`
 
     const availablePx = wrap.clientWidth
-    const widest = Math.max(l1.scrollWidth, l2.scrollWidth)
+    const widest = Math.max(
+      ...pullLineRefs.current.filter(Boolean).map((el) => el!.scrollWidth)
+    )
+    if (!isFinite(widest) || widest <= 0) return
     const scale = widest > availablePx ? availablePx / widest : 1
     p.style.fontSize = `${openingPx * scale}px`
   }
@@ -236,7 +294,7 @@ useEffect(() => {
   fitPullquote()
   window.addEventListener('resize', fitPullquote)
   return () => window.removeEventListener('resize', fitPullquote)
-}, [type.OPENING.sizeVw, type.OPENING.weight, type.OPENING.tracking, col.vw])
+}, [bp, type.OPENING.sizeVw, type.OPENING.weight, type.OPENING.tracking, col.vw])
 
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -788,13 +846,34 @@ style={{ width: '100%', position: 'relative', background: '#000', overflow: 'hid
   ref={pullWrapRef}
   style={{ fontSize: `${type.OPENING.sizeVw}vw`, fontWeight: type.OPENING.weight, lineHeight: type.OPENING.lineHeight, letterSpacing: `${type.OPENING.tracking}em`, color: '#fff', margin: '0 0 10px 0', fontFamily: TYPE.display }}
 >
-  <span ref={pullLine1Ref} style={{ display: 'block', whiteSpace: 'nowrap' }}><span style={{ color: COLORS.work }}>The work</span> reveals the process.</span>
-  <span ref={pullLine2Ref} style={{ display: 'block', whiteSpace: 'nowrap' }}>The process reveals <span style={{ color: COLORS.work }}>the person.</span></span>
+  {PULLQUOTE_LINES[bp].map((segs, i) => (
+    <span
+      key={i}
+      ref={(el) => { pullLineRefs.current[i] = el }}
+      style={{ display: 'block', whiteSpace: 'nowrap' }}
+    >
+      {segs.map((sg, j) => (
+        <span key={j} style={sg.accent ? { color: COLORS.work } : undefined}>{sg.t}</span>
+      ))}
+    </span>
+  ))}
 </p>
 
-            <p style={{ fontSize: 20, color: 'rgba(255,255,255,0.65)', fontFamily: TYPE.display, lineHeight: 1.5 }}>
-            
-              This is how I apply curiosity with empathy to solve creative problems.
+            {/* Was a hardcoded fontSize: 20 at every breakpoint, which meant
+                that as the headline shrank on mobile the two converged to
+                nearly the same size and the hierarchy collapsed. Now on the
+                TAGLINE role (28 / 26 / 20) like the Welcome hero's tagline. */}
+            <p style={{
+              fontSize: `${type.TAGLINE.sizePx}px`,
+              fontWeight: type.TAGLINE.weight,
+              letterSpacing: `${type.TAGLINE.tracking}em`,
+              lineHeight: type.TAGLINE.lineHeight,
+              color: 'rgba(255,255,255,0.65)',
+              fontFamily: TYPE.display,
+            }}>
+              {SUBHEAD_LINES[bp].map((line, i) => (
+                <span key={i} style={{ display: 'block' }}>{line}</span>
+              ))}
             </p>
           </div>
 

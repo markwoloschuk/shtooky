@@ -82,7 +82,6 @@ const COLUMN_TIERS = {
         referenceH: 900,
     },
     tablet: {
-        // TODO: tune for tablet
         vw: 86,
         marginVw: 6,
         bodyColPct: 80,
@@ -90,7 +89,6 @@ const COLUMN_TIERS = {
         referenceH: 1024,
     },
     mobile: {
-        // TODO: tune for mobile
         vw: 90,
         marginVw: 5,
         bodyColPct: 100,
@@ -275,7 +273,7 @@ const TYPE_TIERS = {
             extrabold: 800,
             black: 900,
         },
-        OPENING: { sizeVw: 9, weight: 700, tracking: -0.025, lineHeight: 1.05 }, // interpolated placeholder — needs visual tuning
+        OPENING: { sizeVw: 8, weight: 700, tracking: -0.025, lineHeight: 1.05 }, // tuned live against the 3-line Work pullquote
         DISPLAY_HERO: {
             sizeVw: 9,   // interpolated placeholder — needs visual tuning
             weight: 700,
@@ -315,14 +313,14 @@ const TYPE_TIERS = {
             extrabold: 800,
             black: 900,
         },
-        OPENING: { sizeVw: 10, weight: 700, tracking: -0.025, lineHeight: 1.05 },
+        OPENING: { sizeVw: 9.4, weight: 700, tracking: -0.025, lineHeight: 1.05 },
         DISPLAY_HERO: {
             // Was 30. Until now this tier was never read — the component
             // used the desktop-only TYPE export — so 30 has never rendered
             // and is untested. At 390px it puts "interesting" at ~117px,
             // roughly 1.6x wider than the screen. 14 is a reasoned starting
             // point (fills ~85% of the mobile column) — tune live.
-            sizeVw: 10,
+            sizeVw: 9.4,
             weight: 700,
             tracking: -0.025,
             lineHeight: 0.95,
