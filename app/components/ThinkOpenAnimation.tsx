@@ -10,7 +10,7 @@ import { useColumn, useType, COLORS, SPACE, useSpace } from './SiteTokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 export const CONFIG = {
-  ANIMATION_PATH: '/animations/thinking-open.json',
+  ANIMATION_PATH: '/animations/test.json',
   LOOP: false,           // plays once on load/reload, parks on the last frame
   NATIVE_W: 1440,         // comp width, px — the animation's own coordinate space
   NATIVE_H: 440,          // comp height, px
