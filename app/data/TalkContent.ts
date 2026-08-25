@@ -10,8 +10,11 @@ import type { ContentItem } from "../components/SiteTextBlock"
 import { SPACE } from "../components/SiteTokens"
 
 export const SPACING = {
-    // Shared site-wide rhythm — see SPACE.text in SiteTokens.tsx.
-    // These em values are where the shared rhythm came from.
+    // Shared site-wide rhythm — see SPACE.text in SiteTokens.tsx, which
+    // carries the reasoning. Tiered px; SiteTextBlock resolves them with
+    // useSpace(). Pass the tier OBJECTS through untouched — resolving here,
+    // at module scope, would freeze them at desktop forever.
+    // NOTE: this page has no [pull] items, so only paragraphGap is live here.
     paragraphGap: SPACE.text.paragraphGap,
     pullGapBefore: SPACE.text.pullGapBefore,
     pullGapAfter: SPACE.text.pullGapAfter,

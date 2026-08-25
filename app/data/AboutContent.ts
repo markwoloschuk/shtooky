@@ -10,9 +10,10 @@ import type { ContentItem } from "../components/SiteTextBlock"
 import { SPACE } from "../components/SiteTokens"
 
 export const SPACING = {
-    // Shared site-wide rhythm — see SPACE.text in SiteTokens.tsx.
-    // Was a flat 24px gap and vh-based pull-quote gaps, both of which
-    // ignored the breakpoint the body copy was actually rendering at.
+    // Shared site-wide rhythm — see SPACE.text in SiteTokens.tsx, which
+    // carries the reasoning. Tiered px; SiteTextBlock resolves them with
+    // useSpace(). Pass the tier OBJECTS through untouched — resolving here,
+    // at module scope, would freeze them at desktop forever.
     paragraphGap: SPACE.text.paragraphGap,
     pullGapBefore: SPACE.text.pullGapBefore,
     pullGapAfter: SPACE.text.pullGapAfter,

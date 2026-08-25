@@ -225,6 +225,32 @@ const TYPE_TIERS = {
             lineHeight: 1.2,
         },
 
+        // Who I Am's ANIMATED display pull quote (SiteTextBlock > PullTextItem).
+        // Deliberately NOT the PULLQUOTE role above: that one is a static
+        // paragraph inside a body-copy column, this is display type that wipes
+        // and pushes on scroll, with its own tighter leading and tracking.
+        // Sharing a role would mean tuning case-panel pull quotes silently
+        // moved this page's largest type — the exact coupling just deleted from
+        // the WorkCarousel/ThinkGridCanvas band pair.
+        //
+        // Was `clamp(28px, 4vw, 52px)` hardcoded in SiteTextBlock. Desktop and
+        // mobile were already effectively flat at 52 and 28 and tier down
+        // losslessly. TABLET IS THE ONE REAL CHANGE: the clamp ran fluid from
+        // 31px at 768 to 51px at 1279, and 40 is its value at ~1024, so widths
+        // near the top of the tablet tier now render smaller than they did.
+        // If that reads badly, this is the best argument on the site for
+        // un-pausing fluid clamp-based scaling — not for a fourth breakpoint.
+        //
+        // NOTE: PullTextItem is shared with Let's Talk, which has no [pull]
+        // items today. If it ever gains one it inherits this role — rename
+        // before that happens, not after.
+        ABOUT_PULLQUOTE: {
+            sizePx: 52,
+            weight: 700,
+            tracking: -0.025,
+            lineHeight: 1.05,
+        },
+
         // Bold lead-in subtitle; also governs intro blurbs below opening animations
         SUBTITLE: {
             sizePx: 29,
@@ -314,6 +340,7 @@ const TYPE_TIERS = {
         CAPTION: { sizePx: 13, weight: 300, tracking: 0.08, lineHeight: 1.4 },
         NAV_NAME: { sizePx: 34, weight: 700, tracking: 0, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
         PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
+        ABOUT_PULLQUOTE: { sizePx: 40, weight: 700, tracking: -0.025, lineHeight: 1.05 }, // UNTUNED — replaces a fluid 31-51px clamp; see desktop tier
         SUBTITLE: { sizePx: 20, weight: 400, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
         JOB_VALUE: { sizePx: 16, weight: 400, tracking: 0, lineHeight: 1.4 }, // UNTUNED — never rendered at this tier
@@ -361,6 +388,7 @@ const TYPE_TIERS = {
         CAPTION: { sizePx: 13, weight: 300, tracking: 0.08, lineHeight: 1.4 },
         NAV_NAME: { sizePx: 30, weight: 700, tracking: 0, lineHeight: 1.0 },
         PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
+        ABOUT_PULLQUOTE: { sizePx: 28, weight: 700, tracking: -0.025, lineHeight: 1.05 }, // matches the old clamp's 28px floor exactly
         SUBTITLE: { sizePx: 20, weight: 400, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 10, weight: 700, tracking: 0.12, lineHeight: 1.4 },
         JOB_VALUE: { sizePx: 15, weight: 400, tracking: 0, lineHeight: 1.4 }, // UNTUNED — never rendered at this tier
@@ -453,11 +481,27 @@ export const SPACE = {
 
     text: {
         // Shared by every page — one paragraph rhythm site-wide.
-        // Who I Am previously used a flat 24px and vh pull-quote gaps;
-        // Let's Talk already used these em values. Unified on the em form.
-        paragraphGap:  "2.2em",
-        pullGapBefore: "3.5em",
-        pullGapAfter:  "2.5em",
+        // Consumed by SiteTextBlock via useSpace(); see the note there.
+        //
+        // WHY THESE ARE TIERED PX AND NOT `em`:
+        // These were "2.2em" / "3.5em" / "2.5em" on the theory that em gives
+        // breakpoint-awareness for free. It doesn't here. `em` resolves against
+        // the element's OWN font-size, and these land on bare layout wrappers —
+        // the flex column and the pull-quote wrapper — which never receive a
+        // tier size (that lives on the paragraphs and chunk spans inside them).
+        // Nothing between <body> and those wrappers sets a font-size either, so
+        // all three resolved against the browser default 16px and came out as a
+        // FLAT 35 / 56 / 40 px at every breakpoint. Against 24px desktop body
+        // copy that read as slightly loose; against 16px mobile body copy it was
+        // 2.2x the type size. They are input numbers tuned by eye, so they are
+        // tiered px like every other spacing token.
+        //
+        // pullGapBefore/After are the TOTAL distance you would measure on
+        // screen, paragraphGap included — SiteTextBlock subtracts the flex gap
+        // so one number owns each relationship. They used to stack silently.
+        paragraphGap:  { desktop:  30, tablet:  22, mobile:  20 },
+        pullGapBefore: { desktop:  45, tablet:  33, mobile:  30 },
+        pullGapAfter:  { desktop:  45, tablet:  33, mobile:  30 },
     },
 }
 

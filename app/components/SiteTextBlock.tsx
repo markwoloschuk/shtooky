@@ -5,9 +5,19 @@
 // Renders a list of content items by ID from a page content file.
 // Handles paragraphs, pull text, and links. Sequenced via SequenceController.
 // v02 — ported to Next.js 2026-06-22
+//
+// TYPE ROLES USED
+//   paragraphs        → TYPE_TIERS.BODY / SUBTITLE  (via getParaStyle)
+//   pull-quote chunks → TYPE_TIERS.ABOUT_PULLQUOTE  (NOT the shared PULLQUOTE)
+//   CTA links         → TYPE_TIERS.CTA_LINK
+//
+// SPACING
+//   SPACE.text.paragraphGap / pullGapBefore / pullGapAfter, resolved with
+//   useSpace(). The pull gaps are TOTAL measured distances; the flex gap is
+//   subtracted back out at the pull wrapper so one number owns each gap.
 
 import { useEffect, useRef } from "react"
-import { COLORS, TYPE, useColumn, useType, bodyMaxWidth } from "./SiteTokens"
+import { COLORS, TYPE, useColumn, useType, useSpace, bodyMaxWidth } from "./SiteTokens"
 import { CONTENT as ABOUT_CONTENT, SPACING as ABOUT_SPACING } from "../data/AboutContent"
 import { CONTENT as CONTACT_CONTENT, SPACING as CONTACT_SPACING } from "../data/TalkContent"
 import {
@@ -364,6 +374,8 @@ function PullTextItem({
     onComplete: () => void
     spacing: typeof ABOUT_SPACING
 }) {
+    const space = useSpace()
+    const type = useType()
     const rootRef = useRef<HTMLDivElement>(null)
     const scrollRef = useScrollFade(unlocked, SCROLL_FADE_PULL, true)
     const timers = useRef<ReturnType<typeof setTimeout>[]>([])
@@ -535,8 +547,15 @@ function PullTextItem({
         <div
             ref={scrollRef}
             style={{
-                marginTop: spacing.pullGapBefore,
-                marginBottom: spacing.pullGapAfter,
+                // DERIVED, not a token: the parent flex column already puts
+                // `paragraphGap` between every child, so a raw margin here
+                // would stack on top of it — the gap you saw was the sum of
+                // two numbers and changed meaning depending on the neighbour.
+                // pullGapBefore/After are the TOTAL measured distance, so the
+                // shared gap is subtracted back out here, in one place.
+                // Math.max guards a pull gap tighter than the paragraph gap.
+                marginTop: Math.max(0, space(spacing.pullGapBefore) - space(spacing.paragraphGap)),
+                marginBottom: Math.max(0, space(spacing.pullGapAfter) - space(spacing.paragraphGap)),
                 width: "100%",
             }}
         >
@@ -579,10 +598,15 @@ function PullTextItem({
                                             ? `translate(${startX}px, ${startY}px)`
                                             : "translate(0,0)",
                                         fontFamily: TYPE.display,
-                                        fontWeight: 700,
-                                        fontSize: "clamp(28px, 4vw, 52px)",
-                                        lineHeight: 1.05,
-                                        letterSpacing: "-0.025em",
+                                        // TYPE_TIERS.ABOUT_PULLQUOTE — its own
+                                        // role, not the shared PULLQUOTE one.
+                                        // See the comment on the desktop tier
+                                        // for why, and for what the clamp this
+                                        // replaced actually rendered.
+                                        fontWeight: type.ABOUT_PULLQUOTE.weight,
+                                        fontSize: type.ABOUT_PULLQUOTE.sizePx,
+                                        lineHeight: type.ABOUT_PULLQUOTE.lineHeight,
+                                        letterSpacing: `${type.ABOUT_PULLQUOTE.tracking}em`,
                                         color: "#ffffff",
                                         whiteSpace: "nowrap",
                                     }}
@@ -614,6 +638,7 @@ export default function TextBlock({
     page: string
     ids: string
 }) {
+    const space = useSpace()
     const blockRef = useRef<HTMLDivElement>(null)
     const { content, spacing } = getPageData(page)
 
@@ -657,7 +682,7 @@ export default function TextBlock({
                 width: "100%",
                 display: "flex",
                 flexDirection: "column",
-                gap: spacing.paragraphGap,
+                gap: space(spacing.paragraphGap),
             }}
         >
             {items.map((item) => {
