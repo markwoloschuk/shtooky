@@ -64,7 +64,60 @@ export function registerSentinel(
     getTop: () => number
 ): () => void {
     _sentinels.set(seqIndex, { getTop })
-    return () => _sentinels.delete(seqIndex)
+    const release = _claimSeq(seqIndex)
+    return () => {
+        _sentinels.delete(seqIndex)
+        release()
+    }
+}
+
+// ── Seq numbers are SPARSE. Do not assume seqIndex - 1 exists. ───────────────
+// Content files number their items by hand (AboutContent runs 1, 3, 4, 5, …),
+// so any rule written as "the previous index" silently breaks the whole chain
+// the moment an item is edited out. That is exactly what had happened: nothing
+// created seq 2, so seq 3 could never satisfy `_unlocked.has(seqIndex - 1)`,
+// and because 4 waited on 3 and 5 on 4, everything below the first two
+// paragraphs was unreachable except via the fast-scroll rescue below.
+//
+// Predecessor/successor are resolved against the seqs the app actually KNOWS
+// ABOUT, so gaps are structurally harmless and content can be renumbered freely.
+//
+// "Known" is deliberately wider than "has a sentinel". Let's Talk's seq 2 is
+// TalkOptions, which participates via useSequence(2) and registers no sentinel
+// of its own — resolving predecessors from sentinels alone would make seq 1 the
+// predecessor of seq 3 and let the scroll watcher unlock the closing paragraphs
+// without waiting for the options block. Both entry points register here.
+//
+// Ref-counted because two components can claim the same seq, and a seq must
+// stop being "known" when the last of them unmounts.
+const _known = new Map<number, number>()
+
+function _claimSeq(seqIndex: number): () => void {
+    _known.set(seqIndex, (_known.get(seqIndex) ?? 0) + 1)
+    return () => {
+        const n = (_known.get(seqIndex) ?? 1) - 1
+        if (n <= 0) _known.delete(seqIndex)
+        else _known.set(seqIndex, n)
+    }
+}
+
+function _sortedSeqs(): number[] {
+    return [..._known.keys()].sort((a, b) => a - b)
+}
+
+// The registered seq immediately before `seqIndex`, or null if it is the first.
+export function prevSeq(seqIndex: number): number | null {
+    const all = _sortedSeqs()
+    const i = all.indexOf(seqIndex)
+    return i > 0 ? all[i - 1] : null
+}
+
+// Unlock the next REGISTERED seq after this one. Replaces `unlock(seq + 1)`,
+// which quietly unlocked a phantom index whenever numbering had a gap.
+export function unlockNextAfter(seqIndex: number): void {
+    const all = _sortedSeqs()
+    const i = all.indexOf(seqIndex)
+    if (i >= 0 && i < all.length - 1) unlock(all[i + 1])
 }
 
 export function installScrollWatcher(): () => void {
@@ -87,16 +140,21 @@ export function installScrollWatcher(): () => void {
             })
         }
 
-        _sentinels.forEach((sentinel, seqIndex) => {
+        // Ascending order, not Map insertion order — the cascade depends on a
+        // seq seeing its predecessor already unlocked within this same pass.
+        for (const seqIndex of _sortedSeqs()) {
+            const sentinel = _sentinels.get(seqIndex)
+            if (!sentinel) continue
             if (
                 !_unlocked.has(seqIndex) &&
                 sentinel.getTop() < window.innerHeight * 0.85
             ) {
-                if (seqIndex <= 1 || _unlocked.has(seqIndex - 1)) {
+                const prev = prevSeq(seqIndex)
+                if (prev === null || _unlocked.has(prev)) {
                     unlock(seqIndex)
                 }
             }
-        })
+        }
 
         _lastScrollY = scrollY
         _lastScrollTime = now
@@ -118,11 +176,17 @@ export function useSequence(seqIndex: number): boolean {
 
     useEffect(() => {
         setUnlocked(isUnlocked(seqIndex))
+        // Claim the seq even without a sentinel, so it still counts as a link
+        // in the chain for prevSeq()/unlockNextAfter(). See _known above.
+        const release = _claimSeq(seqIndex)
         const unsub = subscribe(() => {
             const next = isUnlocked(seqIndex)
             setUnlocked(prev => prev === next ? prev : next)
         })
-        return unsub
+        return () => {
+            unsub()
+            release()
+        }
     }, [seqIndex])
 
     return unlocked

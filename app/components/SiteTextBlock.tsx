@@ -22,7 +22,7 @@ import { CONTENT as ABOUT_CONTENT, SPACING as ABOUT_SPACING } from "../data/Abou
 import { CONTENT as CONTACT_CONTENT, SPACING as CONTACT_SPACING } from "../data/TalkContent"
 import {
     useSequence,
-    unlock,
+    unlockNextAfter,
     registerSentinel,
     installScrollWatcher,
 } from "./SequenceController"
@@ -639,7 +639,7 @@ export default function TextBlock({
     ids: string
 }) {
     const space = useSpace()
-    const blockRef = useRef<HTMLDivElement>(null)
+    const groupRefs = useRef(new Map<number, HTMLDivElement | null>())
     const { content, spacing } = getPageData(page)
 
     const idList = ids.split(",").flatMap((part) => {
@@ -662,69 +662,97 @@ export default function TextBlock({
         return unsub
     }, [])
 
+    // ── Sections ────────────────────────────────────────────────────────────
+    // A run of consecutive items sharing a seq IS a section: a multi-paragraph
+    // stretch gated as one unit, with the next pull quote as the next gate.
+    // Grouped by consecutive run rather than by value, so a seq that recurs
+    // later in a file makes a second section instead of teleporting items.
+    const groups: { seq: number; items: ContentItem[] }[] = []
+    for (const item of items) {
+        const last = groups[groups.length - 1]
+        if (last && last.seq === item.seq) last.items.push(item)
+        else groups.push({ seq: item.seq, items: [item] })
+    }
+
+    // Each section reports ITS OWN top. Previously every seq in the block was
+    // registered against the block container, so all nine sections of the
+    // ids="8-26" block reported the same position — the sections existed in
+    // the data and had no physical location, and once the block's top crossed
+    // the threshold the entire remainder unlocked in a single scroll pass.
     useEffect(() => {
-        const block = blockRef.current
-        if (!block) return
-        const seqs = [...new Set(items.map((item) => item.seq))]
-        const unsubs = seqs.map((seq) =>
-            registerSentinel(seq, () => {
-                const rect = block.getBoundingClientRect()
-                return rect.top
+        const unsubs = groups.map((g) =>
+            registerSentinel(g.seq, () => {
+                const el = groupRefs.current.get(g.seq)
+                // No element yet — report far below the fold so it can't unlock.
+                if (!el) return Number.POSITIVE_INFINITY
+                return el.getBoundingClientRect().top
             })
         )
         return () => unsubs.forEach((fn) => fn())
     }, [])
 
+    // The section wrapper repeats the parent's gap, so gap-between-sections and
+    // gap-between-items stay the same number and the nesting is visually inert.
+    const columnStyle = {
+        width: "100%",
+        display: "flex",
+        flexDirection: "column" as const,
+        gap: space(spacing.paragraphGap),
+    }
+
     return (
-        <div
-            ref={blockRef}
-            style={{
-                width: "100%",
-                display: "flex",
-                flexDirection: "column",
-                gap: space(spacing.paragraphGap),
-            }}
-        >
-            {items.map((item) => {
-                if (item.type === "paragraph") {
-                    const mi =
-                        items.filter(
-                            (x, xi) =>
-                                x.type === "paragraph" && xi <= items.indexOf(item)
-                        ).length - 1
-                    return (
-                        <ParagraphItemWrapper
-                            key={item.id}
-                            item={item}
-                            mountIndex={mi}
-                            spacing={spacing}
-                        />
-                    )
-                }
-                if (item.type === "pull") {
-                    return (
-                        <PullTextItemWrapper
-                            key={item.id}
-                            item={item}
-                            spacing={spacing}
-                        />
-                    )
-                }
-                if (item.type === "link") {
-                    const mi =
-                        items.filter(
-                            (x, xi) =>
-                                x.type === "link" && xi <= items.indexOf(item)
-                        ).length - 1
-                    return (
-                        <LinkItemWrapper
-                            key={item.id}
-                            item={item}
-                            mountIndex={mi}
-                        />
-                    )
-                }
-                return null
+        <div style={columnStyle}>
+            {groups.map((g) => {
+                // mountIndex is per SECTION, not per block. It used to count
+                // every paragraph in the block, so the last one waited
+                // mountDelay + 14 * 400 = ~7s. With sections unlocking
+                // independently the block-wide count is meaningless — each
+                // section staggers from its own first item.
+                let paraIdx = -1
+                let linkIdx = -1
+                return (
+                    <div
+                        key={g.seq}
+                        ref={(el) => {
+                            groupRefs.current.set(g.seq, el)
+                        }}
+                        style={columnStyle}
+                    >
+                        {g.items.map((item, i) => {
+                            if (item.type === "paragraph") {
+                                paraIdx += 1
+                                return (
+                                    <ParagraphItemWrapper
+                                        key={`${g.seq}-${i}`}
+                                        item={item}
+                                        mountIndex={paraIdx}
+                                        spacing={spacing}
+                                    />
+                                )
+                            }
+                            if (item.type === "pull") {
+                                return (
+                                    <PullTextItemWrapper
+                                        key={`${g.seq}-${i}`}
+                                        item={item}
+                                        spacing={spacing}
+                                    />
+                                )
+                            }
+                            if (item.type === "link") {
+                                linkIdx += 1
+                                return (
+                                    <LinkItemWrapper
+                                        key={`${g.seq}-${i}`}
+                                        item={item}
+                                        mountIndex={linkIdx}
+                                    />
+                                )
+                            }
+                            return null
+                        })}
+                    </div>
+                )
             })}
         </div>
     )
@@ -763,7 +791,9 @@ function PullTextItemWrapper({
     const unlocked = useSequence(item.seq)
 
     function handleComplete() {
-        unlock(item.seq + 1)
+        // NOT unlock(item.seq + 1) — seq numbers are sparse, so "+1" could
+        // point at an index no content owns. See SequenceController.
+        unlockNextAfter(item.seq)
     }
 
     return (
