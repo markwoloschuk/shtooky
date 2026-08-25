@@ -5,10 +5,16 @@
 //   card subtitle        → TYPE_TIERS.SUBTITLE   (sizePx, weight)
 //   pull-quote blocks    → TYPE_TIERS.PULLQUOTE  (sizePx, weight, lineHeight)
 //   figcaption / counter → TYPE_TIERS.CAPTION    (sizePx — matched, not yet wired)
+//   [label] blocks       → TYPE_TIERS.JOB_LABEL  (shared with the Work job box labels)
 
 import { useEffect, useState } from 'react'
 import { TYPE, COLORS, useType, useColumn, bodyMaxWidth } from './SiteTokens'
 import SiteGallery from './SiteGallery'
+import {
+  parseAccents, parseFrontmatter, parseBlocks, parseGalleryBlock, stripComments,
+  resolveImagePath, resolveGalleryMedia,
+  type CaseBlock, type GalleryData,
+} from './CaseMarkdown'
 
 const ACCENT = COLORS.thinking
 const FADE_DUR = 1000
@@ -21,177 +27,32 @@ interface Frontmatter {
   imagePath: string
 }
 
-interface Block {
-  type: 'paragraph' | 'pullquote' | 'video-carousel' | 'gallery' | 'img'
-  content: string
-}
-
-interface GalleryOffset {
-  index: number   // 1-based, matches image position in folder order
-  x: number       // position nudge, % (default 0)
-  y: number       // position nudge, % (default 0)
-  scale: number   // % (default 100 = no change)
-}
-
-interface GalleryVideoLink {
-  index: number                        // same 1-based full-folder-list numbering as offsets
-  source: 'youtube' | 'vimeo' | 'file'
-  id?: string                          // YouTube or Vimeo video ID (source: 'youtube' | 'vimeo')
-  src?: string                         // path to the video file (source: 'file')
-  poster?: string                      // explicit override; omitted = auto (YouTube thumbnail, else folder image)
-}
-
-interface GalleryData {
-  source: string          // folder name (relative to imagePath) or full path
-  columns: number         // desktop grid column count ("Nup")
-  crop?: '4by3' | '16by9' | '1by1'  // omitted = native image aspect ratio
-  noClick?: boolean       // true = disable lightbox
-  heroHeight?: number     // px; omitted = no hero, straight grid
-  offsets: GalleryOffset[]
-  videos: GalleryVideoLink[]
-}
-
 interface ParsedCard {
   frontmatter: Frontmatter
-  blocks: Block[]
+  blocks: CaseBlock[]
 }
 
-function parseAccents(text: string): React.ReactNode[] {
-  const parts = text.split(/(<[^>]+>)/)
-  return parts.map((part, i) => {
-    if (part.startsWith('<') && part.endsWith('>')) {
-      return <span key={i} style={{ color: ACCENT }}>{part.slice(1, -1)}</span>
-    }
-    const lines = part.split('[br]')
-    return lines.map((line, j) => (
-      <span key={`${i}-${j}`}>{line}{j < lines.length - 1 && <br />}</span>
-    ))
-  })
-}
-
-const BODY_BLOCK_TYPES = new Set(['paragraph', 'pullquote', 'video-carousel', 'gallery', 'img'])
-
-// Simple `key: value` YAML frontmatter — not a general YAML parser,
-// just enough for this fixed, known set of fields. Values are taken
-// as-is (no quoting/escaping needed for this content).
-function parseFrontmatter(raw: string): { fm: Frontmatter; rest: string } {
-  const fm: Frontmatter = { title: '', narrowtitle: '', subtitle: '', imagePath: '' }
-  const match = raw.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/)
-  if (!match) return { fm, rest: raw }
-  const [, fmBlock, rest] = match
-  for (const line of fmBlock.split('\n')) {
-    const m = line.match(/^(\w+):\s*(.*)$/)
-    if (!m) continue
-    const key = m[1] as keyof Frontmatter
-    if (key in fm) fm[key] = m[2].trim()
-  }
-  return { fm, rest }
-}
-
-function resolveImagePath(imagePath: string, filename: string): string {
-  const base = imagePath.endsWith('/') ? imagePath : `${imagePath}/`
-  return `${base}${filename}`
-}
-
-// Parses a [gallery] block body. Expected shape:
-//   folderName-or-/full/path/
-//   Nup, crop(optional: 4by3|16by9|1by1), noClick(optional)
-//   hero, heightPx        <- entire line omitted = no hero
-//   offset {
-//     [1, 20x, 50y, 100s],
-//     [4, -50x, 25y, 120s]
-//   }
-//   video {
-//     [3, youtube, dQw4w9WgXcQ],
-//     [9, file, /videos/reel-01.mp4],
-//     [12, vimeo, 76979871, /images/custom-poster.jpg]
-//   }
-// Missing offset x/y/s values default to 0/0/100 (no change).
-// video entries: index, source (youtube|vimeo|file), id-or-path, poster(optional
-// override — omitted means auto: YouTube gets its free thumbnail, everything
-// else falls back to the folder image already sitting at that index).
-function parseGalleryBlock(content: string): GalleryData {
-  const lines = content.split('\n').map(l => l.trim()).filter(Boolean)
-
-  const source = lines[0] ?? ''
-
-  const line2 = (lines[1] ?? '').split(',').map(s => s.trim())
-  const columns = parseInt(line2[0]?.replace(/up$/i, '') ?? '', 10) || 3
-  const CROP_TOKENS = new Set(['4by3', '16by9', '1by1'])
-  let crop: GalleryData['crop']
-  let noClick = false
-  for (const tok of line2.slice(1)) {
-    if (CROP_TOKENS.has(tok)) crop = tok as GalleryData['crop']
-    if (tok === 'noClick') noClick = true
-  }
-
-  let heroHeight: number | undefined
-  let offsetStartLine = 2
-  if (lines[2]?.toLowerCase().startsWith('hero')) {
-    const parts = lines[2].split(',').map(s => s.trim())
-    heroHeight = parseInt(parts[1] ?? '', 10) || undefined
-    offsetStartLine = 3
-  }
-
-  const offsets: GalleryOffset[] = []
-  const remaining = lines.slice(offsetStartLine).join(' ')
-  // Non-greedy — with two possible bracketed blocks (offset, video) now
-  // sharing `remaining`, a greedy `[\s\S]*` would swallow past its own
-  // closing brace into whichever block comes second.
-  const offsetMatch = remaining.match(/offset\s*\{([\s\S]*?)\}/)
-  if (offsetMatch) {
-    const entries = offsetMatch[1].match(/\[[^\]]+\]/g) ?? []
-    for (const entry of entries) {
-      const parts = entry.slice(1, -1).split(',').map(s => s.trim())
-      const index = parseInt(parts[0], 10)
-      if (isNaN(index)) continue
-      let x = 0, y = 0, scale = 100
-      for (const p of parts.slice(1)) {
-        if (p.endsWith('x')) x = parseFloat(p) || 0
-        else if (p.endsWith('y')) y = parseFloat(p) || 0
-        else if (p.endsWith('s')) scale = parseFloat(p) || 100
-      }
-      offsets.push({ index, x, y, scale })
-    }
-  }
-
-  const videos: GalleryVideoLink[] = []
-  const videoMatch = remaining.match(/video\s*\{([\s\S]*?)\}/)
-  if (videoMatch) {
-    const entries = videoMatch[1].match(/\[[^\]]+\]/g) ?? []
-    for (const entry of entries) {
-      const parts = entry.slice(1, -1).split(',').map(s => s.trim())
-      const index = parseInt(parts[0], 10)
-      const source = parts[1] as GalleryVideoLink['source']
-      if (isNaN(index) || !['youtube', 'vimeo', 'file'].includes(source)) continue
-      const video: GalleryVideoLink = { index, source }
-      if (source === 'file') video.src = parts[2]
-      else video.id = parts[2]
-      if (parts[3]) video.poster = parts[3]
-      videos.push(video)
-    }
-  }
-
-  return { source, columns, crop, noClick, heroHeight, offsets, videos }
-}
+// Which blocks a Think card may use. The format itself — [br] handling,
+// comments, blank-line paragraphs — lives in CaseMarkdown.tsx, shared with
+// the Work case panels.
+//
+// Note the frontmatter here is NOT optional the way Work's is: `title` and
+// `narrowtitle` are read server-side by /api/think/manifest and painted on
+// the grid by ThinkGridCanvas, so they have to stay frontmatter rather than
+// moving into a block the way Work's job box did.
+const THINK_BLOCKS = new Set(['label', 'paragraph', 'pullquote', 'video-carousel', 'gallery', 'img'])
 
 function parseMd(raw: string): ParsedCard {
-  const { fm, rest } = parseFrontmatter(raw)
-  const blocks: Block[] = []
-
-  const sections = rest.trim().split(/\n(?=\[)/)
-  for (const sec of sections) {
-    const match = sec.match(/^\[(\S+)\]\s*\n?([\s\S]*)/)
-    if (!match) continue
-    const key = match[1]
-    const content = match[2].trim()
-    if (BODY_BLOCK_TYPES.has(key)) {
-      blocks.push({ type: key as Block['type'], content })
-    }
-    // Unknown block types are intentionally skipped
+  const { fm, rest } = parseFrontmatter(stripComments(raw), {
+    title: '', narrowtitle: '', subtitle: '', imagePath: '',
+  })
+  return {
+    frontmatter: fm,
+    blocks: parseBlocks(rest, {
+      allowed: THINK_BLOCKS,
+      splitParagraphs: new Set(['paragraph']),
+    }),
   }
-
-  return { frontmatter: fm, blocks }
 }
 
 interface Props {
@@ -267,18 +128,28 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
         const op = blockOps[i + 1] ?? 0
         const style = { opacity: op, transition: `opacity ${FADE_DUR}ms ease` }
 
+        // Section label — same treatment as the Work job box labels, in the
+        // thinking accent rather than pink.
+        if (block.type === 'label') {
+          return (
+            <p key={i} style={{ ...style, fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: ACCENT, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display, marginBottom: 10 }}>
+              {block.content}
+            </p>
+          )
+        }
+
         if (block.type === 'paragraph') {
           return (
             <p key={i} style={{ ...style, fontSize: type.CASE_BODY.sizePx, fontWeight: type.CASE_BODY.weight, lineHeight: type.CASE_BODY.lineHeight, letterSpacing: `${type.CASE_BODY.tracking}em`, color: 'rgba(255,255,255,0.6)', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display }}>
-              {parseAccents(block.content)}
+              {parseAccents(block.content, ACCENT)}
             </p>
           )
         }
 
         if (block.type === 'pullquote') {
           return (
-            <p key={i} style={{ ...style, fontSize: type.PULLQUOTE.sizePx, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, color: COLORS.white, maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display }}>
-              {parseAccents(block.content)}
+            <p key={i} style={{ ...style, fontSize: type.PULLQUOTE.sizePx, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, color: COLORS.white, maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display, whiteSpace: 'pre-line' }}>
+              {parseAccents(block.content, ACCENT)}
             </p>
           )
         }
@@ -309,9 +180,10 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
           const path = gallery.source.includes('/')
             ? gallery.source
             : resolveImagePath(fm.imagePath, gallery.source)
+          const resolved = resolveGalleryMedia(gallery, fm.imagePath)
           return (
             <div key={i} style={style}>
-              <GalleryInline path={path} gallery={gallery} />
+              <GalleryInline path={path} gallery={resolved} />
             </div>
           )
         }

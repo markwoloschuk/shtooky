@@ -1,9 +1,8 @@
----
+[jobbox]
 title: Wedding Infogrphics
 client: Personal
 role: Designer
 delivery: Custom Infographic Series
----
 
 [paragraph]
 A tool for talking to strangers at weddings that turned into a gift people hang on their walls.

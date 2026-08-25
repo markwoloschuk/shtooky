@@ -10,7 +10,14 @@ import { useColumn, useType, COLORS, SPACE, useSpace } from './SiteTokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 export const CONFIG = {
-  ANIMATION_PATH: '/animations/test.json',
+  // Safari fix, 2026-08-24: 'design mask' used to end at frame 52 while the
+  // 'design' layer it mattes runs to 180 — an inverted alpha matte pointing at
+  // a layer that no longer exists. Chrome reads the absent matte as empty and
+  // shows the word; Safari held the last matte state and left a blurred smear
+  // across "des". The matte now lives to the end of the comp and parks itself
+  // clear of the word after the wipe. 'about mask' was always built this way,
+  // which is why "about" never broke. Fix this in the AE source too.
+  ANIMATION_PATH: '/animations/thinking-open.json',
   LOOP: false,           // plays once on load/reload, parks on the last frame
   NATIVE_W: 1440,         // comp width, px — the animation's own coordinate space
   NATIVE_H: 440,          // comp height, px

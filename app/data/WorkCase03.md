@@ -1,9 +1,8 @@
----
+[jobbox]
 title: Flexport Winter Release 2026
 client: Flexport
 role: Creative Director
 delivery: Live Software Launch
----
 
 [paragraph]
 A software launch in an unusual venue. Screens everywhere — walls, outdoors, one room with a 360-degree display.

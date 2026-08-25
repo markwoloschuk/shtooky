@@ -1,9 +1,8 @@
----
+[jobbox]
 title: Enduro III Poster
 client: SuperPro Productions
 role: Designer / Data Wrangler
 delivery: Event Poster
----
 
 [paragraph]
 The client wanted a Joy Division rip-off. Mark wanted the real thing — actual elevation data from the actual course.

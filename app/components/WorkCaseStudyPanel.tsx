@@ -4,189 +4,53 @@
 //   body paragraphs  → TYPE_TIERS.CASE_BODY  (sizePx, weight, lineHeight, tracking)
 //   pull-quote blocks → TYPE_TIERS.PULLQUOTE  (sizePx, weight, lineHeight)
 //   job box labels   → TYPE_TIERS.JOB_LABEL  (sizePx only — weight/tracking retained hardcoded)
+//   job box values   → TYPE_TIERS.JOB_VALUE  (sizePx only — was a bare 17)
+//   case subtitle    → TYPE_TIERS.CASE_SUBTITLE (sizePx, weight, lineHeight, tracking)
+//   [label] blocks   → TYPE_TIERS.JOB_LABEL  (shares the job box label treatment)
 //   video counter    → TYPE_TIERS.CAPTION     (sizePx — matched, not yet wired)
 
 import { useEffect, useState } from 'react'
 import { TYPE, COLORS, useType, useColumn, useBreakpoint, bodyMaxWidth } from './SiteTokens'
 import SiteGallery from './SiteGallery'
+import { JOB_FIELDS } from '../data/WorkManifest'
+import {
+  parseAccents, parseFrontmatter, parseBlocks, parseGalleryBlock, stripComments,
+  resolveImagePath, resolveGalleryMedia,
+  type CaseBlock, type GalleryData,
+} from './CaseMarkdown'
 
 const PINK = COLORS.work
 const FADE_DUR = 2000
 const FADE_OFFSET = 25
 
+
+// Frontmatter now carries ONLY imagePath. Title/client/role/delivery moved
+// into the [jobbox] block so the file's block order is the render order.
 interface Frontmatter {
-  title: string
-  client: string
-  role: string
-  delivery: string
   imagePath: string
-}
-
-interface Block {
-  type: 'paragraph' | 'pullquote' | 'video-carousel' | 'gallery'
-  content: string
-}
-
-interface GalleryOffset {
-  index: number   // 1-based, matches image position in folder order
-  x: number       // position nudge, % (default 0)
-  y: number       // position nudge, % (default 0)
-  scale: number   // % (default 100 = no change)
-}
-
-interface GalleryVideoLink {
-  index: number                        // same 1-based full-folder-list numbering as offsets
-  source: 'youtube' | 'vimeo' | 'file'
-  id?: string                          // YouTube or Vimeo video ID (source: 'youtube' | 'vimeo')
-  src?: string                         // path to the video file (source: 'file')
-  poster?: string                      // explicit override; omitted = auto (YouTube thumbnail, else folder image)
-}
-
-interface GalleryData {
-  source: string          // folder name (relative to imagePath) or full path
-  columns: number         // desktop grid column count ("Nup")
-  crop?: '4by3' | '16by9' | '1by1'  // omitted = native image aspect ratio
-  noClick?: boolean       // true = disable lightbox
-  heroHeight?: number     // px; omitted = no hero, straight grid
-  offsets: GalleryOffset[]
-  videos: GalleryVideoLink[]
 }
 
 interface ParsedCase {
   frontmatter: Frontmatter
-  blocks: Block[]
+  blocks: CaseBlock[]
 }
 
-function parseAccents(text: string): React.ReactNode[] {
-  const parts = text.split(/(<[^>]+>)/)
-  return parts.map((part, i) => {
-    if (part.startsWith('<') && part.endsWith('>')) {
-      return <span key={i} style={{ color: PINK }}>{part.slice(1, -1)}</span>
-    }
-    // Handle [br] line breaks
-    const lines = part.split('[br]')
-    return lines.map((line, j) => (
-      <span key={`${i}-${j}`}>{line}{j < lines.length - 1 && <br />}</span>
-    ))
-  })
-}
+// Which blocks a Work case may use, and how each behaves. Everything else —
+// the format itself, [br] handling, comments — lives in CaseMarkdown.tsx.
+const WORK_BLOCKS = new Set(['jobbox', 'subtitle', 'label', 'paragraph', 'pullquote', 'video-carousel', 'gallery'])
 
 function parseMd(raw: string): ParsedCase {
-  const fmMatch = raw.match(/^---\n([\s\S]*?)\n---/)
-  const frontmatter: Frontmatter = { title: '', client: '', role: '', delivery: '', imagePath: '' }
-  if (fmMatch) {
-    for (const line of fmMatch[1].split('\n')) {
-      const [key, ...rest] = line.split(':')
-      const val = rest.join(':').trim()
-      if (key === 'title') frontmatter.title = val
-      if (key === 'client') frontmatter.client = val
-      if (key === 'role') frontmatter.role = val
-      if (key === 'delivery') frontmatter.delivery = val
-      if (key === 'imagePath') frontmatter.imagePath = val
-    }
+  const { fm, rest } = parseFrontmatter(stripComments(raw), { imagePath: '' })
+  return {
+    frontmatter: fm,
+    blocks: parseBlocks(rest, {
+      allowed: WORK_BLOCKS,
+      keyValue: new Set(['jobbox']),
+      splitParagraphs: new Set(['paragraph']),
+    }),
   }
-
-  const body = fmMatch ? raw.slice(fmMatch[0].length).trim() : raw.trim()
-  const blocks: Block[] = []
-  const sections = body.split(/\n(?=\[)/)
-  for (const sec of sections) {
-    const match = sec.match(/^\[(\S+)\]\n([\s\S]*)/)
-    if (!match) continue
-    const type = match[1] as Block['type']
-    const content = match[2].trim()
-    blocks.push({ type, content })
-  }
-
-  return { frontmatter, blocks }
 }
 
-function resolveImagePath(imagePath: string, filename: string): string {
-  const base = imagePath.endsWith('/') ? imagePath : `${imagePath}/`
-  return `${base}${filename}`
-}
-
-// Parses a [gallery] block body. Expected shape:
-//   folderName-or-/full/path/
-//   Nup, crop(optional: 4by3|16by9|1by1), noClick(optional)
-//   hero, heightPx        <- entire line omitted = no hero
-//   offset {
-//     [1, 20x, 50y, 100s],
-//     [4, -50x, 25y, 120s]
-//   }
-//   video {
-//     [3, youtube, dQw4w9WgXcQ],
-//     [9, file, /videos/reel-01.mp4],
-//     [12, vimeo, 76979871, /images/custom-poster.jpg]
-//   }
-// Missing offset x/y/s values default to 0/0/100 (no change).
-// video entries: index, source (youtube|vimeo|file), id-or-path, poster(optional
-// override — omitted means auto: YouTube gets its free thumbnail, everything
-// else falls back to the folder image already sitting at that index).
-// Kept identical to ThinkCasePanel.tsx's copy — same block syntax, same parser.
-function parseGalleryBlock(content: string): GalleryData {
-  const lines = content.split('\n').map(l => l.trim()).filter(Boolean)
-
-  const source = lines[0] ?? ''
-
-  const line2 = (lines[1] ?? '').split(',').map(s => s.trim())
-  const columns = parseInt(line2[0]?.replace(/up$/i, '') ?? '', 10) || 3
-  const CROP_TOKENS = new Set(['4by3', '16by9', '1by1'])
-  let crop: GalleryData['crop']
-  let noClick = false
-  for (const tok of line2.slice(1)) {
-    if (CROP_TOKENS.has(tok)) crop = tok as GalleryData['crop']
-    if (tok === 'noClick') noClick = true
-  }
-
-  let heroHeight: number | undefined
-  let offsetStartLine = 2
-  if (lines[2]?.toLowerCase().startsWith('hero')) {
-    const parts = lines[2].split(',').map(s => s.trim())
-    heroHeight = parseInt(parts[1] ?? '', 10) || undefined
-    offsetStartLine = 3
-  }
-
-  const offsets: GalleryOffset[] = []
-  const remaining = lines.slice(offsetStartLine).join(' ')
-  // Non-greedy — with two possible bracketed blocks (offset, video) now
-  // sharing `remaining`, a greedy `[\s\S]*` would swallow past its own
-  // closing brace into whichever block comes second.
-  const offsetMatch = remaining.match(/offset\s*\{([\s\S]*?)\}/)
-  if (offsetMatch) {
-    const entries = offsetMatch[1].match(/\[[^\]]+\]/g) ?? []
-    for (const entry of entries) {
-      const parts = entry.slice(1, -1).split(',').map(s => s.trim())
-      const index = parseInt(parts[0], 10)
-      if (isNaN(index)) continue
-      let x = 0, y = 0, scale = 100
-      for (const p of parts.slice(1)) {
-        if (p.endsWith('x')) x = parseFloat(p) || 0
-        else if (p.endsWith('y')) y = parseFloat(p) || 0
-        else if (p.endsWith('s')) scale = parseFloat(p) || 100
-      }
-      offsets.push({ index, x, y, scale })
-    }
-  }
-
-  const videos: GalleryVideoLink[] = []
-  const videoMatch = remaining.match(/video\s*\{([\s\S]*?)\}/)
-  if (videoMatch) {
-    const entries = videoMatch[1].match(/\[[^\]]+\]/g) ?? []
-    for (const entry of entries) {
-      const parts = entry.slice(1, -1).split(',').map(s => s.trim())
-      const index = parseInt(parts[0], 10)
-      const source = parts[1] as GalleryVideoLink['source']
-      if (isNaN(index) || !['youtube', 'vimeo', 'file'].includes(source)) continue
-      const video: GalleryVideoLink = { index, source }
-      if (source === 'file') video.src = parts[2]
-      else video.id = parts[2]
-      if (parts[3]) video.poster = parts[3]
-      videos.push(video)
-    }
-  }
-
-  return { source, columns, crop, noClick, heroHeight, offsets, videos }
-}
 
 interface Props {
   caseFile: string | null   // e.g. 'WorkCase01'
@@ -210,14 +74,14 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
       .then(raw => {
         const p = parseMd(raw)
         setParsed(p)
-        setBlockOps(new Array(p.blocks.length + 1).fill(0)) // +1 for job box
+        setBlockOps(new Array(p.blocks.length).fill(0))
       })
   }, [caseFile])
 
   // Fade blocks in successively when visible
   useEffect(() => {
     if (!visible || !parsed) return
-    const total = parsed.blocks.length + 1
+    const total = parsed.blocks.length
     const timers: ReturnType<typeof setTimeout>[] = []
     for (let i = 0; i < total; i++) {
       timers.push(setTimeout(() => {
@@ -236,6 +100,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
 
   const { frontmatter: fm, blocks } = parsed
 
+
   return (
     <div style={{
       paddingLeft: `${col.marginVw}vw`,
@@ -245,51 +110,64 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
       position: 'relative',
       zIndex: 1,
     }}>
-      {/* Job box */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '24px 30px',
-        marginBottom: 28,
-        paddingTop: jobBoxPaddingTop,
-        opacity: blockOps[0] ?? 0,
-        transition: `opacity ${FADE_DUR}ms ease`,
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Client</span>
-          <span style={{ fontSize: 17, color: '#fff', fontFamily: TYPE.display }}>{fm.client}</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Role</span>
-          <span style={{ fontSize: 17, color: '#fff', fontFamily: TYPE.display }}>{fm.role}</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Title</span>
-          <span style={{ fontSize: 17, color: '#fff', fontFamily: TYPE.display }}>{fm.title}</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>Delivery</span>
-          <span style={{ fontSize: 17, color: '#fff', fontFamily: TYPE.display }}>{fm.delivery}</span>
-        </div>
-      </div>
-
       {/* Content blocks */}
       {blocks.map((block, i) => {
-        const op = blockOps[i + 1] ?? 0
+        const op = blockOps[i] ?? 0
         const style = { opacity: op, transition: `opacity ${FADE_DUR}ms ease` }
+
+        if (block.type === 'jobbox') {
+          const f = block.fields ?? {}
+          return (
+            <div key={i} style={{
+              ...style,
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gridTemplateRows: 'auto auto',
+              gridAutoFlow: 'column',
+              gap: '24px 30px',
+              marginBottom: 28,
+              paddingTop: jobBoxPaddingTop,
+            }}>
+              {JOB_FIELDS.filter(({ key }) => f[key]).map(({ label, key }) => (
+                <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span style={{ fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display }}>{label}</span>
+                  <span style={{ fontSize: type.JOB_VALUE.sizePx, color: '#fff', fontFamily: TYPE.display }}>{f[key]}</span>
+                </div>
+              ))}
+            </div>
+          )
+        }
+
+        // Section label — same treatment as the job box labels, deliberately
+        // sharing JOB_LABEL rather than earning a role of its own.
+        if (block.type === 'label') {
+          return (
+            <p key={i} style={{ ...style, fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display, marginBottom: 10 }}>
+              {block.content}
+            </p>
+          )
+        }
+
+        if (block.type === 'subtitle') {
+          return (
+            <p key={i} style={{ ...style, fontSize: type.CASE_SUBTITLE.sizePx, fontWeight: type.CASE_SUBTITLE.weight, lineHeight: type.CASE_SUBTITLE.lineHeight, letterSpacing: `${type.CASE_SUBTITLE.tracking}em`, color: '#fff', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display, whiteSpace: 'pre-line' }}>
+              {parseAccents(block.content, PINK)}
+            </p>
+          )
+        }
 
         if (block.type === 'paragraph') {
           return (
             <p key={i} style={{ ...style, fontSize: type.CASE_BODY.sizePx, fontWeight: type.CASE_BODY.weight, lineHeight: type.CASE_BODY.lineHeight, letterSpacing: `${type.CASE_BODY.tracking}em`, color: 'rgba(255,255,255,0.6)', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display }}>
-              {parseAccents(block.content)}
+              {parseAccents(block.content, PINK)}
             </p>
           )
         }
 
         if (block.type === 'pullquote') {
           return (
-            <p key={i} style={{ ...style, fontSize: type.PULLQUOTE.sizePx, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, color: '#fff', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display }}>
-              {parseAccents(block.content)}
+            <p key={i} style={{ ...style, fontSize: type.PULLQUOTE.sizePx, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, color: '#fff', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display, whiteSpace: 'pre-line' }}>
+              {parseAccents(block.content, PINK)}
             </p>
           )
         }
@@ -308,9 +186,10 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
           const path = gallery.source.includes('/')
             ? gallery.source
             : resolveImagePath(fm.imagePath, gallery.source)
+          const resolved = resolveGalleryMedia(gallery, fm.imagePath)
           return (
             <div key={i} style={style}>
-              <GalleryInline path={path} gallery={gallery} />
+              <GalleryInline path={path} gallery={resolved} />
             </div>
           )
         }

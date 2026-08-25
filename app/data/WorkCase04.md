@@ -1,9 +1,8 @@
----
+[jobbox]
 title: HP Rock On Care
-client: HP 
+client: HP
 role: Creative Director
 delivery: Tradeshow Experience
----
 
 [paragraph]
 A sales conference video. Five subjects, multiple topics, a noisy convention floor. The brief called for a loop. Mark called for something else.

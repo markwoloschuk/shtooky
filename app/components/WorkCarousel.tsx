@@ -95,17 +95,6 @@ const SUBHEAD_LINES: Record<'desktop' | 'tablet' | 'mobile', string[]> = {
   ],
 }
 
-// ── Carousel headlines drawn on canvas ───────────────────────────────────────
-const HEADLINES = [
-  '12 products.\n1 Holiday hook.',
-  'Time was short so we\nthrew away the best idea.',
-  '360° of vibes',
-  'Punching a signal\nthrough the noise.',
-  //'Designing my escape from\nplanning department jail.',
-  'Designing my escape\nfrom city planning jail.',
-  'Hiding a secret\nin plain sight',
-  'It was a beautiful day,\nit was beautiful data.',
-]
 
 // ── OKLab color helpers (from V30) ───────────────────────────────────────────
 function sL(c: number) { const v = c / 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }
@@ -391,7 +380,7 @@ function showNav() {
   ) => {
     if (alpha <= 0 || idx < 0 || idx >= N) return
     if (clipW !== undefined && clipW < 1) return
-    const lines = HEADLINES[idx].split('\n')
+    const lines = (WORK_MANIFEST[idx]?.headline ?? '').split('\n')
     ctx.save()
     if (clipX !== undefined) { ctx.beginPath(); ctx.rect(clipX, 0, clipW, _ech); ctx.clip() }
     if (translateX) ctx.translate(translateX, 0)

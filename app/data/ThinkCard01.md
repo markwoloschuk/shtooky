@@ -28,7 +28,7 @@ The difference isn’t always visible at first glance. But it’s always felt. A
 
 [gallery]
 GalleryTest
-4up, 16by9
+5up, 16by9
 
 
 [pullquote]

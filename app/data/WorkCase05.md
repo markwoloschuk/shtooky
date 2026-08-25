@@ -1,9 +1,8 @@
----
+[jobbox]
 title: 490 Duboce Ave. Gate
 client: Personal
 role: Designer / Project Manager
 delivery: Custom Architectural Fabrication
----
 
 [paragraph]
 The city of San Francisco told us we had illegal construction on our property. We had done nothing wrong. We were required to fix it anyway. The fix became something unexpected.

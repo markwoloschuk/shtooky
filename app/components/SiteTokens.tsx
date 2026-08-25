@@ -241,6 +241,26 @@ const TYPE_TIERS = {
             lineHeight: 1.4,
         },
 
+        // Job box VALUES (the text under each JOB_LABEL). Was a bare
+        // `fontSize: 17` repeated four times in WorkCaseStudyPanel.tsx.
+        // sizePx only — weight/colour stay on the span, same as JOB_LABEL.
+        JOB_VALUE: {
+            sizePx: 17,
+            weight: 400,
+            tracking: 0,
+            lineHeight: 1.4,
+        },
+
+        // Case-panel subtitle — the deck that sits with the job box.
+        // UNTUNED starting point: sized to sit clearly between the canvas
+        // headline and CASE_BODY (24). Tune live.
+        CASE_SUBTITLE: {
+            sizePx: 32,
+            weight: 300,
+            tracking: -0.005,
+            lineHeight: 1.3,
+        },
+
         // Site-wide footer blurb text
         FOOTER: {
             sizePx: 18,
@@ -296,6 +316,8 @@ const TYPE_TIERS = {
         PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         SUBTITLE: { sizePx: 20, weight: 400, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
+        JOB_VALUE: { sizePx: 16, weight: 400, tracking: 0, lineHeight: 1.4 }, // UNTUNED — never rendered at this tier
+        CASE_SUBTITLE: { sizePx: 26, weight: 300, tracking: -0.005, lineHeight: 1.3 }, // UNTUNED — never rendered at this tier
         FOOTER: { sizePx: 13, weight: 400, tracking: 0.04, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
         CTA_LINK: { sizePx: 30, weight: 700, tracking: -0.01, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
     },
@@ -341,6 +363,8 @@ const TYPE_TIERS = {
         PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         SUBTITLE: { sizePx: 20, weight: 400, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 10, weight: 700, tracking: 0.12, lineHeight: 1.4 },
+        JOB_VALUE: { sizePx: 15, weight: 400, tracking: 0, lineHeight: 1.4 }, // UNTUNED — never rendered at this tier
+        CASE_SUBTITLE: { sizePx: 20, weight: 300, tracking: -0.005, lineHeight: 1.3 }, // UNTUNED — never rendered at this tier
         FOOTER: { sizePx: 10, weight: 400, tracking: 0.04, lineHeight: 1.4 },
         // Was 24 — at weight 700, "See my work" / "Who I am" / "How I think"
         // (WelcomeCTA.tsx) don't fit on one line in the mobile column
