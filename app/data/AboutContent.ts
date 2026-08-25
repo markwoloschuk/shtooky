@@ -265,7 +265,7 @@ export const CONTENT: ContentItem[] = [
         },
         chunks: [
             {
-                text: "But wait,",
+                text: "But wait, ",
                 line: 1,
                 delay: 0,
                 wipe: 0,
