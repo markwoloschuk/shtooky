@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { WORK_MANIFEST } from '../data/WorkManifest'
-import { TYPE, COLORS, useType, useColumn, useBreakpoint, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, getColumn } from './SiteTokens'
+import { TYPE, COLORS, useType, useColumn, useBreakpoint, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, BAND_VIGNETTE, getColumn } from './SiteTokens'
 
 // ── Locked animation constants (from work_carousel_v30.html) ─────────────────
 const CFG = {
@@ -33,8 +33,10 @@ const CFG = {
   NAV_BTN_SIZE:    32,
   SYM_PCT:         0.50,
   STROKE_W:        1,
-  VIG_OPACITY:     0.85,
-  VIG_HEIGHT:      0.40,
+  // Vignette — shared with ThinkGridCanvas via BAND_VIGNETTE (SiteTokens).
+  // Tune it there, not here; bandDetailGap depends on both bands matching.
+  VIG_OPACITY:     BAND_VIGNETTE.opacity,
+  VIG_HEIGHT:      BAND_VIGNETTE.heightFrac, // AMOUNT: fade occupies bottom 40%
 }
 
 const N    = 7

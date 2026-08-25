@@ -437,9 +437,11 @@ export const SPACE = {
         // Gap between a full-bleed canvas BAND and the detail text under it.
         // Shared by the Work carousel -> case panel and the How I Think grid
         // band -> card panel, because both bands end in the SAME vignette
-        // (gradient from 60% down, black at 0.85) and so read as the same
-        // edge. They used to be 60/60/24 and a flat 20 respectively, in two
-        // unrelated places, for no reason anyone could name.
+        // (see BAND_VIGNETTE below — both files import it) and so read as
+        // the same edge. That dependency is real: if the two vignettes ever
+        // diverge, this shared number stops being defensible. They used to
+        // be 60/60/24 and a flat 20 respectively, in two unrelated places,
+        // for no reason anyone could name.
         bandDetailGap:      { desktop:  40, tablet:   40, mobile:  16 },
 
         // Welcome hero — gap between the headline/carousel and the tagline
@@ -531,6 +533,22 @@ export const BAND_HEADLINE = {
     lineHeightPx: 55,
     mobileSizePx: 28,
     refW:         1440,
+}
+
+// ── BAND_VIGNETTE — the bottom scrim on the band image ───────────────────
+// Shared by WorkCarousel and ThinkGridCanvas. Keeps display headlines
+// readable over any photo. These MUST stay identical in both files:
+// SPACE.layout.bandDetailGap is a single shared number justified by both
+// bands ending in the SAME optical edge. Change this and both move together.
+//
+// CONVENTION: heightFrac is an AMOUNT, not a position — "the fade occupies
+// the bottom 40% of the band." Both drawVignette() implementations convert
+// it to a start point with (1 - heightFrac). Think's used to hardcode the
+// converted value (0.6) directly, which meant the two files held the same
+// number under opposite meanings. Don't reintroduce that.
+export const BAND_VIGNETTE = {
+    heightFrac: 0.40, // fraction of band height the fade occupies, bottom-up
+    opacity:    0.85, // black at the very bottom edge
 }
 
 export const NAV = {

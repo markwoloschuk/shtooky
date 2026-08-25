@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useColumn, NAV, COLORS, TYPE, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE } from './SiteTokens';
+import { useColumn, NAV, COLORS, TYPE, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, BAND_VIGNETTE } from './SiteTokens';
 import { THINK_GRID, coverImageFor, offsetFor } from '../data/ThinkManifest';
 
 // ── Layout — 13 cells, native units on a 1440-wide reference canvas ────────
@@ -117,12 +117,17 @@ function pickColor(rf: number) {
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
-// ── Vignette — bottom-darkening gradient (matches WorkCarousel) ──────────
+// ── Vignette — bottom-darkening gradient ───────────────────────
+// Shares BAND_VIGNETTE with WorkCarousel.drawVignette — enforced by the
+// import, not by a comment asking the two to stay in step.
+// heightFrac is an AMOUNT (bottom 40%), so it converts to a start point
+// with (1 - heightFrac). WorkCarousel does the same conversion; this is
+// the mirror of it, not a second opinion.
 function drawVignette(ctx: CanvasRenderingContext2D, rect: Rect) {
-  const gradY = rect.y + rect.h * 0.6;
+  const gradY = rect.y + rect.h * (1 - BAND_VIGNETTE.heightFrac);
   const vg = ctx.createLinearGradient(0, gradY, 0, rect.y + rect.h);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,0.85)');
+  vg.addColorStop(1, `rgba(0,0,0,${BAND_VIGNETTE.opacity})`);
   ctx.save();
   ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
   ctx.fillStyle = vg;

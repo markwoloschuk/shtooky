@@ -19,13 +19,13 @@ San Francisco bike racing promoter Murphy Mack was famous for keeping his gravel
 [label]
 THE SOLUTION
 [paragraph]
-The image on the album cover wasn’t designed – it’s a data visualization showing the pulses from a neutron start. I wanted my design to do something similar – to share a deeper level of information than an interesting image and the key facts about the event. 
+The image on the album cover wasn’t designed – it’s a data visualization showing the pulses from a neutron start. I wanted my design to do something similar – to share a deeper level of meaing. I wanted to create a design that was more than just an interesting image and key facts about the event. 
 
-The image reminded me of an elevation profile – what if I could create an elevation profile of the course? What if the course were ACTUALLY VISIBLE in that profile? What if that data were real?
+The image reminded me of an elevation profile – what if I could create one showing the race course area – what if the route itself was ACTUALLY VISIBLE in that profile? What if that data were real?
 
-Today there are many way to solve this problem – even someone with my limited programming abilities could find elevation data and render that into a useable image. But my solution required a lot more elbow grease.
+Today there are many ways to solve this problem, but my solution at the time required a lot more elbow grease.
 
-I found a utility that would generate elevation profiles from two points drawn on a google map. But all I had was a paper copy of a map – how would I get the physical map into the digital space? The answer was acetate, tape and a sharpie. 
+I found a utility that would generate elevation profiles from two points drawn on a google map. But all I had was a paper copy of the race course – how would I get the physical map into the digital space? The answer was acetate, tape and a sharpie. 
 
 [gallery]
 EnduroExtra
@@ -36,9 +36,9 @@ Print graphics[br]
 in After Effects?
 
 [paragraph]
-After generating all the elevation slices I aligned them in Illustrator and hand traced them into vector shapes. From there I imported them into After Effects were I used an expression to stagger them in 3D space. Eh voila!
+After generating all the elevation slices I aligned them in Illustrator and hand traced them into vector shapes. From there I imported them into After Effects were I used an expression to stagger them in 3D space. 
 
-A faithful visualization of the actual route. Not so secret if you knew what to look for.
+Eh voila! A faithful visualization of the actual route. Not so secret if you knew what to look for.
 
 [gallery]
 Enduro

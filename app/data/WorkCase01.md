@@ -33,7 +33,18 @@ On-set I helped co-direct the action – ensuring that every product was featur
 youtube_link
 4up, 16by9
 video {
-    [1, youtube, QDuQNfbmlOg]
+    [1,  youtube, qfPionEURYY]   // 1  Secret Santa
+    [2,  youtube, 7S7HQdYExgY]   // 2  Goofy Gifts
+    [3,  youtube, ohgVNnjrc6E]   // 3  Humdrum Holidaze
+    [4,  youtube, v17Rg8Qh0C0]   // 4  Blinded by the Lights
+    [5,  youtube, T5Xhv4deIC4]   // 5  Boring Boss’ Party
+    [6,  youtube, A2fJhjaWLKQ]   // 6  Cookie Catastrophe
+    [7,  youtube, 6mB0-UyUAuQ]   // 7  Chatty Uncle Chuck
+    [8,  youtube, o_eWEYE7R1g]   // 8  Holiday Photo #Fail
+    [9,  youtube, _w6QgYCiNaM]   // 9  Shop Till Ya Drop
+    [10, youtube, 48hsIZBeuzw]   // 10 Working through the Holidays
+    [11, youtube, Gza428izd_4]   // 11 Smoochy Aunt Sara
+    [12, youtube, jVVIwByvjts]   // 12 Holiday Spirit
 }
 
 [pullquote]
@@ -43,3 +54,5 @@ to tie in the emotion.
 [gallery]
 ShootingGallery
 4up, 4by3
+
+

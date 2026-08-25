@@ -14,7 +14,7 @@ The best brief I ever got was the one I wrote myself.[br]
 [label]
 THE SITUATION
 [paragraph]
-I love talking to people – but don’t love feeling like I’m bothering them. That makes me feel more shy at a wedding that I might want to be. It helps when I have a reason to initiate an interaction so why not design one?
+I love talking to people – but not if I feel like I’m bothering them. That makes me feel more shy at a social gathering – like a wedding – then I might want. It helps when I have a reason to initiate an interaction so why not design one?
 
 [label]
 THE SOLUTION
