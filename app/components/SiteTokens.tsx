@@ -219,7 +219,7 @@ const TYPE_TIERS = {
 
         // Panel pull-quotes
         PULLQUOTE: {
-            sizePx: 32,
+            sizePx: 42,
             weight: 700,
             tracking: 0,
             lineHeight: 1.2,
@@ -434,6 +434,14 @@ export const SPACE = {
         // Welcome — gap between the three bottom CTA links.
         welcomeCtaGap:      { desktop: 160, tablet:  120, mobile:  26 },
 
+        // Gap between a full-bleed canvas BAND and the detail text under it.
+        // Shared by the Work carousel -> case panel and the How I Think grid
+        // band -> card panel, because both bands end in the SAME vignette
+        // (gradient from 60% down, black at 0.85) and so read as the same
+        // edge. They used to be 60/60/24 and a flat 20 respectively, in two
+        // unrelated places, for no reason anyone could name.
+        bandDetailGap:      { desktop:  40, tablet:   40, mobile:  16 },
+
         // Welcome hero — gap between the headline/carousel and the tagline
         // under it. Desktop and tablet are served by WelcomeHeroAnimation,
         // mobile by WelcomeHero2Line; each file used to carry its own copy
@@ -497,6 +505,33 @@ export const FRAME_INSET_VW = 2.5
 // Confirmed on-device 2026-07-20. Shared by WorkCarousel and ThinkGridCanvas
 // so the two pages' mobile band heights always move together.
 export const MOBILE_BAND_HEIGHT_SCALE = 1.65
+
+// ─── BAND HEADLINE ───────────────────────────────────────────────────────────
+// The display line painted at the bottom of a full-bleed canvas band: the Work
+// carousel (WorkCarousel.drawHL) and the How I Think band
+// (ThinkGridCanvas.drawBandTitle). Same gesture, same 1440-wide reference
+// stage, so they share one set of numbers — they were previously a bare 52 and
+// 55 restated as literals in BOTH files, kept in step by a hand-written
+// comment.
+//
+// The two canvases work in different coordinate spaces — Work draws into a
+// 1440-wide native canvas that is CSS-scaled to fit, Think's band canvas is
+// sized in real screen pixels — so each file applies the scale its own way.
+// The rendered result is the same and must stay that way.
+//
+//   desktop / tablet: sizePx is a REFERENCE size at refW. Rendered size is
+//                     sizePx × (viewport / refW), so the headline scales with
+//                     the band it sits in.
+//   mobile:           the band stops tracking viewport width, so mobileSizePx
+//                     is a real rendered pixel size. This used to read
+//                     PULLQUOTE.sizePx, which meant tuning pullquotes silently
+//                     moved the headline — an unrelated role doing double duty.
+export const BAND_HEADLINE = {
+    sizePx:       52,
+    lineHeightPx: 55,
+    mobileSizePx: 28,
+    refW:         1440,
+}
 
 export const NAV = {
     height: 87, // measured desktop height in px — update if navbar changes

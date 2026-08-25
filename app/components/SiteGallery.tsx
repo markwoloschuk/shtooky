@@ -2,19 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { COLORS, useBreakpoint } from './SiteTokens'
+import { COLORS } from './SiteTokens'
+import type { GalleryOffset, GalleryVideoLink, GalleryData } from './CaseMarkdown'
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 // All tunable values live here, per project convention.
 
 const CFG = {
   GRID_GAP_PX: 6,
-
-  // Default column step-down per breakpoint tier, relative to the declared
-  // desktop "Nup". No per-breakpoint override exists in the [gallery] markdown
-  // syntax yet — revisit if a real gallery looks bad on a real phone.
-  TABLET_COL_STEP: 1,
-  MOBILE_COL_STEP: 2,
 
   LIGHTBOX_FADE_MS: 400,
   LIGHTBOX_FADE_OFFSET_PX: 16,
@@ -42,51 +37,12 @@ const CROP_RATIOS: Record<string, number> = {
   '4by3': 4 / 3,
   '16by9': 16 / 9,
   '1by1': 1,
-}
-
-// ─── TYPES ───────────────────────────────────────────────────────────────────
-// Mirrors the GalleryOffset/GalleryData shapes produced by parseGalleryBlock()
-// in ThinkCasePanel.tsx / WorkCaseStudyPanel.tsx. Kept as a duplicate here
-// (not imported) since those files own the markdown-parsing concern and this
-// component only needs the resulting data shape.
-//
-// NOTE: parseGalleryBlock() will need a corresponding update to emit `videos`
-// — that's out of scope for this file, flagging so it isn't forgotten.
-
-export interface GalleryOffset {
-  index: number   // 1-based position in the FULL sorted folder list (hero included)
-  x: number       // % nudge
-  y: number       // % nudge
-  scale: number   // % (100 = no change)
-}
-
-export interface GalleryVideoLink {
-  index: number                        // same 1-based full-folder-list numbering as offsets
-  source: 'youtube' | 'vimeo' | 'file'
-  id?: string                          // YouTube or Vimeo video ID (source: 'youtube' | 'vimeo')
-  src?: string                         // path to the video file (source: 'file')
-  poster?: string                      // explicit override; skips auto-derivation entirely
-}
-
-export interface GalleryData {
-  source: string
-  columns: number
-  crop?: '4by3' | '16by9' | '1by1'
-  noClick?: boolean
-  heroHeight?: number
-  offsets: GalleryOffset[]
-  videos?: GalleryVideoLink[]
+  '2by3': 2 / 3,   // portrait — posters
 }
 
 interface Props {
   path: string          // resolved folder path, e.g. '/images/work/CaseStudyImages_1'
   gallery: GalleryData
-}
-
-function columnsForBreakpoint(desktopCols: number, bp: 'mobile' | 'tablet' | 'desktop'): number {
-  if (bp === 'desktop') return desktopCols
-  if (bp === 'tablet') return Math.max(1, desktopCols - CFG.TABLET_COL_STEP)
-  return Math.max(1, desktopCols - CFG.MOBILE_COL_STEP)
 }
 
 // Ordered list of poster URLs to try for a given grid position, most-specific
@@ -111,7 +67,6 @@ function posterCandidates(video: GalleryVideoLink | undefined, folderSrc: string
 export default function Gallery({ path, gallery }: Props) {
   const [images, setImages] = useState<string[] | null>(null)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
-  const bp = useBreakpoint()
 
   useEffect(() => {
     let cancelled = false
@@ -134,12 +89,16 @@ export default function Gallery({ path, gallery }: Props) {
   // the hero is reachable by clicking it, same as any grid cell.
   const lightboxFilenames = hasHero ? [heroSrc!, ...gridImages] : gridImages
 
-  // Column count: full declared Nup once image count >= Nup (trailing cells
-  // left empty by the grid's own row-wrapping); shrunk down to image count
-  // when there are fewer images than Nup, so a single short row isn't
-  // stretched wider than its content.
-  const desktopCols = gallery.columns
-  const cols = Math.min(columnsForBreakpoint(desktopCols, bp), gridImages.length || 1)
+  // Column count: the declared Nup at EVERY breakpoint. It used to step down
+  // by a fixed 1 on tablet and 2 on mobile, which reduced by wildly different
+  // proportions depending on the Nup (a 2up lost half its columns, a 5up a
+  // fifth) and broke the composition the author chose — an 8-image 4up
+  // reflowed to 3+3+2. The Nup is a compositional decision, so it is
+  // preserved; on a phone the grid reads as a contact sheet and the lightbox
+  // is where the work is actually viewed.
+  // Still shrunk to the image count when there are fewer images than Nup, so
+  // a single short row isn't stretched wider than its content.
+  const cols = Math.min(gallery.columns, gridImages.length || 1)
 
   const offsetByIndex = new Map(gallery.offsets.map(o => [o.index, o]))
   const videoByIndex = new Map((gallery.videos ?? []).map(v => [v.index, v]))

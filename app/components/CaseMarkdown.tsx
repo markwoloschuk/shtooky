@@ -49,7 +49,7 @@ export interface GalleryVideoLink {
 export interface GalleryData {
   source: string          // folder name (relative to imagePath) or full path
   columns: number         // desktop grid column count ("Nup")
-  crop?: '4by3' | '16by9' | '1by1'  // omitted = native image aspect ratio
+  crop?: '4by3' | '16by9' | '1by1' | '2by3'  // 2by3 is portrait
   noClick?: boolean       // true = disable lightbox
   heroHeight?: number     // px; omitted = no hero, straight grid
   offsets: GalleryOffset[]
@@ -183,7 +183,7 @@ export function resolveGalleryMedia(gallery: GalleryData, imagePath: string): Ga
 
 // Expected shape:
 //   folderName-or-/full/path/
-//   Nup, crop(optional: 4by3|16by9|1by1), noClick(optional)
+//   Nup, crop(optional: 4by3|16by9|1by1|2by3), noClick(optional)
 //   hero, heightPx        <- entire line omitted = no hero
 //   offset {
 //     [1, 20x, 50y, 100s],
@@ -206,7 +206,7 @@ export function parseGalleryBlock(content: string): GalleryData {
 
   const line2 = (lines[1] ?? '').split(',').map(s => s.trim())
   const columns = parseInt(line2[0]?.replace(/up$/i, '') ?? '', 10) || 3
-  const CROP_TOKENS = new Set(['4by3', '16by9', '1by1'])
+  const CROP_TOKENS = new Set(['4by3', '16by9', '1by1', '2by3'])
   let crop: GalleryData['crop']
   let noClick = false
   for (const tok of line2.slice(1)) {

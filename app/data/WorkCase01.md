@@ -9,8 +9,7 @@ role: Writer / Co-Director / Animator
 delivery: 13 Videos and Social Cut-downs
 
 [subtitle]
-One good line can drive a lot of visual creative
-and hook your customer’s emotional core.
+One good line can drive a lot of visual creative and hook your customer’s emotional core.
 
 [label]
 THE SITUATION
@@ -38,8 +37,8 @@ video {
 }
 
 [pullquote]
-Good narrative thread[br] 
-ties in the emotion.
+Use narrative thread[br] 
+to tie in the emotion.
 
 [gallery]
 ShootingGallery

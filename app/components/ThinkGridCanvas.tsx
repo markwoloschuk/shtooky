@@ -1,11 +1,11 @@
 'use client';
 
 // TYPE ROLES USED IN THIS FILE:
-//   band title (canvas) → TYPE_TIERS.PULLQUOTE (sizePx — mobile minimum; desktop = 52 * scale)
+//   band title (canvas) → BAND_HEADLINE (shared with WorkCarousel.drawHL)
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useColumn, NAV, COLORS, TYPE, MOBILE_BAND_HEIGHT_SCALE, getType } from './SiteTokens';
+import { useColumn, NAV, COLORS, TYPE, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE } from './SiteTokens';
 import { THINK_GRID, coverImageFor, offsetFor } from '../data/ThinkManifest';
 
 // ── Layout — 13 cells, native units on a 1440-wide reference canvas ────────
@@ -16,7 +16,7 @@ const GAP = 6;
 // _bandH (effective band height) — desktop/tablet = BAND_HEIGHT;
 // mobile = BAND_HEIGHT * MOBILE_BAND_HEIGHT_SCALE. Updated by scaleStage.
 let _bandH = 480; // initialised to BAND_HEIGHT — can't reference it before declaration
-let _bandTitlePx = 52; // canvas pixels for band title font; updated by scaleStage to meet PULLQUOTE min on mobile
+let _bandTitlePx = BAND_HEADLINE.sizePx; // SCREEN pixels; updated by scaleStage. See BAND_HEADLINE.
 
 const ROW1_H = 357, ROW2_H = 300, ROW3_H = 355.5, ROW4_H = 280;
 const row1Quarter = (NATIVE_W - 2 * GAP) / 4;
@@ -236,11 +236,16 @@ function drawBandTitle(
   ctx.rect(clipRect.x, clipRect.y, clipRect.w, clipRect.h);
   ctx.clip();
   ctx.globalAlpha = alpha;
-  // All values match WorkCarousel.drawHeadline, scaled to screen pixels
-  const unitPx = _bandTitlePx / 52; // proportional unit; on desktop ≈ viewport/NATIVE_W, on mobile = larger
+  // Size and line height come from BAND_HEADLINE, shared with
+  // WorkCarousel.drawHL — here already in screen pixels.
+  const unitPx = _bandTitlePx / BAND_HEADLINE.sizePx; // proportional unit
   const fontSize = _bandTitlePx;
-  const lineH = 55 * unitPx;
-  const padB = 28 * unitPx; // Work carousel: CH(480) - 48 + HL_Y(20) = 452 → 28 from bottom
+  const lineH = BAND_HEADLINE.lineHeightPx * unitPx;
+  // NOT shared: Work expresses the same bottom offset as CH - 48 + HL_Y(20),
+  // in NATIVE units that do not scale with the headline. So the two agree on
+  // desktop/tablet and diverge on mobile, where this one scales and Work's
+  // doesn't. Left as-is rather than silently moving the Work headline.
+  const padB = 28 * unitPx;
   ctx.font = `700 ${fontSize}px ${TYPE.display}`;
   ctx.fillStyle = COLORS.white;
   ctx.textAlign = 'left';
@@ -946,8 +951,12 @@ imgsRef.current = Array.from({ length: N }, (_, i) => {
       _bandH = isMobile
         ? Math.round(BAND_HEIGHT * MOBILE_BAND_HEIGHT_SCALE)
         : BAND_HEIGHT;
-      const titleScale = window.innerWidth / NATIVE_W;
-      _bandTitlePx = isMobile ? getType().PULLQUOTE.sizePx : Math.round(52 * titleScale);
+      const titleScale = window.innerWidth / BAND_HEADLINE.refW;
+      // Already screen pixels here, so the reference size is scaled up front —
+      // the mirror of WorkCarousel dividing by its stage scale.
+      _bandTitlePx = isMobile
+        ? BAND_HEADLINE.mobileSizePx
+        : Math.round(BAND_HEADLINE.sizePx * titleScale);
       const s = wrap.clientWidth / NATIVE_W;
       scaleRef.current = s;
       gridInsetRef.current = { offset: NATIVE_W * col.marginVw / 100, scale: col.vw / 100 };

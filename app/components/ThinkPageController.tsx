@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useColumn, COLORS, MOBILE_BAND_HEIGHT_SCALE } from './SiteTokens';
+import { useColumn, COLORS, SPACE, useSpace, MOBILE_BAND_HEIGHT_SCALE } from './SiteTokens';
 import ThinkOpenAnimation from './ThinkOpenAnimation';
 import ThinkBlurb from './ThinkBlurb';
 import ThinkGridCanvas, { BAND_HEIGHT, NATIVE_W } from './ThinkGridCanvas';
@@ -12,6 +12,7 @@ import { THINK_GRID, contentFileFor } from '../data/ThinkManifest';
 
 export default function ThinkPageController() {
   const col = useColumn();
+  const space = useSpace();
   const [cardOpen, setCardOpen] = useState(false);
   const [openIdx, setOpenIdx] = useState(-1);
   const [bandDocY, setBandDocY] = useState(0);
@@ -54,7 +55,9 @@ const effectiveBandH = (viewportW > 0 && viewportW < 768)
     ? BAND_HEIGHT * MOBILE_BAND_HEIGHT_SCALE
     : BAND_HEIGHT;
   const bandHeightPx = viewportW * (effectiveBandH / NATIVE_W);
-  const detailTopPx = bandDocY + bandHeightPx + 20;
+  // Same gap the Work carousel uses down to its case panel — both bands
+  // end in the same vignette, so they read as the same edge.
+  const detailTopPx = bandDocY + bandHeightPx + space(SPACE.layout.bandDetailGap);
 const cardFile = openIdx >= 0 ? contentFileFor(THINK_GRID[openIdx]) : null;
 
   return (

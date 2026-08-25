@@ -2,15 +2,14 @@
 imagePath: /images/work/CaseStudyImages_2
 ---
 
-[subtitle]
-A crazy schedule demanded pragmatic choices[br]
-that had us literally moving fast and breaking things.
-
 [jobbox]
 title: HP Business Jet Launch
 client: HP Inc.
 role: Creative Director
 delivery: Product Launch Video
+
+[subtitle]
+A crazy schedule demanded pragmatic choices that had us literally moving fast and breaking things.
 
 [label]
 THE SITUATION
@@ -44,8 +43,9 @@ video {
 }
 
 [pullquote]
-The <constraints> weren't the enemy,[br]
-they were the guard rails to <success.>
+The <constraints> weren't[br]
+the enemy,they were the[br]
+guard rails to <success.>
 
 [gallery]
 production

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { WORK_MANIFEST } from '../data/WorkManifest'
-import { TYPE, COLORS, useType, useColumn, useBreakpoint, MOBILE_BAND_HEIGHT_SCALE, getType, getColumn } from './SiteTokens'
+import { TYPE, COLORS, useType, useColumn, useBreakpoint, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, getColumn } from './SiteTokens'
 
 // ── Locked animation constants (from work_carousel_v30.html) ─────────────────
 const CFG = {
@@ -45,7 +45,7 @@ const BASE_W = CW / N
 // _ech (effective CH) — desktop/tablet = CH; mobile = CH * MOBILE_BAND_HEIGHT_SCALE.
 // Updated by scaleStage on every resize. All drawing functions read this.
 let _ech = CH
-let _hlNativeSize = 52  // updated in scaleStage: mobile drives this to meet PULLQUOTE min-size on screen
+let _hlNativeSize = BAND_HEADLINE.sizePx  // updated in scaleStage; see BAND_HEADLINE
 let _hlPadNative = 104  // updated in scaleStage: col.marginVw * CW / 100 in native units
 
 
@@ -385,12 +385,12 @@ function showNav() {
     if (clipX !== undefined) { ctx.beginPath(); ctx.rect(clipX, 0, clipW, _ech); ctx.clip() }
     if (translateX) ctx.translate(translateX, 0)
     ctx.globalAlpha = Math.max(0, Math.min(1, alpha))
-    const hlScale = _hlNativeSize / 52
+    const hlScale = _hlNativeSize / BAND_HEADLINE.sizePx
     ctx.font = `bold ${_hlNativeSize}px Archivo`
     ctx.fillStyle = '#fff'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'bottom'
-    const pad = _hlPadNative, lineH = Math.round(55 * hlScale)
+    const pad = _hlPadNative, lineH = Math.round(BAND_HEADLINE.lineHeightPx * hlScale)
     const totalH = lines.length * lineH
     const baseY = _ech - 48 - totalH + CFG.HL_Y - rise
     lines.forEach((line, i) => ctx.fillText(line, pad, baseY + (i + 1) * lineH))
@@ -744,7 +744,11 @@ if (m === 'nav') {
   isMobileRef.current = window.innerWidth < 768
   _ech = isMobileRef.current ? Math.round(CH * MOBILE_BAND_HEIGHT_SCALE) : CH
   const s = wrap.clientWidth / CW
-  _hlNativeSize = isMobileRef.current ? Math.round(getType().PULLQUOTE.sizePx / s) : 52
+  // Divide by s so the MOBILE headline lands at BAND_HEADLINE.mobileSizePx on
+  // screen after the stage's own scale is applied.
+  _hlNativeSize = isMobileRef.current
+    ? Math.round(BAND_HEADLINE.mobileSizePx / s)
+    : BAND_HEADLINE.sizePx
   _hlPadNative = Math.round(getColumn().marginVw * CW / 100)
   stage.style.transform = `scale(${s})`
   stage.style.height = `${_ech}px`

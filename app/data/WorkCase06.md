@@ -1,14 +1,52 @@
+---
+imagePath: /images/work/CaseStudyImages_6
+---
+
 [jobbox]
-title: Enduro III Poster
+title: Enduro III
 client: SuperPro Productions
 role: Designer / Data Wrangler
-delivery: Event Poster
+delivery: Event Poster & Web Ads
 
+[subtitle]
+When you design with meaning you create something more than a means to an end.
+
+[label]
+THE SITUATION
 [paragraph]
-The client wanted a Joy Division rip-off. Mark wanted the real thing — actual elevation data from the actual course.
+San Francisco bike racing promoter Murphy Mack was famous for keeping his gravel race routes secret until the day of the event. He wanted a poster design that was inspired by the infamous infographic from Joy Division’s “Unknown Pleasures” album. I wasn’t content to just copy the visual style and add the necessary text. This was an opportunity to create something truly special.
+
+[label]
+THE SOLUTION
+[paragraph]
+The image on the album cover wasn’t designed – it’s a data visualization showing the pulses from a neutron start. I wanted my design to do something similar – to share a deeper level of information than an interesting image and the key facts about the event. 
+
+The image reminded me of an elevation profile – what if I could create an elevation profile of the course? What if the course were ACTUALLY VISIBLE in that profile? What if that data were real?
+
+Today there are many way to solve this problem – even someone with my limited programming abilities could find elevation data and render that into a useable image. But my solution required a lot more elbow grease.
+
+I found a utility that would generate elevation profiles from two points drawn on a google map. But all I had was a paper copy of a map – how would I get the physical map into the digital space? The answer was acetate, tape and a sharpie. 
+
+[gallery]
+EnduroExtra
+4up, 4by3
 
 [pullquote]
-The real data was right there. <Using it made the thing true.>
+Print graphics[br]
+in After Effects?
 
 [paragraph]
-Generic topographic waveform vs. terrain that actually meant something — the real climbs rendered beautiful, hidden in plain sight. Riders looking at the poster were looking at their own suffering. Most had no idea.[br]GPS coordinates from the race promoter. ~60 elevation profiles normalized to matching vertical scale. Every profile hand-traced in After Effects layer by layer, staggered in 3D space with custom expression. Glow, noise, restraint. Grid lines still visible if you look.[br]The real data was right there. Using it made the thing true. Nobody noticed. That was fine.
+After generating all the elevation slices I aligned them in Illustrator and hand traced them into vector shapes. From there I imported them into After Effects were I used an expression to stagger them in 3D space. Eh voila!
+
+A faithful visualization of the actual route. Not so secret if you knew what to look for.
+
+[gallery]
+Enduro
+2up, 2by3
+
+[paragraph]
+I’ve designed many posters for many other bike races and events, but this is truly my favorite.
+
+[gallery]
+BikePosters
+4up, 2by3

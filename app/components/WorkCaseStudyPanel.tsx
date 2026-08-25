@@ -10,7 +10,7 @@
 //   video counter    → TYPE_TIERS.CAPTION     (sizePx — matched, not yet wired)
 
 import { useEffect, useState } from 'react'
-import { TYPE, COLORS, useType, useColumn, useBreakpoint, bodyMaxWidth } from './SiteTokens'
+import { TYPE, COLORS, SPACE, useType, useColumn, useSpace, bodyMaxWidth } from './SiteTokens'
 import SiteGallery from './SiteGallery'
 import { JOB_FIELDS } from '../data/WorkManifest'
 import {
@@ -61,11 +61,15 @@ interface Props {
 export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
   const type = useType()
   const col = useColumn()
-    const bp = useBreakpoint()
   const [parsed, setParsed] = useState<ParsedCase | null>(null)
   const [blockOps, setBlockOps] = useState<number[]>([])
-  const panelPaddingTop = bp === 'mobile' ? 16 : 40
-  const jobBoxPaddingTop = bp === 'mobile' ? 8 : 20
+  const space = useSpace()
+  // One gap from the carousel's bottom edge to whatever block leads the file.
+  // Previously this was split in two — a pad on the panel PLUS a pad on the
+  // job box — which meant the gap silently changed depending on whether
+  // [jobbox] or [subtitle] came first, and the job box carried a stray 20px
+  // with it if it ever moved down the page.
+  const panelPaddingTop = space(SPACE.layout.bandDetailGap)
 
   useEffect(() => {
     if (!caseFile) { setParsed(null); setBlockOps([]); return }
@@ -126,7 +130,6 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
               gridAutoFlow: 'column',
               gap: '24px 30px',
               marginBottom: 28,
-              paddingTop: jobBoxPaddingTop,
             }}>
               {JOB_FIELDS.filter(({ key }) => f[key]).map(({ label, key }) => (
                 <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>

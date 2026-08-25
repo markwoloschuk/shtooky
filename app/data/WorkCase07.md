@@ -1,14 +1,37 @@
+---
+imagePath: /images/work/CaseStudyImages_7
+---
+
 [jobbox]
 title: Wedding Infogrphics
-client: Personal
+client: Self
 role: Designer
-delivery: Custom Infographic Series
+delivery: Mixed Media
 
+[subtitle]
+The best brief I ever got was the one I wrote myself.[br]
+
+[label]
+THE SITUATION
 [paragraph]
-A tool for talking to strangers at weddings that turned into a gift people hang on their walls.
+I love talking to people – but don’t love feeling like I’m bothering them. That makes me feel more shy at a wedding that I might want to be. It helps when I have a reason to initiate an interaction so why not design one?
+
+[label]
+THE SOLUTION
+[paragraph]
+I was inspired by infographics my friend Katie Peek created for the New York Times. I reasoned that revealing the relationships between family and friends would create interesting visualizations. 
+
+It begins with a clipboard and questions, “how do you know the couple?” Each event is different but patterns emerge in the process. Data gathered over the course of the event is transformed into a visual map of connections. Working in a flowcharting app I sculpt the data – each guest a circle – each connection a line.
+
+The final shape is further refined in Adobe Illustrator before moving to physical media: paper, foil, wood. The best part? It not only guarantees* I talk to everyone there, it also results in a unique gift for the newlyweds.
+
+[gallery]
+WeddingGallery
+3up
 
 [pullquote]
-The best brief I ever got <was the one I wrote myself.>
+Invisible numbers
+hide beautiful secrets.
 
 [paragraph]
-Wedding videos meant spending the whole day working instead of celebrating. Mark needed a way to be present and social without a camera.[br]A clipboard and a question: how do you know the couple? Data gathered over an evening, turned into a node map. Made five times across a decade: markers on black paper, laser cut wood, giclee print, color print, and finally the distance map — concentric circles encoding how far everyone traveled.[br]The best brief I ever got was the one I wrote myself. The data was just an excuse to have a conversation. The conversation was the whole point.
+* It would be safer to say it “guarantees” I try to talk to everyone.
