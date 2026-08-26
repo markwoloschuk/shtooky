@@ -17,7 +17,7 @@
 //   subtracted back out at the pull wrapper so one number owns each gap.
 
 import { useEffect, useMemo, useRef } from "react"
-import { COLORS, TYPE, SPACE, SEQUENCE, useColumn, useType, useSpace, bodyMaxWidth } from "./SiteTokens"
+import { COLORS, TYPE, SPACE, SEQUENCE, getVisibility, useColumn, useType, useSpace, bodyMaxWidth } from "./SiteTokens"
 import {
     stripComments,
     parseFrontmatter,
@@ -27,7 +27,7 @@ import {
     type PullChunk,
 } from "./CaseMarkdown"
 import { useSequence } from "./SequenceController"
-import { useSequencedFade, installQueue, armQueue, isRevealed } from "./RevealQueue"
+import { useSequencedFade, installQueue, armQueue, isRevealed, registerItem } from "./RevealQueue"
 
 // ─── Dialect ──────────────────────────────────────────────────────────────────
 // About and Let's Talk share this one. Blocks are SECTIONS: one block is one
@@ -50,6 +50,7 @@ export function parsePageMd(raw: string): PageDoc {
         allowed: PAGE_BLOCKS,
         groupParagraphs: new Set(['paragraph', 'subtitle']),
         pullBlocks: new Set(['pull']),
+        nameValue: new Set(['slot']),
     })
     return {
         blocks,
@@ -522,6 +523,60 @@ export default function TextBlock({
     )
 }
 
+// ─── SlotGate ─────────────────────────────────────────────────────────────────
+// A slot is IN the sequence, not beside it — that is the point of making the
+// sphere and the Venn diagram content rather than JSX in the page file. It
+// takes a queue index like anything else.
+//
+// `hold: <ms>` makes everything after it wait, the way a pull quote does. The
+// difference is that a slot has no completion signal to offer: the sphere is a
+// continuous canvas that never "finishes". So the hold is a DURATION, which is
+// the honest shape for it — and like every hold it is a RESTING-pace rule,
+// released the moment the reader is scrolling toward new content.
+//
+// The slot's children keep painting themselves. SlotGate deliberately does not
+// touch their opacity: WhoVennDiagram writes its own (reaching up to its
+// parent), and the sphere is a canvas that manages its own fade.
+function SlotGate({
+    queueIndex,
+    holdMs,
+    eligible,
+    children,
+}: {
+    queueIndex: number
+    holdMs: number
+    eligible?: () => boolean
+    children: React.ReactNode
+}) {
+    const ref = useRef<HTMLDivElement>(null)
+    const startedAt = useRef(0)
+
+    useEffect(() => {
+        const unregister = registerItem({
+            index: queueIndex,
+            eligible: () => {
+                if (eligibleRef.current) return eligibleRef.current()
+                const node = ref.current
+                if (!node) return false
+                const vis = getVisibility()
+                const topVh = (node.getBoundingClientRect().top / window.innerHeight) * 100
+                return topVh < vis.BF0
+            },
+            holds: () =>
+                startedAt.current > 0 && performance.now() < startedAt.current + holdMs,
+            start: () => {
+                startedAt.current = performance.now()
+            },
+        })
+        return unregister
+    }, [queueIndex, holdMs])
+
+    const eligibleRef = useRef(eligible)
+    eligibleRef.current = eligible
+
+    return <div ref={ref} style={{ width: "100%" }}>{children}</div>
+}
+
 // ─── Block renderer ───────────────────────────────────────────────────────────
 
 function BlockRenderer({
@@ -549,10 +604,18 @@ function BlockRenderer({
     const eligible = manualSequence ? () => gateOpen : undefined
 
     if (block.type === "slot") {
-        // The content file names the slot; the PAGE supplies the element and
-        // every layout decision about it. The content never learns what a Venn
-        // diagram is or what props it takes.
-        return <>{slots?.[block.content.trim()] ?? null}</>
+        // The content file names the slot and says how long it holds; the PAGE
+        // supplies the element and every layout decision about it. The content
+        // never learns what a Venn diagram is or what props it takes.
+        return (
+            <SlotGate
+                queueIndex={firstIndex}
+                holdMs={parseInt(block.fields?.hold ?? "0", 10) || 0}
+                eligible={eligible}
+            >
+                {slots?.[block.content.trim()] ?? null}
+            </SlotGate>
+        )
     }
 
     if (block.type === "pull") {

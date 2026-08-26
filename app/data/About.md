@@ -1,4 +1,5 @@
 [slot] sphere
+hold: 1800
 
 [paragraph]
 As a freelancer, I haven’t had a lot of official titles — but over my career I’ve taken on many jobs.
@@ -83,6 +84,16 @@ And I think a well-developed sense of empathy is part of what makes a good human
 [paragraph]
 The more we understand about ourselves the more we see there is to know. It feels almost fractal — there’s more to this story. This is just where I am right now.
 
+// ─────────────────────────────────────────────────────────────────────────
+// SLOTS
+//
+//   [slot] name        the PAGE supplies the element; this only says where it
+//                      sits in the sequence and what it is called
+//   hold: <ms>         everything after it waits this long — the sphere is a
+//                      continuous canvas with no completion to report, so its
+//                      hold is a duration. Like every hold this is a RESTING
+//                      pace rule: scrolling toward new content releases it.
+//
 // ─────────────────────────────────────────────────────────────────────────
 // PULL QUOTE OPTIONS — omit any field to get its default.
 //

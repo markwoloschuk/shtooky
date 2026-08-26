@@ -161,6 +161,8 @@ export interface ParseBlocksOptions {
   groupParagraphs?: Set<string>   // a blank line here makes another paragraph
                                   // INSIDE one block -> block.paragraphs[]
   pullBlocks?: Set<string>        // parsed into `pull` (options + chunks)
+  nameValue?: Set<string>         // first line is a NAME (-> content), any
+                                  // following `key: value` lines -> fields
 }
 
 // splitParagraphs vs groupParagraphs — the difference matters for sequencing.
@@ -220,7 +222,7 @@ export function parsePullBlock(raw: string, warn = true): PullSpec {
 }
 
 export function parseBlocks(body: string, opts: ParseBlocksOptions): CaseBlock[] {
-  const { allowed, keyValue, splitParagraphs, groupParagraphs, pullBlocks } = opts
+  const { allowed, keyValue, splitParagraphs, groupParagraphs, pullBlocks, nameValue } = opts
   const blocks: CaseBlock[] = []
 
   for (const sec of body.trim().split(/\n(?=\[)/)) {
@@ -237,6 +239,18 @@ export function parseBlocks(body: string, opts: ParseBlocksOptions): CaseBlock[]
         if (m) fields[m[1]] = m[2].trim()
       }
       blocks.push({ type, content: '', fields })
+      continue
+    }
+
+    // `[slot] sphere` plus optional option lines under it.
+    if (nameValue?.has(type)) {
+      const [first, ...restLines] = raw.split('\n')
+      const fields: Record<string, string> = {}
+      for (const line of restLines) {
+        const m = line.trim().match(/^(\w+):\s*(.*)$/)
+        if (m) fields[m[1]] = m[2].trim()
+      }
+      blocks.push({ type, content: first.trim(), fields })
       continue
     }
 
