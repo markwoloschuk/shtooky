@@ -14,7 +14,7 @@ import {
   parseAccents, parseFrontmatter, parseBlocks, parseGalleryBlock, stripComments,
   resolveImagePath, resolveGalleryMedia,
   type CaseBlock, type GalleryData,
-} from './CaseMarkdown'
+} from './SiteCaseMarkdown'
 
 const ACCENT = COLORS.thinking
 const FADE_DUR = 1000
@@ -33,7 +33,7 @@ interface ParsedCard {
 }
 
 // Which blocks a Think card may use. The format itself — [br] handling,
-// comments, blank-line paragraphs — lives in CaseMarkdown.tsx, shared with
+// comments, blank-line paragraphs — lives in SiteCaseMarkdown.tsx, shared with
 // the Work case panels.
 //
 // Note the frontmatter here is NOT optional the way Work's is: `title` and

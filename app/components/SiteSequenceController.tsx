@@ -1,6 +1,6 @@
 "use client"
 
-// SequenceController.tsx
+// SiteSequenceController.tsx
 // app/components/
 // Module-level sequence store. Import functions directly — no React context needed.
 // v02 — ported to Next.js 2026-06-22

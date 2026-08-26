@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { COLORS } from './SiteTokens'
-import type { GalleryOffset, GalleryVideoLink, GalleryData } from './CaseMarkdown'
+import type { GalleryOffset, GalleryVideoLink, GalleryData } from './SiteCaseMarkdown'
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 // All tunable values live here, per project convention.

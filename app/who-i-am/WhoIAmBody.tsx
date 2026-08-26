@@ -9,8 +9,8 @@
 // so a content edit can no longer dislodge them.
 
 import { useEffect } from "react"
-import { reset } from "../components/SequenceController"
-import { armQueue } from "../components/RevealQueue"
+import { reset } from "../components/SiteSequenceController"
+import { armQueue } from "../components/SiteRevealQueue"
 import SkillsSphere from "../components/WhoSkillsSphere"
 import VennDiagram from "../components/WhoVennDiagram"
 import SiteTextBlock from "../components/SiteTextBlock"

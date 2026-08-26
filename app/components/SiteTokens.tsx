@@ -18,6 +18,9 @@ export const DEBUG = {
     disableScrollFades: true,
     // Shows zone lines (TF0, TF100, BF100, BF0) and false-color gradient in ScrollConfig
     visibility: false,
+    // Traces every SiteRevealQueue decision to the console: what revealed, when,
+    // whether pressure was on, and why a hold did or did not engage.
+    sequence: false,
 }
 
 // ─── COLORS ──────────────────────────────────────────────────────────────────
@@ -616,14 +619,22 @@ export const SEQUENCE = {
     pressureWindowMs:  600,
     // Backlog is the OTHER source of pressure, and the one that matters after
     // a jump. Recent scrolling decays in pressureWindowMs, so landing at the
-    // bottom of a long page would drop straight back to the resting pace —
-    // six pull quotes each holding ~1.6s, twelve seconds of catch-up watched
-    // from the bottom. Compression should follow how far the queue has fallen
-    // behind where the reader is LOOKING, not just whether they moved
-    // recently. Small backlogs stay at the resting pace, which is what keeps
-    // the still-reader case (a pull quote playing out with room below it) as
-    // designed.
-    backlogPressure: 4,   // eligible-but-unrevealed items before compressing
+    // bottom of a long page would drop straight back to the resting pace.
+    //
+    // BACKLOG COUNTS ONLY ITEMS THE READER HAS ALREADY SCROLLED PAST. It first
+    // counted every eligible-but-unrevealed item, which at page load is simply
+    // "everything on screen" — a normal starting condition, not the queue
+    // falling behind. Worse, how many items fit above BF0 depends on the tier:
+    // mobile's short lines stacked 5 above it, desktop's wide ones 3, so the
+    // same count meant different things at different widths and the sphere's
+    // hold was released at load on mobile and tablet but not desktop.
+    //
+    // The two pressure sources are now complementary rather than overlapping:
+    //   scroll  — the reader is actively moving
+    //   backlog — content went by without being revealed
+    // Content that has left the top of the screen unrevealed is already wrong,
+    // so the threshold is small.
+    backlogPressure: 2,   // eligible-but-unrevealed items before compressing
 }
 
 export const NAV = {

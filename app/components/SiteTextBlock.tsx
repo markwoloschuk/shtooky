@@ -3,7 +3,8 @@
 // TextBlock.tsx
 // app/components/
 // Renders a list of content items by ID from a page content file.
-// Handles paragraphs, pull text, and links. Sequenced via SequenceController.
+// Handles paragraphs, pull text and slots. Order and pacing come from
+// SiteRevealQueue; choreographed pages gate through SiteSequenceController.
 // v02 — ported to Next.js 2026-06-22
 //
 // TYPE ROLES USED
@@ -25,9 +26,9 @@ import {
     type CaseBlock,
     type PullSpec,
     type PullChunk,
-} from "./CaseMarkdown"
-import { useSequence } from "./SequenceController"
-import { useSequencedFade, installQueue, armQueue, isRevealed, registerItem } from "./RevealQueue"
+} from "./SiteCaseMarkdown"
+import { useSequence } from "./SiteSequenceController"
+import { useSequencedFade, installQueue, armQueue, isRevealed, registerItem } from "./SiteRevealQueue"
 
 // ─── Dialect ──────────────────────────────────────────────────────────────────
 // About and Let's Talk share this one. Blocks are SECTIONS: one block is one
@@ -69,7 +70,7 @@ const SPACING = {
     pullGapAfter: SPACE.text.pullGapAfter,
 }
 
-// Pacing now lives in SEQUENCE (SiteTokens) and is owned by RevealQueue.
+// Pacing now lives in SEQUENCE (SiteTokens) and is owned by SiteRevealQueue.
 // SCROLL_FADE / SCROLL_FADE_PULL / SCROLL_FADE_FAST are gone: they mixed
 // pacing (mountDelay, mountFadeIn) with zone geometry (fadeInStart/End,
 // fadeOutStart/End) in one object, and the zone half was hardcoded px that
@@ -108,7 +109,7 @@ const LINK_DEFAULTS = {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 // PullChunk / PullTiming / ContentItem are gone. The pull-quote shape lives in
-// CaseMarkdown as PullChunk / PullSpec, and there is no ContentItem any more —
+// SiteCaseMarkdown as PullChunk / PullSpec, and there is no ContentItem any more —
 // the content is markdown blocks, not numbered objects.
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -540,11 +541,13 @@ export default function TextBlock({
 function SlotGate({
     queueIndex,
     holdMs,
+    bleed,
     eligible,
     children,
 }: {
     queueIndex: number
     holdMs: number
+    bleed: boolean
     eligible?: () => boolean
     children: React.ReactNode
 }) {
@@ -564,6 +567,10 @@ function SlotGate({
             },
             holds: () =>
                 startedAt.current > 0 && performance.now() < startedAt.current + holdMs,
+            passed: () => {
+                const node = ref.current
+                return !!node && node.getBoundingClientRect().bottom < 0
+            },
             start: () => {
                 startedAt.current = performance.now()
             },
@@ -574,7 +581,23 @@ function SlotGate({
     const eligibleRef = useRef(eligible)
     eligibleRef.current = eligible
 
-    return <div ref={ref} style={{ width: "100%" }}>{children}</div>
+    // `bleed: true` escapes the content column and spans the viewport.
+    //
+    // This is the KNOWING exception to the leftmost-element principle, the same
+    // one SiteBackground gets: the skills sphere is an atmospheric layer, not
+    // "content", and its labels are painted ON the canvas so anything outside
+    // its box is hard-clipped mid-glyph.
+    //
+    // It matters because the sphere used to sit OUTSIDE the content column, so
+    // its 3%/76%/21% framing was measured against the whole screen. Moved into
+    // the column as a slot, 76% of col.vw (76vw on desktop) is 57.8vw — a
+    // quarter narrower, with no error anywhere. Any slot holding something
+    // sized as a share of the viewport needs this.
+    const style: React.CSSProperties = bleed
+        ? { width: "100vw", marginLeft: "calc(50% - 50vw)" }
+        : { width: "100%" }
+
+    return <div ref={ref} style={style}>{children}</div>
 }
 
 // ─── Block renderer ───────────────────────────────────────────────────────────
@@ -611,6 +634,7 @@ function BlockRenderer({
             <SlotGate
                 queueIndex={firstIndex}
                 holdMs={parseInt(block.fields?.hold ?? "0", 10) || 0}
+                bleed={block.fields?.bleed === "true"}
                 eligible={eligible}
             >
                 {slots?.[block.content.trim()] ?? null}

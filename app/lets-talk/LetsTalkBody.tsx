@@ -15,8 +15,8 @@
 // see TalkOptions.tsx.
 
 import { useEffect } from "react"
-import { unlock, reset } from "../components/SequenceController"
-import { armQueue } from "../components/RevealQueue"
+import { unlock, reset } from "../components/SiteSequenceController"
+import { armQueue } from "../components/SiteRevealQueue"
 import RippleNetwork, { TEXT_DELAY, CHUNKS, TIMING } from "../components/TalkRippleNetwork"
 import SiteTextBlock, { itemFadeMs } from "../components/SiteTextBlock"
 import TalkOptions from "../components/TalkOptions"

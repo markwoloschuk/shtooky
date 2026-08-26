@@ -1,4 +1,4 @@
-# Sequencing & Visibility — Spec v02
+# Sequencing & Visibility — Spec v03
 
 *shtooky.com — 2026-08-25. Written from Mark's point-by-point description of
 the intended behaviour, checked against the code as it stands today. This
@@ -6,10 +6,12 @@ supersedes nothing; it is the first written statement of a system that was
 designed, partly built, and then drifted apart.*
 
 *v02 — folds in Mark's decisions on the gate-release rule, the footer, the
-Venn diagram's play-once behaviour, and the two-edge trigger question. Items
-marked BUILT were implemented on 2026-08-25 and are no longer proposals.*
+Venn diagram's play-once behaviour, and the two-edge trigger question.*
+*v03 — the content format and the queue are BUILT and verified on device.
+Items marked BUILT are no longer proposals.*
 
-**Status: agreed. Parts BUILT, the queue itself not yet.** Numbers marked UNTUNED are
+**Status: BUILT. Ordering verified at every scroll speed and on all three
+tiers; pacing numbers still UNTUNED.** Numbers marked UNTUNED are
 starting guesses for Mark to judge on screen.
 
 ---
@@ -74,6 +76,24 @@ Two separate jobs, currently fused, to be separated:
 Scroll speed affects only eligibility. A fast scroll makes many items eligible
 at once, so the queue **drains faster** — it is never bypassed.
 
+### 1.0 BUILT — `RevealQueue.tsx`
+
+One module-level queue, like `SequenceController`. The pump walks items in
+document order and **breaks** — not continues — at the first item that may not
+go yet, so nothing can overtake anything.
+
+Eligibility is injected per item, which is what lets one queue serve both kinds
+of page without forking the reveal path:
+
+- **position-driven** (Who I Am) — the item measures its own leading edge
+  against `BF0`
+- **choreographed** (Let's Talk, `sequence: manual`) — the page's own timer
+  opened the gate
+
+Verified by simulating the pump against the real `About.md` at five speeds
+(still, 120px/s, 600px/s, 2500px/s, jump-to-bottom) on all three tiers. Order
+correct in every run.
+
 ### 1.1 Ordering guarantee
 
 An item may not begin revealing before every item above it in the document has
@@ -114,10 +134,40 @@ Two consequences:
   still gets a real fade: the step shrinks toward a minimum (UNTUNED, guess
   60-80ms), never toward zero. Heavy overlap, never a dump.
 
-**Gate release rule (decided):** only scrolling that brings new content toward
-the queue releases the gate — a direction test plus a generous deadzone. Not
-"any scroll," because mobile Safari generates scroll events nobody asked for
-and rubber-band bounce would drop a gate mid-performance.
+**Gate release rule (decided, BUILT):** only scrolling that brings new content
+toward the queue releases the gate — a direction test plus a generous deadzone.
+Not "any scroll," because mobile Safari generates scroll events nobody asked
+for and rubber-band bounce would drop a gate mid-performance.
+
+**Two pressure sources, and they must stay complementary — BUILT, after
+getting this wrong once:**
+
+- **scroll** — the reader is actively moving. Decays in `pressureWindowMs`.
+- **backlog** — content left the top of the screen WITHOUT being revealed.
+  Does not decay until worked off.
+
+Backlog exists because scroll pressure decays too fast: land at the bottom of a
+long page and it expires before the queue catches up, dropping back to the
+resting pace with every pull quote holding in turn — twelve seconds of
+catch-up watched from the bottom. Found in simulation, not on screen.
+
+**The mistake worth recording.** Backlog first counted every
+*eligible-but-unrevealed* item. At page load that is simply "everything on
+screen" — the normal starting condition, not a queue that has fallen behind.
+Worse, the COUNT of items above `BF0` is tier-dependent: mobile's short lines
+stacked 6 above it, tablet 6, desktop 3. So the same threshold meant different
+things at different widths, and the sphere's hold was released at load on
+mobile and tablet but held correctly on desktop — looking for all the world
+like a breakpoint bug in the hold.
+
+> **A COUNT of on-screen items is a viewport-dependent number wearing a
+> viewport-independent costume.** Same class of error as a hardcoded pixel
+> value: it silently means something different at every size.
+
+Diagnosed with `DEBUG.sequence`, which traces each reveal with its backlog and
+which pressure source was active — and which was written specifically so that
+"never held" and "held then released" could be told apart. As the code stood,
+those two produced identical behaviour with nothing to distinguish them.
 
 ---
 
@@ -284,7 +334,7 @@ today's content needs a mixed section.
 About uses only two item types today — `paragraph` and `pull`. Zero links, zero
 `size`, zero `fast`. The dialect is small.
 
-### 5.2 Slots
+### 5.2 Slots — BUILT
 
 Animations on the page — the skills sphere, the Venn diagram, anything added
 later — become content items so they sit in the sequence rather than beside it.
@@ -292,8 +342,27 @@ later — become content items so they sit in the sequence rather than beside it
 **Content declares order and identity. The page declares what the thing is.**
 
 ```
-[slot] venn
+[slot] sphere
+hold: 1800
+bleed: true
 ```
+
+Slot options:
+
+- **`hold: <ms>`** — everything after it waits. A pull quote can report
+  completion; the sphere is a continuous canvas that never finishes, so its
+  hold is a duration. Like every hold it is a RESTING-pace rule.
+- **`bleed: true`** — escape the content column and span the viewport.
+  **Required for the sphere.** Its 3%/76%/21% framing is a share of the SCREEN;
+  moved into the column as a slot it became 76% of `col.vw`, so 57.8vw instead
+  of 76vw on desktop, and 68.4vw instead of 100vw on mobile. Wrong on all three
+  tiers, with no error anywhere. This is the knowing exception to the
+  leftmost-element principle, same as `SiteBackground`.
+
+> **Moving something into a container silently rescales anything sized relative
+> to the VIEWPORT.** v75 recorded the same lesson running the other way
+> ("widening a container silently resizes anything sized from container
+> width"). The sphere is the third thing this has caught.
 
 ```jsx
 <SiteTextBlock page="about" slots={{

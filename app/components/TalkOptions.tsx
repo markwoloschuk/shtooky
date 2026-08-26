@@ -20,7 +20,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { COLORS, TYPE, useType, SPACE, useSpace } from "./SiteTokens"
-import { useSequence, unlock } from "./SequenceController"
+import { useSequence, unlock } from "./SiteSequenceController"
 
 const ACCENT = COLORS.contact
 

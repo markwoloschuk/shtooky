@@ -1,5 +1,6 @@
 [slot] sphere
-hold: 1800
+hold: 2000
+bleed: true
 
 [paragraph]
 As a freelancer, I haven’t had a lot of official titles — but over my career I’ve taken on many jobs.
@@ -8,17 +9,17 @@ It all started with a dream of making feature films. I went to film school and b
 
 [pull]
 pushY: 20
-> That’s {not} what happened   | wipe
+> That’s {not} what happened.   | wipe
 
 [paragraph]
-My first job out of school was as an assistant editor on a ten-part documentary series. Working behind the cameras I immersed myself in organization and post workflows. But what really started here was a life-long education in how to make choices and how to have reasons for those choices. This first zig led to a series of zags that eventually brought me to San Francisco.
+My first job out of school was as an assistant editor on a ten-part documentary series. Instead of cameras I immersed myself in organization and post workflows. But what really started here was a life-long education in how to make aesthetic choices and how to create reasons for them. This first zig led to a series of zags that eventually brought me to San Francisco.
 
 [pull]
 pushY: 20
 colorDelay: 400
 colorDurIn: 500
 > A city that literally   | wipe
-> {changed my life}   | delay 600, fade, push
+> {changed my life.}   | delay 600, fade, push
 
 [paragraph]
 San Francisco is a home to entrepreneurs, thinkers, artists, misfits and other dreamers. It’s a small city wearing boots a few sizes too big — but also a place with deep community — where common interest brings people together and social universes collide in unexpected ways.
@@ -30,7 +31,7 @@ And where three distinct yet overlapping worlds left their mark.
 [pull]
 colorDelay: 300
 colorDurIn: 500
-> Design – a {new} way of being   | wipe
+> Design – a {new} way of being.   | wipe
 
 [paragraph]
 As a freelance video editor I often found myself waiting on someone else to produce graphics. I’m a patient person — but not on my client’s time — so I was inspired to start creating them myself. That decision opened my eyes to design and to new possibility.
@@ -43,7 +44,7 @@ There is something like an invisible language that threads between all design pr
 colorDelay: 400
 colorDurIn: 500
 > From {Science Fiction}   | wipe
-> to {techno-reality}   | delay 700, wipe
+> to {techno-reality.}   | delay 700, wipe
 
 [paragraph]
 San Francisco is also a unique nexus in the world of technology. As a sort of spiritual capital to Silicon Valley its central role in tech innovation further altered my trajectory. Much of my creative energy has been directed towards promoting or explaining technology.
@@ -53,7 +54,7 @@ It made sense — as a child I was a voracious reader of science fiction, deligh
 [pull]
 colorDelay: 300
 colorDurIn: 500
-> An empty desert {full of art}   | wipe
+> An empty desert {full of art.}   | wipe
 
 [paragraph]
 Burning Man was born in San Francisco and its cultural roots stretch deep into its history and people. It is many things: an experiment in community and self-expression; a vast ephemeral art gallery; a festival of culture, music and technology; a perfect confluence of the ridiculous and the sublime. But fundamentally it too is a way of being. A path towards greater self-expression, stronger community and positive social values.
@@ -89,6 +90,11 @@ The more we understand about ourselves the more we see there is to know. It feel
 //
 //   [slot] name        the PAGE supplies the element; this only says where it
 //                      sits in the sequence and what it is called
+//   bleed: true        escape the content column and span the viewport. The
+//                      sphere needs it: its framing is a share of the SCREEN,
+//                      and inside the column that silently shrinks it by a
+//                      quarter on desktop. Knowing exception to the
+//                      leftmost-element principle, like SiteBackground.
 //   hold: <ms>         everything after it waits this long — the sphere is a
 //                      continuous canvas with no completion to report, so its
 //                      hold is a duration. Like every hold this is a RESTING

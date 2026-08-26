@@ -17,7 +17,7 @@ import {
   parseAccents, parseFrontmatter, parseBlocks, parseGalleryBlock, stripComments,
   resolveImagePath, resolveGalleryMedia,
   type CaseBlock, type GalleryData,
-} from './CaseMarkdown'
+} from './SiteCaseMarkdown'
 
 const PINK = COLORS.work
 const FADE_DUR = 2000
@@ -36,7 +36,7 @@ interface ParsedCase {
 }
 
 // Which blocks a Work case may use, and how each behaves. Everything else —
-// the format itself, [br] handling, comments — lives in CaseMarkdown.tsx.
+// the format itself, [br] handling, comments — lives in SiteCaseMarkdown.tsx.
 const WORK_BLOCKS = new Set(['jobbox', 'subtitle', 'label', 'paragraph', 'pullquote', 'video-carousel', 'gallery'])
 
 function parseMd(raw: string): ParsedCase {

@@ -1,7 +1,9 @@
 "use client"
 
-// RevealQueue.tsx
+// SiteRevealQueue.tsx
 // app/components/
+// SITE-WIDE. Named for what it serves: Who I Am and Let's Talk both run on it,
+// and any page whose content is markdown blocks will.
 // v01 — 2026-08-25
 //
 // ONE queue owns the order and pacing of every reveal on a page. It replaces a
@@ -26,7 +28,7 @@
 // See `sequence: manual` in the content frontmatter.
 
 import { useEffect, useRef } from "react"
-import { getVisibility, SEQUENCE } from "./SiteTokens"
+import { DEBUG, getBreakpoint, getVisibility, SEQUENCE } from "./SiteTokens"
 
 // ─── Item registry ────────────────────────────────────────────────────────────
 
@@ -34,6 +36,7 @@ interface QueueItem {
     index: number
     eligible: () => boolean
     holds: () => boolean       // wants to hold the queue until it completes
+    passed: () => boolean      // has scrolled off the TOP, still unrevealed
     start: () => void
 }
 
@@ -59,6 +62,7 @@ export function armQueue(): void {
     _lastRevealAt = 0
     _lastRevealedIndex = -1
     _armedAt = typeof performance !== "undefined" ? performance.now() : 0
+    _traced = new Set()
     _pressureUntil = 0
     schedule()
 }
@@ -93,11 +97,15 @@ function pump(): void {
     let backlog = 0
     for (const i of order) {
         if (_revealed.has(i)) continue
-        if (!_items.get(i)?.eligible()) break
-        backlog += 1
+        const it = _items.get(i)
+        if (!it?.eligible()) break
+        // Only what has gone PAST counts. Items on screen waiting their turn
+        // are upcoming, not overdue.
+        if (it.passed()) backlog += 1
     }
-    const pressure =
-        now < _pressureUntil || backlog >= SEQUENCE.backlogPressure
+    const scrollPressure = now < _pressureUntil
+    const backlogPressure = backlog >= SEQUENCE.backlogPressure
+    const pressure = scrollPressure || backlogPressure
     const step = pressure ? SEQUENCE.minStepMs : SEQUENCE.stepMs
 
     for (const index of order) {
@@ -119,20 +127,49 @@ function pump(): void {
         // A pull quote holds the queue until it finishes — AT REST. Scroll
         // pressure releases the hold; the pull keeps playing at its own speed
         // and simply overlaps what follows. It is never truncated.
-        if (!pressure && _lastRevealedIndex >= 0) {
+        if (_lastRevealedIndex >= 0) {
             const prev = _items.get(_lastRevealedIndex)
-            if (prev?.holds()) break
+            const wantsHold = prev?.holds() ?? false
+            if (wantsHold && !pressure) {
+                if (DEBUG.sequence) trace(index, "HELD by " + _lastRevealedIndex, backlog, scrollPressure, backlogPressure)
+                break
+            }
+            if (DEBUG.sequence && wantsHold && pressure) {
+                trace(index, "hold RELEASED by pressure", backlog, scrollPressure, backlogPressure)
+            }
         }
 
         _revealed.add(index)
         _lastRevealAt = now
         _lastRevealedIndex = index
         item.start()
+        if (DEBUG.sequence) trace(index, "reveal", backlog, scrollPressure, backlogPressure)
     }
 
     // Keep pumping while anything is still waiting. Items whose eligibility is
     // time-based (a held pull, a page timer) have no scroll event to wake them.
     if (order.some((i) => !_revealed.has(i))) schedule()
+}
+
+let _traced = new Set<string>()
+function trace(
+    index: number,
+    what: string,
+    backlog: number,
+    scrollPressure: boolean,
+    backlogPressure: boolean
+): void {
+    // One line per (item, event) so a 60fps pump cannot flood the console.
+    const key = index + ":" + what
+    if (_traced.has(key)) return
+    _traced.add(key)
+    const t = Math.round(performance.now() - _armedAt)
+    console.log(
+        `[queue ${getBreakpoint()}] +${String(t).padStart(5)}ms  #${String(index).padStart(2)}  ${what}` +
+            `   backlog=${backlog}` +
+            (scrollPressure ? "  SCROLL-PRESSURE" : "") +
+            (backlogPressure ? "  BACKLOG-PRESSURE" : "")
+    )
 }
 
 function schedule(): void {
@@ -258,6 +295,10 @@ export function useSequencedFade(
                 return topVh < vis.BF0
             },
             holds: () => optsRef.current.holds?.() ?? false,
+            passed: () => {
+                const node = ref.current
+                return !!node && node.getBoundingClientRect().bottom < 0
+            },
             start: () => ramp(0),
         })
 
