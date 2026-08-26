@@ -60,7 +60,49 @@ export interface CaseBlock {
   type: string
   content: string
   fields?: Record<string, string>   // key-value blocks (e.g. [jobbox]) only
+  paragraphs?: string[]             // groupParagraphs blocks only
+  pull?: PullSpec                   // pullBlocks only
 }
+
+// ── Pull quotes (About dialect) ──────────────────────────────────────────────
+// The choreography lives in the CONTENT, not a side module, because it is
+// content-coupled: change the words and the direction changes with them.
+
+export interface PullChunk {
+  text: string
+  line: number      // chunks sharing a line render side by side
+  delay: number
+  wipe: boolean
+  fade: boolean
+  push: boolean
+}
+
+export interface PullSpec {
+  duration: number
+  feather: number
+  pushX: number
+  pushY: number
+  colorDelay: number
+  colorDurIn: number
+  colorHold: number
+  colorDurOut: number
+  chunks: PullChunk[]
+}
+
+// Omit any field to get its default. ONE rule, no exceptions — which is why it
+// is "documented default" and not "assume 0": duration 0 would never animate
+// and feather 0 would give a hard wipe edge.
+export const PULL_DEFAULTS = {
+  duration:    1500,
+  feather:       60,
+  pushX:          0,
+  pushY:          0,
+  colorDelay:     0,
+  colorDurIn:     0,
+  colorHold:      0,
+  colorDurOut:    0,
+}
+const PULL_FLAGS = new Set(['wipe', 'fade', 'push'])
 
 // ── Text ─────────────────────────────────────────────────────────────────────
 
@@ -115,11 +157,70 @@ export function parseFrontmatter<T extends Record<string, string>>(
 export interface ParseBlocksOptions {
   allowed: Set<string>            // whitelist — unknown block types are skipped
   keyValue?: Set<string>          // parsed into `fields` instead of `content`
-  splitParagraphs?: Set<string>   // a blank line here starts a new block
+  splitParagraphs?: Set<string>   // a blank line here starts a new SIBLING block
+  groupParagraphs?: Set<string>   // a blank line here makes another paragraph
+                                  // INSIDE one block -> block.paragraphs[]
+  pullBlocks?: Set<string>        // parsed into `pull` (options + chunks)
+}
+
+// splitParagraphs vs groupParagraphs — the difference matters for sequencing.
+// Work and Think want siblings: each paragraph is its own block with its own
+// margin. About wants a GROUP: one block is one sequence gate, and the blank
+// lines inside it are paragraphs that share that gate. Same authoring, two
+// structures, so the dialect picks.
+
+// ── [pull] ───────────────────────────────────────────────────────────────────
+//   duration: 1000            <- options, one per line, any may be omitted
+//   pushY: 18
+//   > But wait,        | fade, push        <- '>' starts a new LINE
+//   + there's {more}   | delay 500, fade   <- '+' continues the SAME line
+//
+// '>' / '+' replace hand-written line numbers, which were pure bookkeeping.
+export function parsePullBlock(raw: string, warn = true): PullSpec {
+  const spec: PullSpec = { ...PULL_DEFAULTS, chunks: [] }
+  let line = 0
+
+  for (const rawLine of raw.split('\n')) {
+    const l = rawLine.trim()
+    if (!l) continue
+
+    if (l.startsWith('>') || l.startsWith('+')) {
+      if (l.startsWith('>')) line += 1
+      if (line === 0) line = 1          // a leading '+' still needs a line
+      const [textPart, flagPart = ''] = l.slice(1).split('|')
+      const chunk: PullChunk = {
+        text: textPart.trim(),
+        line,
+        delay: 0,
+        wipe: false,
+        fade: false,
+        push: false,
+      }
+      for (const tok of flagPart.split(',').map(t => t.trim()).filter(Boolean)) {
+        const d = tok.match(/^delay\s+(\d+)$/)
+        if (d) { chunk.delay = parseInt(d[1], 10); continue }
+        if (PULL_FLAGS.has(tok)) { (chunk as never as Record<string, boolean>)[tok] = true; continue }
+        if (warn) console.warn(`[pull] unknown flag "${tok}" in: ${l}`)
+      }
+      spec.chunks.push(chunk)
+      continue
+    }
+
+    const m = l.match(/^(\w+):\s*(-?\d+)$/)
+    if (m && m[1] in PULL_DEFAULTS) {
+      (spec as never as Record<string, number>)[m[1]] = parseInt(m[2], 10)
+      continue
+    }
+    // Silent drops are invisible failure: a typo'd `pushy:` would just become
+    // the default and the animation would quietly not do what it was told.
+    if (warn) console.warn(`[pull] unknown option line: ${l}`)
+  }
+
+  return spec
 }
 
 export function parseBlocks(body: string, opts: ParseBlocksOptions): CaseBlock[] {
-  const { allowed, keyValue, splitParagraphs } = opts
+  const { allowed, keyValue, splitParagraphs, groupParagraphs, pullBlocks } = opts
   const blocks: CaseBlock[] = []
 
   for (const sec of body.trim().split(/\n(?=\[)/)) {
@@ -136,6 +237,20 @@ export function parseBlocks(body: string, opts: ParseBlocksOptions): CaseBlock[]
         if (m) fields[m[1]] = m[2].trim()
       }
       blocks.push({ type, content: '', fields })
+      continue
+    }
+
+    if (pullBlocks?.has(type)) {
+      blocks.push({ type, content: '', pull: parsePullBlock(raw) })
+      continue
+    }
+
+    if (groupParagraphs?.has(type)) {
+      const paragraphs = raw
+        .split(/\n\s*\n/)
+        .map(pa => normBreaks(pa))
+        .filter(Boolean)
+      if (paragraphs.length) blocks.push({ type, content: paragraphs.join('\n\n'), paragraphs })
       continue
     }
 

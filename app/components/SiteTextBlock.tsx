@@ -16,10 +16,16 @@
 //   useSpace(). The pull gaps are TOTAL measured distances; the flex gap is
 //   subtracted back out at the pull wrapper so one number owns each gap.
 
-import { useEffect, useRef } from "react"
-import { COLORS, TYPE, useColumn, useType, useSpace, bodyMaxWidth } from "./SiteTokens"
-import { CONTENT as ABOUT_CONTENT, SPACING as ABOUT_SPACING } from "../data/AboutContent"
-import { CONTENT as CONTACT_CONTENT, SPACING as CONTACT_SPACING } from "../data/TalkContent"
+import { useEffect, useMemo, useRef } from "react"
+import { COLORS, TYPE, SPACE, useColumn, useType, useSpace, bodyMaxWidth } from "./SiteTokens"
+import {
+    stripComments,
+    parseFrontmatter,
+    parseBlocks,
+    type CaseBlock,
+    type PullSpec,
+    type PullChunk,
+} from "./CaseMarkdown"
 import {
     useSequence,
     unlockNextAfter,
@@ -27,17 +33,37 @@ import {
     installScrollWatcher,
 } from "./SequenceController"
 
-// ─── Page content map ─────────────────────────────────────────────────────────
+// ─── Dialect ──────────────────────────────────────────────────────────────────
+// About and Let's Talk share this one. Blocks are SECTIONS: one block is one
+// sequence gate, and block order IS gate order — there are no authored `seq`
+// numbers and no `id`s. Blank lines inside a [paragraph] make more paragraphs
+// that share the gate (groupParagraphs), which is why this dialect does not
+// use splitParagraphs the way Work and Think do.
 
-function getPageData(page: string) {
-    switch (page) {
-        case "about":
-            return { content: ABOUT_CONTENT, spacing: ABOUT_SPACING }
-        case "contact":
-            return { content: CONTACT_CONTENT, spacing: CONTACT_SPACING }
-        default:
-            return { content: ABOUT_CONTENT, spacing: ABOUT_SPACING }
-    }
+const PAGE_BLOCKS = new Set(['paragraph', 'subtitle', 'pull', 'slot'])
+
+export interface PageDoc {
+    blocks: CaseBlock[]
+    fast: boolean
+}
+
+export function parsePageMd(raw: string): PageDoc {
+    const { fm, rest } = parseFrontmatter(stripComments(raw), { fast: '' })
+    const blocks = parseBlocks(rest, {
+        allowed: PAGE_BLOCKS,
+        groupParagraphs: new Set(['paragraph', 'subtitle']),
+        pullBlocks: new Set(['pull']),
+    })
+    return { blocks, fast: fm.fast === 'true' }
+}
+
+// The spacing rhythm is the same on both pages — it was two identical copies
+// of SPACE.text in two content files, which existed only because the content
+// files also carried per-page timing that has since moved to the pages.
+const SPACING = {
+    paragraphGap: SPACE.text.paragraphGap,
+    pullGapBefore: SPACE.text.pullGapBefore,
+    pullGapAfter: SPACE.text.pullGapAfter,
 }
 
 // ─── Scroll fade tuning ───────────────────────────────────────────────────────
@@ -95,39 +121,9 @@ const LINK_DEFAULTS = {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface ChunkDef {
-    text: string
-    line: number
-    delay: number
-    wipe: 0 | 1
-    fade: 0 | 1
-    push: 0 | 1
-}
-
-interface PullTiming {
-    duration: number
-    pushY: number
-    pushX: number
-    feather: number
-    colorDelay: number
-    colorDurIn: number
-    colorHold: number
-    colorDurOut: number
-    highlightColor: string
-}
-
-export interface ContentItem {
-    id: number
-    type: "paragraph" | "pull" | "link"
-    seq: number
-    text?: string
-    href?: string
-    color?: string
-    size?: "body" | "subtitle"   // defaults to body if omitted
-    fast?: boolean                // NEW — use SCROLL_FADE_FAST instead of SCROLL_FADE
-    timing?: PullTiming
-    chunks?: ChunkDef[]
-}
+// PullChunk / PullTiming / ContentItem are gone. The pull-quote shape lives in
+// CaseMarkdown as PullChunk / PullSpec, and there is no ContentItem any more —
+// the content is markdown blocks, not numbered objects.
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -364,15 +360,13 @@ function LinkItem({
 // ─── PullTextItem ─────────────────────────────────────────────────────────────
 
 function PullTextItem({
-    item,
+    pull,
     unlocked,
     onComplete,
-    spacing,
 }: {
-    item: ContentItem
+    pull: PullSpec
     unlocked: boolean
     onComplete: () => void
-    spacing: typeof ABOUT_SPACING
 }) {
     const space = useSpace()
     const type = useType()
@@ -382,8 +376,9 @@ function PullTextItem({
     const hasPlayed = useRef(false)
     const hasTriggered = useRef(false)
 
-    const timing = item.timing!
-    const chunks = item.chunks!
+    const spacing = SPACING
+    const timing = pull
+    const chunks = pull.chunks
 
     const lines = chunks.reduce(
         (acc, chunk) => {
@@ -392,7 +387,7 @@ function PullTextItem({
             acc[ln].push(chunk)
             return acc
         },
-        {} as Record<number, ChunkDef[]>
+        {} as Record<number, PullChunk[]>
     )
 
     function clearTimers() {
@@ -400,7 +395,7 @@ function PullTextItem({
         timers.current = []
     }
 
-    function animateChunk(chunkEl: HTMLElement, chunk: ChunkDef) {
+    function animateChunk(chunkEl: HTMLElement, chunk: PullChunk) {
         const dur = timing.duration
         const doWipe = !!chunk.wipe
         const doFade = !!chunk.fade
@@ -461,7 +456,9 @@ function PullTextItem({
         const hlEls = Array.from(chunkEl.querySelectorAll<HTMLElement>("[data-hl]"))
         if (hlEls.length > 0) {
             const t = setTimeout(() => {
-                const hlColor = timing.highlightColor || COLORS.about
+                // Page colour, always. The per-quote `highlightColor` field is
+                // gone — all six quotes carried "#FAAF40", which IS COLORS.about.
+                const hlColor = COLORS.about
                 if (timing.colorDurIn === 0) {
                     hlEls.forEach((el) => (el.style.color = hlColor))
                     scheduleColorOut(hlEls, hlColor)
@@ -632,30 +629,22 @@ function PullTextItem({
 // ─── TextBlock ────────────────────────────────────────────────────────────────
 
 export default function TextBlock({
-    page,
-    ids,
+    md,
+    slots,
 }: {
-    page: string
-    ids: string
+    md: string
+    slots?: Record<string, React.ReactNode>
 }) {
     const space = useSpace()
     const groupRefs = useRef(new Map<number, HTMLDivElement | null>())
-    const { content, spacing } = getPageData(page)
 
-    const idList = ids.split(",").flatMap((part) => {
-        const range = part.trim().match(/^(\d+)-(\d+)$/)
-        if (range) {
-            const start = parseInt(range[1], 10)
-            const end = parseInt(range[2], 10)
-            return Array.from({ length: end - start + 1 }, (_, i) => start + i)
-        }
-        const n = parseInt(part.trim(), 10)
-        return isNaN(n) ? [] : [n]
-    })
-
-    const items = idList
-        .map((id) => content.find((c: ContentItem) => c.id === id))
-        .filter(Boolean) as ContentItem[]
+    // The markdown arrives as a STRING, already read server-side and passed in
+    // as a prop. Deliberately not fetched: this is the page's whole body, and
+    // anything that must be on screen before a fetch resolves cannot live in a
+    // fetched file. Parsing is the only boundary — the source is interchangeable.
+    const doc = useMemo(() => parsePageMd(md), [md])
+    const { blocks, fast } = doc
+    const spacing = SPACING
 
     useEffect(() => {
         const unsub = installScrollWatcher()
@@ -663,33 +652,22 @@ export default function TextBlock({
     }, [])
 
     // ── Sections ────────────────────────────────────────────────────────────
-    // A run of consecutive items sharing a seq IS a section: a multi-paragraph
-    // stretch gated as one unit, with the next pull quote as the next gate.
-    // Grouped by consecutive run rather than by value, so a seq that recurs
-    // later in a file makes a second section instead of teleporting items.
-    const groups: { seq: number; items: ContentItem[] }[] = []
-    for (const item of items) {
-        const last = groups[groups.length - 1]
-        if (last && last.seq === item.seq) last.items.push(item)
-        else groups.push({ seq: item.seq, items: [item] })
-    }
-
-    // Each section reports ITS OWN top. Previously every seq in the block was
-    // registered against the block container, so all nine sections of the
-    // ids="8-26" block reported the same position — the sections existed in
-    // the data and had no physical location, and once the block's top crossed
-    // the threshold the entire remainder unlocked in a single scroll pass.
+    // One block is one section is one gate. The seq number is the block's
+    // POSITION, 1-based — there are no authored seq numbers to drift, and
+    // adding a paragraph can no longer renumber anything.
     useEffect(() => {
-        const unsubs = groups.map((g) =>
-            registerSentinel(g.seq, () => {
-                const el = groupRefs.current.get(g.seq)
-                // No element yet — report far below the fold so it can't unlock.
+        const unsubs = blocks.map((_, i) =>
+            registerSentinel(i + 1, () => {
+                const el = groupRefs.current.get(i + 1)
+                // No element yet — report far below the fold so it cannot
+                // unlock during the frame before its ref lands. A rect of
+                // zeros would read as "at the top of the screen".
                 if (!el) return Number.POSITIVE_INFINITY
                 return el.getBoundingClientRect().top
             })
         )
         return () => unsubs.forEach((fn) => fn())
-    }, [])
+    }, [blocks])
 
     // The section wrapper repeats the parent's gap, so gap-between-sections and
     // gap-between-items stay the same number and the nesting is visually inert.
@@ -702,55 +680,23 @@ export default function TextBlock({
 
     return (
         <div style={columnStyle}>
-            {groups.map((g) => {
-                // mountIndex is per SECTION, not per block. It used to count
-                // every paragraph in the block, so the last one waited
-                // mountDelay + 14 * 400 = ~7s. With sections unlocking
-                // independently the block-wide count is meaningless — each
-                // section staggers from its own first item.
-                let paraIdx = -1
-                let linkIdx = -1
+            {blocks.map((block, i) => {
+                const seq = i + 1
                 return (
                     <div
-                        key={g.seq}
+                        key={seq}
                         ref={(el) => {
-                            groupRefs.current.set(g.seq, el)
+                            groupRefs.current.set(seq, el)
                         }}
                         style={columnStyle}
                     >
-                        {g.items.map((item, i) => {
-                            if (item.type === "paragraph") {
-                                paraIdx += 1
-                                return (
-                                    <ParagraphItemWrapper
-                                        key={`${g.seq}-${i}`}
-                                        item={item}
-                                        mountIndex={paraIdx}
-                                        spacing={spacing}
-                                    />
-                                )
-                            }
-                            if (item.type === "pull") {
-                                return (
-                                    <PullTextItemWrapper
-                                        key={`${g.seq}-${i}`}
-                                        item={item}
-                                        spacing={spacing}
-                                    />
-                                )
-                            }
-                            if (item.type === "link") {
-                                linkIdx += 1
-                                return (
-                                    <LinkItemWrapper
-                                        key={`${g.seq}-${i}`}
-                                        item={item}
-                                        mountIndex={linkIdx}
-                                    />
-                                )
-                            }
-                            return null
-                        })}
+                        <BlockRenderer
+                            block={block}
+                            seq={seq}
+                            fast={fast}
+                            slots={slots}
+                            spacing={spacing}
+                        />
                     </div>
                 )
             })}
@@ -758,69 +704,58 @@ export default function TextBlock({
     )
 }
 
-// ─── Wrappers ─────────────────────────────────────────────────────────────────
+// ─── Block renderer ───────────────────────────────────────────────────────────
 
-function ParagraphItemWrapper({
-    item,
-    mountIndex,
+function BlockRenderer({
+    block,
+    seq,
+    fast,
+    slots,
     spacing,
 }: {
-    item: ContentItem
-    mountIndex: number
-    spacing: any
+    block: CaseBlock
+    seq: number
+    fast: boolean
+    slots?: Record<string, React.ReactNode>
+    spacing: typeof SPACING
 }) {
-    const unlocked = useSequence(item.seq)
-    return (
-<ParagraphItem
-            text={item.text!}
-            unlocked={unlocked}
-            mountIndex={mountIndex}
-            size={item.size}
-            fast={item.fast}
-        />
-    )
-}
+    const unlocked = useSequence(seq)
 
-function PullTextItemWrapper({
-    item,
-    spacing,
-}: {
-    item: ContentItem
-    spacing: any
-}) {
-    const unlocked = useSequence(item.seq)
-
-    function handleComplete() {
-        // NOT unlock(item.seq + 1) — seq numbers are sparse, so "+1" could
-        // point at an index no content owns. See SequenceController.
-        unlockNextAfter(item.seq)
+    if (block.type === "slot") {
+        // The content file names the slot; the PAGE supplies the element and
+        // every layout decision about it. The content never learns what a Venn
+        // diagram is or what props it takes.
+        return <>{slots?.[block.content.trim()] ?? null}</>
     }
 
-    return (
-        <PullTextItem
-            item={item}
-            unlocked={unlocked}
-            onComplete={handleComplete}
-            spacing={spacing}
-        />
-    )
-}
+    if (block.type === "pull") {
+        return (
+            <PullTextItem
+                pull={block.pull!}
+                unlocked={unlocked}
+                // Pull quotes are the only element permitted to serialise the
+                // queue: the next gate waits for this one to play out in full.
+                onComplete={() => unlockNextAfter(seq)}
+            />
+        )
+    }
 
-function LinkItemWrapper({
-    item,
-    mountIndex,
-}: {
-    item: ContentItem
-    mountIndex: number
-}) {
-    const unlocked = useSequence(item.seq)
+    // paragraph | subtitle — one gate, N paragraphs sharing it.
+    // mountIndex is per SECTION. It used to count every paragraph in the whole
+    // block, so the last one waited mountDelay + 14 * 400 = ~7s.
+    const paragraphs = block.paragraphs ?? [block.content]
     return (
-        <LinkItem
-            text={item.text!}
-            href={item.href!}
-            color={item.color || COLORS.white}
-            unlocked={unlocked}
-            mountIndex={mountIndex}
-        />
+        <>
+            {paragraphs.map((text, j) => (
+                <ParagraphItem
+                    key={j}
+                    text={text}
+                    unlocked={unlocked}
+                    mountIndex={j}
+                    size={block.type === "subtitle" ? "subtitle" : "body"}
+                    fast={fast}
+                />
+            ))}
+        </>
     )
 }

@@ -161,6 +161,14 @@ export function installScrollWatcher(): () => void {
     }
 
     window.addEventListener("scroll", onScroll, { passive: true })
+
+    // Evaluate once on install. The watcher used to run ONLY on scroll events,
+    // so anything already in view when the page settled stayed locked until the
+    // reader happened to move. That was survivable while the page seeded its
+    // own first gate directly; it is not, now that gate 1 is whatever block
+    // comes first in the content. rAF so layout has settled before measuring.
+    requestAnimationFrame(() => onScroll())
+
     return () => {
         window.removeEventListener("scroll", onScroll)
         _scrollWatcherInstalled = false
