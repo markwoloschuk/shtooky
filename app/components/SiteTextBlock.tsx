@@ -17,7 +17,7 @@
 //   subtracted back out at the pull wrapper so one number owns each gap.
 
 import { useEffect, useMemo, useRef } from "react"
-import { COLORS, TYPE, SPACE, useColumn, useType, useSpace, bodyMaxWidth } from "./SiteTokens"
+import { COLORS, TYPE, SPACE, SEQUENCE, useColumn, useType, useSpace, bodyMaxWidth } from "./SiteTokens"
 import {
     stripComments,
     parseFrontmatter,
@@ -26,12 +26,8 @@ import {
     type PullSpec,
     type PullChunk,
 } from "./CaseMarkdown"
-import {
-    useSequence,
-    unlockNextAfter,
-    registerSentinel,
-    installScrollWatcher,
-} from "./SequenceController"
+import { useSequence } from "./SequenceController"
+import { useSequencedFade, installQueue, armQueue, isRevealed } from "./RevealQueue"
 
 // ─── Dialect ──────────────────────────────────────────────────────────────────
 // About and Let's Talk share this one. Blocks are SECTIONS: one block is one
@@ -72,34 +68,17 @@ const SPACING = {
     pullGapAfter: SPACE.text.pullGapAfter,
 }
 
-// ─── Scroll fade tuning ───────────────────────────────────────────────────────
+// Pacing now lives in SEQUENCE (SiteTokens) and is owned by RevealQueue.
+// SCROLL_FADE / SCROLL_FADE_PULL / SCROLL_FADE_FAST are gone: they mixed
+// pacing (mountDelay, mountFadeIn) with zone geometry (fadeInStart/End,
+// fadeOutStart/End) in one object, and the zone half was hardcoded px that
+// were really TF100/TF0 measured at desktop. fadeInStart/fadeInEnd were never
+// read here at all.
 
-export const SCROLL_FADE = {
-    fadeInStart: 200,
-    fadeInEnd: 350,
-    fadeOutStart: 250,
-    fadeOutEnd: 50,
-    mountFadeIn: 1500,
-    mountDelay: 1500,
-}
-
-const SCROLL_FADE_PULL = {
-    fadeInStart: 200,
-    fadeInEnd: 400,
-    fadeOutStart: 250,
-    fadeOutEnd: 50,
-    mountFadeIn: 1500,
-    mountDelay: 0,
-}
-
-// Lighter variant for sequenced reveals already on-screen when they unlock
-// (Let's Talk's chained blurb → options → paragraphs). SCROLL_FADE's
-// 1500/1500 was tuned for scroll-triggered arrival and was costing a full
-// 3000ms at every step of an already-visible serial chain.
-export const SCROLL_FADE_FAST = {
-    ...SCROLL_FADE,
-    mountDelay: 100,
-    mountFadeIn: 1500,
+// A `fast` item shortens its own fade. It never lets it jump the queue.
+export const FAST_FADE_SCALE = 0.6
+export function itemFadeMs(fast: boolean): number {
+    return fast ? SEQUENCE.fadeMs * FAST_FADE_SCALE : SEQUENCE.fadeMs
 }
 
 // ─── Paragraph type style ─────────────────────────────────────────────────────
@@ -161,85 +140,27 @@ function preventOrphan(text: string): string {
     return text.slice(0, lastSpace) + "\u00A0" + text.slice(lastSpace + 1)
 }
 
-// ─── useScrollFade ────────────────────────────────────────────────────────────
-
-function useScrollFade(
-    enabled: boolean,
-    config = SCROLL_FADE,
-    fadeInOnly = false,
-    mountIndex = 0
-) {
-    const ref = useRef<HTMLDivElement>(null)
-    const wasEnabledOnMount = useRef(enabled)
-
- useEffect(() => {
-        const el = ref.current
-        if (!el) return
-        el.style.opacity = "0"
-        if (!enabled) return
-
-        function handleScroll() {
-            if (!el) return
-            const rect = el.getBoundingClientRect()
-
-            if (rect.bottom < 0) {
-                el.style.transition = "none"
-                el.style.opacity = "1"
-                return
-            }
-
-            if (rect.bottom < config.fadeOutStart) {
-                const raw =
-                    (rect.bottom - config.fadeOutEnd) /
-                    (config.fadeOutStart - config.fadeOutEnd)
-                el.style.transition = "none"
-                el.style.opacity = String(Math.max(0, Math.min(1, raw)))
-                return
-            }
-
-            el.style.transition = "none"
-            el.style.opacity = "1"
-        }
-
-const rect2 = el.getBoundingClientRect()
-        const isVisible = rect2.top < window.innerHeight * 0.85
-
-        if (isVisible) {
-            // Was enabled from the start — use mount delay
-            setTimeout(() => {
-                if (!el) return
-                el.style.transition = `opacity ${config.mountFadeIn}ms ease`
-                el.style.opacity = "1"
-                window.addEventListener("scroll", handleScroll, { passive: true })
-            }, config.mountDelay + mountIndex * 400)
-        } else {
-            // Was locked, just unlocked — wait for scroll into view
-            function check() {
-                if (!el) return
-                const r = el.getBoundingClientRect()
-                if (r.top < window.innerHeight * 0.85) {
-                    el.style.transition = `opacity ${config.mountFadeIn}ms ease`
-                    el.style.opacity = "1"
-                    window.removeEventListener("scroll", check)
-                    window.addEventListener("scroll", handleScroll, { passive: true })
-                }
-            }
-            check()
-            window.addEventListener("scroll", check, { passive: true })
-        }
-
-        return () => {
-            window.removeEventListener("scroll", handleScroll)
-        }
-    }, [enabled])
-
-    return ref
-}
-
 // ─── ParagraphItem ────────────────────────────────────────────────────────────
 
-function ParagraphItem({ text, unlocked, mountIndex = 0, size = "body", fast = false }: { text: string; unlocked: boolean; mountIndex?: number; size?: "body" | "subtitle"; fast?: boolean }) {
-    const ref = useScrollFade(unlocked, fast ? SCROLL_FADE_FAST : SCROLL_FADE, false, mountIndex)
+function ParagraphItem({
+    text,
+    queueIndex,
+    eligible,
+    size = "body",
+    fast = false,
+}: {
+    text: string
+    queueIndex: number
+    eligible?: () => boolean
+    size?: "body" | "subtitle"
+    fast?: boolean
+}) {
+    // Order and pacing come from the queue; this item just says where it is.
+    // `fast` shortens its own fade — it never lets it jump the queue.
+    const ref = useSequencedFade(queueIndex, {
+        eligible,
+        fadeMs: itemFadeMs(fast),
+    })
     const col = useColumn()
     const type = useType()
 
@@ -260,127 +181,31 @@ function ParagraphItem({ text, unlocked, mountIndex = 0, size = "body", fast = f
     )
 }
 
-// ─── LinkItem ─────────────────────────────────────────────────────────────────
-
-function LinkItem({
-    text,
-    href,
-    color,
-    unlocked,
-    mountIndex = 0,
-}: {
-    text: string
-    href: string
-    color: string
-    unlocked: boolean
-    mountIndex?: number
-}) {
-    const wrapRef = useScrollFade(unlocked, SCROLL_FADE, false, mountIndex)
-    const spanRef = useRef<HTMLSpanElement>(null)
-    const lingerT = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const type = useType() 
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            const el = spanRef.current
-            if (!el) return
-            const rect = el.getBoundingClientRect()
-            const pad = 20
-            const inside =
-                e.clientX >= rect.left - pad &&
-                e.clientX <= rect.right + pad &&
-                e.clientY >= rect.top - pad &&
-                e.clientY <= rect.bottom + pad
-            const wasInside = el.dataset.hovered === "true"
-
-            if (inside && !wasInside) {
-                el.dataset.hovered = "true"
-                if (lingerT.current) clearTimeout(lingerT.current)
-                el.style.transition = "transform 220ms cubic-bezier(0.34,1.2,0.64,1)"
-                el.style.transform = `scale(${LINK_DEFAULTS.hoverScale})`
-            } else if (!inside && wasInside) {
-                el.dataset.hovered = "false"
-                if (lingerT.current) clearTimeout(lingerT.current)
-                lingerT.current = setTimeout(() => {
-                    el.style.transition = "transform 350ms cubic-bezier(0.34,0.8,0.64,1)"
-                    el.style.transform = "scale(1)"
-                }, 60)
-            }
-        }
-
-        const handleClick = (e: MouseEvent) => {
-            const el = spanRef.current
-            if (!el) return
-            const rect = el.getBoundingClientRect()
-            const pad = 20
-            const inside =
-                e.clientX >= rect.left - pad &&
-                e.clientX <= rect.right + pad &&
-                e.clientY >= rect.top - pad &&
-                e.clientY <= rect.bottom + pad
-            if (inside) {
-                el.style.transition = "color 120ms ease"
-                el.style.color = "#ffffff"
-                setTimeout(() => {
-                    window.open(href, "_blank")
-                    setTimeout(() => {
-                        el.style.transition = "color 400ms ease"
-                        el.style.color = color
-                    }, 120)
-                }, 150)
-            }
-        }
-
-        document.addEventListener("mousemove", handleMouseMove)
-        document.addEventListener("click", handleClick)
-        return () => {
-            document.removeEventListener("mousemove", handleMouseMove)
-            document.removeEventListener("click", handleClick)
-        }
-    }, [href, color])
-
-    return (
-        <div ref={wrapRef} style={{ width: "100%" }}>
-<span
-    ref={spanRef}
-    style={{
-        display: "inline-block",
-        fontFamily: TYPE.display,
-        fontWeight: type.CTA_LINK.weight,
-        fontSize: `${type.CTA_LINK.sizePx}px`,
-        letterSpacing: `${type.CTA_LINK.tracking}em`,
-        lineHeight: 1,
-        color: color,
-        cursor: "pointer",
-        userSelect: "none",
-        transformOrigin: "left center",
-        willChange: "transform, color",
-    }}
->
-                {text}
-            </span>
-        </div>
-    )
-}
-
 // ─── PullTextItem ─────────────────────────────────────────────────────────────
 
 function PullTextItem({
     pull,
-    unlocked,
-    onComplete,
+    queueIndex,
+    eligible,
 }: {
     pull: PullSpec
-    unlocked: boolean
-    onComplete: () => void
+    queueIndex: number
+    eligible?: () => boolean
 }) {
     const space = useSpace()
     const type = useType()
     const rootRef = useRef<HTMLDivElement>(null)
-    const scrollRef = useScrollFade(unlocked, SCROLL_FADE_PULL, true)
     const timers = useRef<ReturnType<typeof setTimeout>[]>([])
     const hasPlayed = useRef(false)
-    const hasTriggered = useRef(false)
+    const isPlaying = useRef(false)
+
+    // The only element permitted to hold the queue. At rest the next item waits
+    // for this to play out in full; under scroll pressure the hold is released
+    // and this simply keeps playing, overlapping what follows. Never truncated.
+    const scrollRef = useSequencedFade(queueIndex, {
+        eligible,
+        holds: () => isPlaying.current,
+    })
 
     const spacing = SPACING
     const timing = pull
@@ -504,6 +329,7 @@ function PullTextItem({
     function play() {
         if (hasPlayed.current) return
         hasPlayed.current = true
+        isPlaying.current = true
         clearTimers()
         const root = rootRef.current
         if (!root) return
@@ -513,7 +339,11 @@ function PullTextItem({
             const t = setTimeout(() => {
                 animateChunk(chunkEl, chunk)
                 if (i === chunks.length - 1) {
-                    const done = setTimeout(onComplete, timing.duration + 100)
+                    // Releasing the hold IS "complete". The queue advances on
+                    // its own from there — nothing unlocks a next gate by hand.
+                    const done = setTimeout(() => {
+                        isPlaying.current = false
+                    }, timing.duration + 100)
                     timers.current.push(done)
                 }
             }, chunk.delay)
@@ -521,26 +351,18 @@ function PullTextItem({
         })
     }
 
+    // The queue decides WHEN. This used to run its own in-view check on every
+    // scroll event, which is how a pull quote could start before the paragraphs
+    // above it — a second mechanism racing the first.
     useEffect(() => {
-        if (!unlocked) return
-        if (hasTriggered.current) return
-
-        function checkAndPlay() {
-            if (hasTriggered.current) return
-            const el = scrollRef.current
-            if (!el) return
-            const rect = el.getBoundingClientRect()
-            const inView = rect.top < window.innerHeight * 0.85
-            if (inView) {
-                hasTriggered.current = true
-                play()
-            }
+        let raf = 0
+        const tick = () => {
+            if (isRevealed(queueIndex)) play()
+            else raf = requestAnimationFrame(tick)
         }
-
-        checkAndPlay()
-        window.addEventListener("scroll", checkAndPlay, { passive: true })
-        return () => window.removeEventListener("scroll", checkAndPlay)
-    }, [unlocked])
+        raf = requestAnimationFrame(tick)
+        return () => cancelAnimationFrame(raf)
+    }, [queueIndex])
 
     useEffect(() => () => clearTimers(), [])
 
@@ -642,7 +464,6 @@ export default function TextBlock({
     slots?: Record<string, React.ReactNode>
 }) {
     const space = useSpace()
-    const groupRefs = useRef(new Map<number, HTMLDivElement | null>())
 
     // The markdown arrives as a STRING, already read server-side and passed in
     // as a prop. Deliberately not fetched: this is the page's whole body, and
@@ -652,40 +473,26 @@ export default function TextBlock({
     const { blocks, fast, manualSequence } = doc
     const spacing = SPACING
 
-    useEffect(() => {
-        const unsub = installScrollWatcher()
-        return unsub
-    }, [])
+    useEffect(() => installQueue(), [])
 
-    // ── Sections ────────────────────────────────────────────────────────────
-    // One block is one section is one gate. The seq number is the block's
-    // POSITION, 1-based — there are no authored seq numbers to drift, and
-    // adding a paragraph can no longer renumber anything.
-    useEffect(() => {
-        // A CHOREOGRAPHED page registers no sentinels: its gates are opened by
-        // the page's own timers, chained off the real durations of the
-        // animations before them. Registering them would let position unlock
-        // gates the page intends to drive — on Let's Talk the whole page sits
-        // above the fold, so gate 1 is in view at load and the entire chain
-        // would fire at once, before the ripple text has said anything.
-        //
-        // That page only ever worked because the scroll watcher used to be
-        // asleep until the first scroll event. It was a race that happened to
-        // be won by the timers, not a design.
-        if (manualSequence) return
-
-        const unsubs = blocks.map((_, i) =>
-            registerSentinel(i + 1, () => {
-                const el = groupRefs.current.get(i + 1)
-                // No element yet — report far below the fold so it cannot
-                // unlock during the frame before its ref lands. A rect of
-                // zeros would read as "at the top of the screen".
-                if (!el) return Number.POSITIVE_INFINITY
-                return el.getBoundingClientRect().top
-            })
-        )
-        return () => unsubs.forEach((fn) => fn())
-    }, [blocks, manualSequence])
+    // ── Queue indices ───────────────────────────────────────────────────────
+    // One FLAT sequence across the whole page, in document order. The queue
+    // owns ordering, so there is no per-section gate chain any more and no
+    // sentinel registry: an item's place in the order IS its index.
+    //
+    // Slots take an index too — the sphere and the Venn diagram sit IN the
+    // sequence rather than beside it, which is the point of making them
+    // content. They simply never hold the queue.
+    const indexed = useMemo(() => {
+        let n = 0
+        return blocks.map((block) => {
+            const paragraphs = block.paragraphs ?? (block.type === "slot" ? [] : [block.content])
+            const count = block.type === "paragraph" || block.type === "subtitle" ? paragraphs.length : 1
+            const first = n
+            n += count
+            return { block, first, paragraphs }
+        })
+    }, [blocks])
 
     // The section wrapper repeats the parent's gap, so gap-between-sections and
     // gap-between-items stay the same number and the nesting is visually inert.
@@ -698,26 +505,19 @@ export default function TextBlock({
 
     return (
         <div style={columnStyle}>
-            {blocks.map((block, i) => {
-                const seq = i + 1
-                return (
-                    <div
-                        key={seq}
-                        ref={(el) => {
-                            groupRefs.current.set(seq, el)
-                        }}
-                        style={columnStyle}
-                    >
-                        <BlockRenderer
-                            block={block}
-                            seq={seq}
-                            fast={fast}
-                            slots={slots}
-                            spacing={spacing}
-                        />
-                    </div>
-                )
-            })}
+            {indexed.map(({ block, first, paragraphs }, i) => (
+                <div key={i} style={columnStyle}>
+                    <BlockRenderer
+                        block={block}
+                        paragraphs={paragraphs}
+                        firstIndex={first}
+                        seq={i + 1}
+                        fast={fast}
+                        manualSequence={manualSequence}
+                        slots={slots}
+                    />
+                </div>
+            ))}
         </div>
     )
 }
@@ -726,18 +526,27 @@ export default function TextBlock({
 
 function BlockRenderer({
     block,
+    paragraphs,
+    firstIndex,
     seq,
     fast,
+    manualSequence,
     slots,
-    spacing,
 }: {
     block: CaseBlock
+    paragraphs: string[]
+    firstIndex: number
     seq: number
     fast: boolean
+    manualSequence: boolean
     slots?: Record<string, React.ReactNode>
-    spacing: typeof SPACING
 }) {
-    const unlocked = useSequence(seq)
+    // Two kinds of eligibility, one queue.
+    //   position-driven — omitted, so the item measures its own leading edge
+    //                     against BF0 (Who I Am)
+    //   choreographed   — the page's timer opened this gate (Let's Talk)
+    const gateOpen = useSequence(seq)
+    const eligible = manualSequence ? () => gateOpen : undefined
 
     if (block.type === "slot") {
         // The content file names the slot; the PAGE supplies the element and
@@ -750,26 +559,23 @@ function BlockRenderer({
         return (
             <PullTextItem
                 pull={block.pull!}
-                unlocked={unlocked}
-                // Pull quotes are the only element permitted to serialise the
-                // queue: the next gate waits for this one to play out in full.
-                onComplete={() => unlockNextAfter(seq)}
+                queueIndex={firstIndex}
+                eligible={eligible}
             />
         )
     }
 
-    // paragraph | subtitle — one gate, N paragraphs sharing it.
-    // mountIndex is per SECTION. It used to count every paragraph in the whole
-    // block, so the last one waited mountDelay + 14 * 400 = ~7s.
-    const paragraphs = block.paragraphs ?? [block.content]
+    // paragraph | subtitle — consecutive queue indices, so they arrive in order
+    // and pace themselves off each other exactly like everything else. There is
+    // no per-section stagger index any more: the queue is the stagger.
     return (
         <>
             {paragraphs.map((text, j) => (
                 <ParagraphItem
                     key={j}
                     text={text}
-                    unlocked={unlocked}
-                    mountIndex={j}
+                    queueIndex={firstIndex + j}
+                    eligible={eligible}
                     size={block.type === "subtitle" ? "subtitle" : "body"}
                     fast={fast}
                 />

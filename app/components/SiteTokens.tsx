@@ -595,6 +595,37 @@ export const BAND_VIGNETTE = {
     opacity:    0.85, // black at the very bottom edge
 }
 
+// ─── SEQUENCE — reveal pacing ────────────────────────────────────────────────
+// ORDER IS ABSOLUTE; PACING IS ELASTIC. These numbers are the RESTING pace —
+// what a still reader on a page with room to perform gets. Scroll pressure
+// compresses the step toward minStepMs so the queue catches up; it never
+// reorders and never skips a fade.
+//
+// All UNTUNED. mountDelay used to be 1500ms, tuned for a scroll-triggered
+// arrival where the delay masked the trigger; anchored to the queue instead,
+// that much dead air before the FIRST item is too much. The step was a
+// hardcoded 400 counted across a whole block.
+export const SEQUENCE = {
+    firstDelayMs:  400,   // before the first item of an armed page
+    stepMs:        200,   // between starts, at rest
+    minStepMs:      70,   // between starts, fully compressed — never 0
+    fadeMs:       1200,   // each item's own fade-in
+    // Pressure = the reader is scrolling toward new content. Deadzone keeps a
+    // fidget, or iOS rubber-band bounce, from collapsing the resting pace.
+    pressureDeadzonePx: 40,
+    pressureWindowMs:  600,
+    // Backlog is the OTHER source of pressure, and the one that matters after
+    // a jump. Recent scrolling decays in pressureWindowMs, so landing at the
+    // bottom of a long page would drop straight back to the resting pace —
+    // six pull quotes each holding ~1.6s, twelve seconds of catch-up watched
+    // from the bottom. Compression should follow how far the queue has fallen
+    // behind where the reader is LOOKING, not just whether they moved
+    // recently. Small backlogs stay at the resting pace, which is what keeps
+    // the still-reader case (a pull quote playing out with room below it) as
+    // designed.
+    backlogPressure: 4,   // eligible-but-unrevealed items before compressing
+}
+
 export const NAV = {
     height: 87, // measured desktop height in px — update if navbar changes
     nameFontSize: 38,

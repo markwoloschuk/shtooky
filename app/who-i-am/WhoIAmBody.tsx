@@ -9,7 +9,8 @@
 // so a content edit can no longer dislodge them.
 
 import { useEffect } from "react"
-import { unlock, reset } from "../components/SequenceController"
+import { reset } from "../components/SequenceController"
+import { armQueue } from "../components/RevealQueue"
 import SkillsSphere from "../components/WhoSkillsSphere"
 import VennDiagram from "../components/WhoVennDiagram"
 import SiteTextBlock from "../components/SiteTextBlock"
@@ -36,8 +37,10 @@ export default function WhoIAmBody({ md }: { md: string }) {
         // revealed with no animation at all — not play-once, play-never-again.
         // Let's Talk already did this; Who I Am never did.
         // Play-once is per visit; it is never re-armed by scrolling.
+        // No gate is seeded by hand any more — this page is position-driven,
+        // so the queue's own eligibility test starts it.
         reset()
-        unlock(1)
+        armQueue()
         window.scrollTo(0, 0)
     }, [])
 

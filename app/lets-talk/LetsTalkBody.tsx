@@ -16,10 +16,11 @@
 
 import { useEffect } from "react"
 import { unlock, reset } from "../components/SequenceController"
+import { armQueue } from "../components/RevealQueue"
 import RippleNetwork, { TEXT_DELAY, CHUNKS, TIMING } from "../components/TalkRippleNetwork"
-import SiteTextBlock, { SCROLL_FADE_FAST } from "../components/SiteTextBlock"
+import SiteTextBlock, { itemFadeMs } from "../components/SiteTextBlock"
 import TalkOptions from "../components/TalkOptions"
-import { useColumn, SPACE, useSpace } from "../components/SiteTokens"
+import { useColumn, SPACE, SEQUENCE, useSpace } from "../components/SiteTokens"
 
 
 
@@ -29,11 +30,12 @@ import { useColumn, SPACE, useSpace } from "../components/SiteTokens"
 const RIPPLE_TEXT_DONE_MS =
     TEXT_DELAY + CHUNKS[CHUNKS.length - 1].delay + TIMING.duration
 
-// Real completion time of id1's fade once seq 1 unlocks. id1 now renders
-// with fast: true (SCROLL_FADE_FAST), so this must track that config, not
-// the base SCROLL_FADE — otherwise this wait drifts out of sync with what
-// actually happens on screen.
-const ID1_FADE_DONE_MS = SCROLL_FADE_FAST.mountDelay + SCROLL_FADE_FAST.mountFadeIn
+// Real completion time of the subtitle's fade once gate 1 opens. Computed
+// from the queue's own pacing, not guessed — the queue waits firstDelayMs
+// before its first item, then that item fades for itemFadeMs. The page runs
+// on `fast: true`, so it must ask for the fast duration or this wait drifts
+// out of sync with what actually happens on screen.
+const BLOCK1_FADE_DONE_MS = SEQUENCE.firstDelayMs + itemFadeMs(true)
 
 export default function LetsTalkBody({ md }: { md: string }) {
     const col = useColumn()
@@ -43,12 +45,13 @@ export default function LetsTalkBody({ md }: { md: string }) {
 
     useEffect(() => {
         reset()
+        armQueue()
         window.scrollTo(0, 0)
 
         const t1 = setTimeout(() => unlock(1), RIPPLE_TEXT_DONE_MS)
         const t2 = setTimeout(
             () => unlock(2),
-            RIPPLE_TEXT_DONE_MS + ID1_FADE_DONE_MS
+            RIPPLE_TEXT_DONE_MS + BLOCK1_FADE_DONE_MS
         )
         // seq 3 (the remaining paragraphs) is unlocked by TalkOptions
         // itself, once ITS OWN reveal fade finishes — see TalkOptions.tsx.
