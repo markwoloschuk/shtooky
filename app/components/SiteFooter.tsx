@@ -76,7 +76,7 @@ const pageBlurbs =
                 bottom: 0,
                 left: 0,
                 right: 0,
-                height: 52,
+                height: FOOTER.height,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -85,8 +85,9 @@ const pageBlurbs =
                 paddingRight: `${FRAME_INSET_VW}vw`,
 
                 zIndex: 40,
-                background:
-                    "linear-gradient(to top, rgba(13,13,13,0.9) 0%, transparent 100%)",
+                // No background. The bottom gradient in SiteScrollConfig is
+                // guaranteed fully opaque by FOOTER.height, so a second scrim
+                // here would just be a competing one at a different opacity.
                 opacity: activePage === "welcome" ? (visible ? 1 : 0) : 1,
                 transition:
                     activePage === "welcome" ? "opacity 1500ms ease" : "none",

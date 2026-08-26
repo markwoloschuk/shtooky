@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useCallback } from "react"
-import { COLORS, TIMING, LOGO_GRID_TIERS, useBreakpoint } from "./SiteTokens"
+import { COLORS, TIMING, LOGO_GRID_TIERS, useBreakpoint, getVisibility } from "./SiteTokens"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TUNING — adjust these to change animation behaviour
@@ -20,9 +20,24 @@ const DEFAULTS = {
     hoverScale: 1.02, // scale on hover
 }
 
+// SCROLL FADE — trigger geometry
+// Reads BF0 / BF100 from VISIBILITY_TIERS (SiteTokens) rather than carrying
+// its own pixel numbers. Two things changed here:
+//
+//   1. EDGE. This used to measure the element's CENTRE:
+//        distFromBottom = viewH - rect.bottom + (rect.bottom - rect.top) * 0.5
+//      which simplifies to (viewH - centreY). For a tall element that fires
+//      very late — roughly half its own height AFTER its top edge appears.
+//      Now it measures the LEADING edge (the top, when scrolling down), so an
+//      object may begin arriving as soon as any part of it enters the band.
+//
+//   2. UNITS. 150 / 300 were pixels, so the trigger occupied a different
+//      share of the screen at every viewport height. BF0 / BF100 are vh and
+//      tiered, so it behaves the same proportionally everywhere.
+//
+// BF0 (95vh) = the trigger line: 0% opacity, fade begins here.
+// BF100 (85vh) = full opacity. The ramp is the 10vh between them.
 const SCROLL_FADE = {
-    fadeInStart: 150, // px from viewport bottom where fade begins
-    fadeInEnd: 300, // px from viewport bottom where fade completes
     animDelay: 200, // ms after fade starts before ripple fires
 }
 
@@ -662,18 +677,20 @@ export default function ClientLogoGrid({
         let animTriggered = false
         let resetTimer: ReturnType<typeof setTimeout> | null = null
 
+        function scrollFadeOpacity(rect: DOMRect, viewH: number): number {
+            const vis = getVisibility()
+            const topVh = (rect.top / viewH) * 100
+            const raw = (vis.BF0 - topVh) / (vis.BF0 - vis.BF100)
+            return Math.max(0, Math.min(1, raw))
+        }
+
         function handleScroll() {
             const grid = gridRef.current
             if (!grid) return
 
             const rect = grid.getBoundingClientRect()
             const viewH = window.innerHeight
-            const distFromBottom =
-                viewH - rect.bottom + (rect.bottom - rect.top) * 0.5
-            const raw =
-                (distFromBottom - SCROLL_FADE.fadeInStart) /
-                (SCROLL_FADE.fadeInEnd - SCROLL_FADE.fadeInStart)
-            const opacity = Math.max(0, Math.min(1, raw))
+            const opacity = scrollFadeOpacity(rect, viewH)
 
             if (animTriggered) {
                 grid.style.opacity = String(opacity)

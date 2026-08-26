@@ -12,7 +12,7 @@
 
 "use client"
 
-import { COLORS, DEBUG, NAV, getVisibility } from "./SiteTokens"
+import { COLORS, DEBUG, NAV, FOOTER, getVisibility } from "./SiteTokens"
 import { useState, useEffect } from "react"
 
 // ─── Global config store ──────────────────────────────────────────────────────
@@ -65,14 +65,30 @@ export default function ScrollConfig() {
             ${bg} ${safeTF0}vh,
             transparent ${safeTF100}vh)`
 
+    // DERIVED, not a token: where the bottom gradient stops being fully
+    // opaque. BF0 sets it, but it may never rise above the top of the footer —
+    // the footer type is small and nothing may pass behind it. So the opaque
+    // stop is the LOWER of the two, expressed in px so it can be compared to
+    // FOOTER.height at all. Without this the guarantee would be two numbers
+    // agreeing by hand at one viewport height, which is how talkNavClearance
+    // and SCROLL_FADE_TIERS already went wrong.
+    const [vhPx, setVhPx] = useState(900)
+    useEffect(() => {
+        const update = () => setVhPx(window.innerHeight)
+        update()
+        window.addEventListener("resize", update)
+        return () => window.removeEventListener("resize", update)
+    }, [])
+    const opaqueStopPx = Math.max(((100 - safeBF0) / 100) * vhPx, FOOTER.height)
+
     const bottomGradient = debug
         ? `linear-gradient(to top,
             ${debugSolid(gradientOpacity)} 0%,
-            ${debugSolid(gradientOpacity)} ${100 - safeBF0}vh,
+            ${debugSolid(gradientOpacity)} ${opaqueStopPx}px,
             ${debugSolid(0)} ${100 - safeBF100}vh)`
         : `linear-gradient(to top,
             ${bg} 0%,
-            ${bg} ${100 - safeBF0}vh,
+            ${bg} ${opaqueStopPx}px,
             transparent ${100 - safeBF100}vh)`
 
     const lineBase: React.CSSProperties = {

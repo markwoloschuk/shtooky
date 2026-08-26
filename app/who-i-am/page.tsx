@@ -6,7 +6,7 @@
 // v01 — 2026-06-22
 
 import { useEffect } from "react"
-import { unlock } from "../components/SequenceController"
+import { unlock, reset } from "../components/SequenceController"
 import SkillsSphere from "../components/WhoSkillsSphere"
 import VennDiagram from "../components/WhoVennDiagram"
 import SiteTextBlock from "../components/SiteTextBlock"
@@ -27,6 +27,13 @@ export default function WhoIAm() {
     const sphereBoxHeight = space(SPACE.layout.whoSphereBoxHeight)
 
     useEffect(() => {
+        // Re-arm the whole sequence on every VISIT to this page.
+        // `_unlocked` is module state that survives client-side navigation, so
+        // without this, leaving the page and coming back rendered it fully
+        // revealed with no animation at all — not play-once, play-never-again.
+        // Let's Talk already did this; Who I Am never did.
+        // Play-once is per visit; it is never re-armed by scrolling.
+        reset()
         unlock(1)
         window.scrollTo(0, 0)
     }, [])

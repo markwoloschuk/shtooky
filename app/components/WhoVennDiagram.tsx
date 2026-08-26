@@ -6,7 +6,7 @@
 // v02 — ported to Next.js 2026-06-22
 
 import { useEffect, useRef, useCallback } from "react"
-import { COLORS } from "./SiteTokens"
+import { COLORS, getVisibility } from "./SiteTokens"
 
 // ─── TUNING ───────────────────────────────────────────────────────────────────
 
@@ -55,11 +55,25 @@ const GEOMETRY = {
     vertRatio: 0.86,
 }
 
+// SCROLL FADE — trigger geometry
+// Reads BF0 / BF100 from VISIBILITY_TIERS (SiteTokens) rather than carrying
+// its own pixel numbers. Two things changed here:
+//
+//   1. EDGE. This used to measure the element's CENTRE:
+//        distFromBottom = viewH - rect.bottom + (rect.bottom - rect.top) * 0.5
+//      which simplifies to (viewH - centreY). For a tall element that fires
+//      very late — roughly half its own height AFTER its top edge appears.
+//      Now it measures the LEADING edge (the top, when scrolling down), so an
+//      object may begin arriving as soon as any part of it enters the band.
+//
+//   2. UNITS. 150 / 300 were pixels, so the trigger occupied a different
+//      share of the screen at every viewport height. BF0 / BF100 are vh and
+//      tiered, so it behaves the same proportionally everywhere.
+//
+// BF0 (95vh) = the trigger line: 0% opacity, fade begins here.
+// BF100 (85vh) = full opacity. The ramp is the 10vh between them.
 const SCROLL_FADE = {
-    fadeInStart: 150,
-    fadeInEnd: 300,
     animDelay: 200,
-    resetDelay: 650,
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -538,7 +552,13 @@ export default function VennDiagram({
         }
 
         let animTriggered = false
-        let resetTimer: ReturnType<typeof setTimeout> | null = null
+
+        function scrollFadeOpacity(rect: DOMRect, viewH: number): number {
+            const vis = getVisibility()
+            const topVh = (rect.top / viewH) * 100
+            const raw = (vis.BF0 - topVh) / (vis.BF0 - vis.BF100)
+            return Math.max(0, Math.min(1, raw))
+        }
 
         function handleScroll() {
             const container = containerRef.current
@@ -546,40 +566,22 @@ export default function VennDiagram({
 
             const rect = container.getBoundingClientRect()
             const viewH = window.innerHeight
-            const distFromBottom =
-                viewH - rect.bottom + (rect.bottom - rect.top) * 0.5
-            const raw =
-                (distFromBottom - SCROLL_FADE.fadeInStart) /
-                (SCROLL_FADE.fadeInEnd - SCROLL_FADE.fadeInStart)
-            const opacity = Math.max(0, Math.min(1, raw))
+            const opacity = scrollFadeOpacity(rect, viewH)
 
             if (container.parentElement) {
                 container.parentElement.style.opacity = String(opacity)
             }
 
-            if (opacity === 0 && animTriggered) {
-                if (!resetTimer) {
-                    resetTimer = setTimeout(() => {
-                        animTriggered = false
-                        if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current)
-                        if (hoverRafIdRef.current) cancelAnimationFrame(hoverRafIdRef.current)
-                        if (fillFadeRafIdRef.current) cancelAnimationFrame(fillFadeRafIdRef.current)
-                        progRef.current = [0, 0, 0]
-                        textAlphaRef.current = [0, 0, 0]
-                        oAlphaRef.current = [0, 0, 0, 0]
-                        oTargetAlphaRef.current = [0, 0, 0, 0]
-                        allDoneRef.current = false
-                        hoveredOverlapRef.current = -1
-                        animRunningRef.current = false
-                        resetTimer = null
-                    }, SCROLL_FADE.resetDelay)
-                }
-            } else {
-                if (resetTimer) {
-                    clearTimeout(resetTimer)
-                    resetTimer = null
-                }
-            }
+            // PLAY ONCE. This used to re-arm whenever the diagram scrolled
+            // fully out of view — cancelling three rAF loops and resetting
+            // eight refs mid-flight — and that teardown was a recurring source
+            // of errors. It now animates once per page VISIT: the component
+            // unmounts on navigation, so `animTriggered` resets naturally and
+            // a fresh arrival replays it. A reload does the same.
+            //
+            // The opacity write above still runs every scroll — that is the
+            // zone fade (BF0/BF100), which is not the same thing as replaying
+            // the animation and should keep tracking position.
 
             if (opacity > 0 && !animTriggered) {
                 animTriggered = true

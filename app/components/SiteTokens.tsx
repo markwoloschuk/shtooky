@@ -737,6 +737,15 @@ export const BACKGROUND = {
 
 
 export const FOOTER = {
+    // Measured footer height in px — update if the footer changes.
+    // SiteScrollConfig reads this: the bottom gradient must be FULLY opaque
+    // by the top of the footer, because the footer type is small and nothing
+    // may pass behind it. The footer therefore paints no background of its
+    // own — it used to carry a second rgba(13,13,13,0.9) scrim, so there were
+    // two overlapping bottom gradients at different opacities, neither aware
+    // of the other.
+    height: 52,
+
     blurbs: {
         welcome: [
             "25 years of learning to make things look the way I meant.",
