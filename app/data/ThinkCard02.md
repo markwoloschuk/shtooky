@@ -28,7 +28,7 @@ I think the same idea applies in design. Empathy isn’t a step in the process �
 Empathy in,
 emotion out
 
-[praragraph]
+[paragraph]
 The empathy lens is what helps you find the emotional hooks — where they live in the material, where they can be placed, how hard to pull. I point it in three directions. Toward the subject — what is this really about? Toward the audience — what do they actually need to feel? And toward myself — am I bringing my full attention, or am I on autopilot?
 
 [paragraph]

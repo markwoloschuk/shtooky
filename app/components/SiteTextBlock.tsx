@@ -45,16 +45,22 @@ const PAGE_BLOCKS = new Set(['paragraph', 'subtitle', 'pull', 'slot'])
 export interface PageDoc {
     blocks: CaseBlock[]
     fast: boolean
+    manualSequence: boolean
 }
 
 export function parsePageMd(raw: string): PageDoc {
-    const { fm, rest } = parseFrontmatter(stripComments(raw), { fast: '' })
+    const { fm, rest } = parseFrontmatter(stripComments(raw), { fast: '', sequence: '' })
     const blocks = parseBlocks(rest, {
         allowed: PAGE_BLOCKS,
         groupParagraphs: new Set(['paragraph', 'subtitle']),
         pullBlocks: new Set(['pull']),
     })
-    return { blocks, fast: fm.fast === 'true' }
+    return {
+        blocks,
+        fast: fm.fast === 'true',
+        // `sequence: manual` — the PAGE drives every gate, position drives none.
+        manualSequence: fm.sequence === 'manual',
+    }
 }
 
 // The spacing rhythm is the same on both pages — it was two identical copies
@@ -643,7 +649,7 @@ export default function TextBlock({
     // anything that must be on screen before a fetch resolves cannot live in a
     // fetched file. Parsing is the only boundary — the source is interchangeable.
     const doc = useMemo(() => parsePageMd(md), [md])
-    const { blocks, fast } = doc
+    const { blocks, fast, manualSequence } = doc
     const spacing = SPACING
 
     useEffect(() => {
@@ -656,6 +662,18 @@ export default function TextBlock({
     // POSITION, 1-based — there are no authored seq numbers to drift, and
     // adding a paragraph can no longer renumber anything.
     useEffect(() => {
+        // A CHOREOGRAPHED page registers no sentinels: its gates are opened by
+        // the page's own timers, chained off the real durations of the
+        // animations before them. Registering them would let position unlock
+        // gates the page intends to drive — on Let's Talk the whole page sits
+        // above the fold, so gate 1 is in view at load and the entire chain
+        // would fire at once, before the ripple text has said anything.
+        //
+        // That page only ever worked because the scroll watcher used to be
+        // asleep until the first scroll event. It was a race that happened to
+        // be won by the timers, not a design.
+        if (manualSequence) return
+
         const unsubs = blocks.map((_, i) =>
             registerSentinel(i + 1, () => {
                 const el = groupRefs.current.get(i + 1)
@@ -667,7 +685,7 @@ export default function TextBlock({
             })
         )
         return () => unsubs.forEach((fn) => fn())
-    }, [blocks])
+    }, [blocks, manualSequence])
 
     // The section wrapper repeats the parent's gap, so gap-between-sections and
     // gap-between-items stay the same number and the nesting is visually inert.

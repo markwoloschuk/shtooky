@@ -3,14 +3,14 @@
 [paragraph]
 As a freelancer, I haven’t had a lot of official titles — but over my career I’ve taken on many jobs.
 
-It all started with a dream of making feature films. I went to film school and became fascinated with cameras and light. I was going to work in the camera department and see the world through a reflex viewfinder.
+It all started with a dream of making feature films. I went to film school and became fascinated with lenses and light. I was going to work in the camera department and see the world through a reflex viewfinder.
 
 [pull]
 pushY: 20
 > That’s {not} what happened   | wipe
 
 [paragraph]
-My first job out of school was as an assistant editor on a ten-part documentary series called “Life After Death” — produced by a company called Sleeping Giant that has since, ironically, lived up to its name. That first zig led to a series of zags that eventually brought me to San Francisco.
+My first job out of school was as an assistant editor on a ten-part documentary series. Working behind the cameras I immersed myself in organization and post workflows. But what really started here was a life-long education in how to make choices and how to have reasons for those choices. This first zig led to a series of zags that eventually brought me to San Francisco.
 
 [pull]
 pushY: 20

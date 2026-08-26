@@ -1,5 +1,6 @@
 ---
 fast: true
+sequence: manual
 ---
 
 [subtitle]
@@ -16,6 +17,12 @@ To me collaboration isn’t just working well together — it’s the foundation
 // Frontmatter `fast: true` puts every item on this page on SCROLL_FADE_FAST
 // rather than SCROLL_FADE. All three items already used it — it was `fast:
 // true` repeated on each one.
+//
+// `sequence: manual` — this page is CHOREOGRAPHED, not scroll-driven. Every
+// gate is opened by a timer chained off the real duration of the animation
+// before it, so no sentinels are registered and position unlocks nothing. The
+// whole page sits above the fold; without this, gate 1 is in view at load and
+// the entire chain fires at once, before the ripple text has said anything.
 //
 // SEQUENCE. Block order is gate order, so:
 //   1  [subtitle]      unlocked by the page, after RippleNetwork's text
