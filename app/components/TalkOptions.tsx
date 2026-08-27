@@ -19,7 +19,7 @@
 // spirit to ThinkCasePanel's block fade-in than anything canvas-based.
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { COLORS, TYPE, useType, SPACE, useSpace } from "./SiteTokens"
+import { COLORS, TYPE, useType, SPACE, useSpace, useColumn, bodyMaxWidth } from "./SiteTokens"
 import { useSequence, unlock } from "./SiteSequenceController"
 
 const ACCENT = COLORS.contact
@@ -65,6 +65,23 @@ type PanelKey = "contact" | "location" | "resume"
 function Collapsible({ open, children }: { open: boolean; children: React.ReactNode }) {
     const innerRef = useRef<HTMLDivElement>(null)
     const [height, setHeight] = useState(0)
+    // Every panel matches the TEXT column, not the content column. The slot
+    // this sits in is not `bleed`, so SlotGate hands it width:100% of the
+    // content column; body paragraphs then narrow themselves to the reading
+    // measure individually via bodyMaxWidth(). Nothing in here was asking for
+    // it, so all three panels ran full-column and read wider than the copy
+    // above and below them.
+    //
+    // Applied HERE rather than on each panel for two reasons: one place means
+    // Contact / Resume / Location cannot drift apart later, and it must be on
+    // the MEASURED element — constrain after measuring and the recorded height
+    // belongs to a wider box than the one on screen, so the panel opens short
+    // and clips.
+    //
+    // Read from the token, never restated as a number: this is
+    // col.vw * col.bodyColPct / 100, tiering to 53.2 / 68.8 / 90 vw. Mobile's
+    // bodyColPct is 100, so there it correctly stays full-column.
+    const col = useColumn()
 
     // Height tracks the CONTENT BOX rather than a guess about when the
     // content changed. The dep array used to be [open, children] — but
@@ -99,7 +116,7 @@ function Collapsible({ open, children }: { open: boolean; children: React.ReactN
                 transition: `height ${CONFIG.TRANSITION_MS}ms ease`,
             }}
         >
-            <div ref={innerRef}>
+            <div ref={innerRef} style={{ maxWidth: bodyMaxWidth(col) }}>
                 <div
                     style={{
                         opacity: open ? 1 : 0,
@@ -202,7 +219,7 @@ function ContactForm({ onSent }: { onSent: () => void }) {
 
     if (status === "sent") {
         return (
-            <p style={{ fontFamily: TYPE.display, color: COLORS.white, fontSize: 17, maxWidth: 500 }}>
+            <p style={{ fontFamily: TYPE.display, color: COLORS.white, fontSize: 17 }}>
                 Thanks — message sent. I'll get back to you soon.
             </p>
         )

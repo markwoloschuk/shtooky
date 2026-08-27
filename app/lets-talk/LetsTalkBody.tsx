@@ -43,6 +43,26 @@ export default function LetsTalkBody({ md }: { md: string }) {
     const blurbGap = space(SPACE.layout.talkBlurbGap)
     const navClearance = space(SPACE.layout.talkNavClearance)
 
+    // Gaps above and below the Contact / Resume / Location row.
+    //
+    // This wrapper used to carry a hardcoded `2.2em` on both sides. Two things
+    // were wrong with it. It sat on a bare layout div that inherits no
+    // font-size — and nothing between <body> and here sets one — so it
+    // resolved against the browser default 16px and came out a FLAT 35.2px at
+    // every breakpoint. And it stacked raw on SiteTextBlock's flex
+    // `paragraphGap`, so the real distances were 65 / 57 / 55px, of which the
+    // untiered part was 64% on mobile. Exactly the SPACE.text bug, surviving
+    // here because the PAGE adds this wrapper from outside the text block's
+    // gap system, so nothing subtracts the shared gap for it.
+    //
+    // Now the same tokens the pull quotes use, with the flex gap subtracted
+    // back out the same way SiteTextBlock does at its pull wrapper — so the
+    // token means the TOTAL distance you would measure on screen, and one
+    // number owns each gap. Math.max guards a gap tighter than paragraphGap.
+    const paraGap = space(SPACE.text.paragraphGap)
+    const optionsGapBefore = Math.max(0, space(SPACE.text.interruptGapBefore) - paraGap)
+    const optionsGapAfter = Math.max(0, space(SPACE.text.interruptGapAfter) - paraGap)
+
     useEffect(() => {
         reset()
         armQueue()
@@ -79,7 +99,7 @@ export default function LetsTalkBody({ md }: { md: string }) {
                         md={md}
                         slots={{
                             options: (
-                                <div style={{ marginTop: "2.2em", marginBottom: "2.2em" }}>
+                                <div style={{ marginTop: optionsGapBefore, marginBottom: optionsGapAfter }}>
                                     <TalkOptions />
                                 </div>
                             ),

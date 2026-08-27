@@ -13,7 +13,7 @@
 //   CTA links         → TYPE_TIERS.CTA_LINK
 //
 // SPACING
-//   SPACE.text.paragraphGap / pullGapBefore / pullGapAfter, resolved with
+//   SPACE.text.paragraphGap / interruptGapBefore / interruptGapAfter, resolved with
 //   useSpace(). The pull gaps are TOTAL measured distances; the flex gap is
 //   subtracted back out at the pull wrapper so one number owns each gap.
 
@@ -66,8 +66,8 @@ export function parsePageMd(raw: string): PageDoc {
 // files also carried per-page timing that has since moved to the pages.
 const SPACING = {
     paragraphGap: SPACE.text.paragraphGap,
-    pullGapBefore: SPACE.text.pullGapBefore,
-    pullGapAfter: SPACE.text.pullGapAfter,
+    interruptGapBefore: SPACE.text.interruptGapBefore,
+    interruptGapAfter: SPACE.text.interruptGapAfter,
 }
 
 // Pacing now lives in SEQUENCE (SiteTokens) and is owned by SiteRevealQueue.
@@ -378,11 +378,11 @@ function PullTextItem({
                 // `paragraphGap` between every child, so a raw margin here
                 // would stack on top of it — the gap you saw was the sum of
                 // two numbers and changed meaning depending on the neighbour.
-                // pullGapBefore/After are the TOTAL measured distance, so the
+                // interruptGapBefore/After are the TOTAL measured distance, so the
                 // shared gap is subtracted back out here, in one place.
                 // Math.max guards a pull gap tighter than the paragraph gap.
-                marginTop: Math.max(0, space(spacing.pullGapBefore) - space(spacing.paragraphGap)),
-                marginBottom: Math.max(0, space(spacing.pullGapAfter) - space(spacing.paragraphGap)),
+                marginTop: Math.max(0, space(spacing.interruptGapBefore) - space(spacing.paragraphGap)),
+                marginBottom: Math.max(0, space(spacing.interruptGapAfter) - space(spacing.paragraphGap)),
                 width: "100%",
             }}
         >

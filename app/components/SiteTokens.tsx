@@ -349,7 +349,7 @@ const TYPE_TIERS = {
         JOB_VALUE: { sizePx: 16, weight: 400, tracking: 0, lineHeight: 1.4 }, // UNTUNED — never rendered at this tier
         CASE_SUBTITLE: { sizePx: 26, weight: 300, tracking: -0.005, lineHeight: 1.3 }, // UNTUNED — never rendered at this tier
         FOOTER: { sizePx: 13, weight: 400, tracking: 0.04, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
-        CTA_LINK: { sizePx: 30, weight: 700, tracking: -0.01, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
+        CTA_LINK: { sizePx: 29, weight: 700, tracking: -0.01, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
     },
 
     mobile: {
@@ -460,10 +460,10 @@ export const SPACE = {
         talkBlurbGap:       { desktop: -100, tablet: -60, mobile: -25 },
 
         // Let's Talk — gap between Contact / Resume / Location.
-        talkLabelGap:       { desktop: 120, tablet:  80, mobile:  60 },
+        talkLabelGap:       { desktop: 160, tablet:  86, mobile:  58 },
 
         // Welcome — gap between the three bottom CTA links.
-        welcomeCtaGap:      { desktop: 160, tablet:  120, mobile:  26 },
+        welcomeCtaGap:      { desktop: 110, tablet:  50, mobile:  24 },
 
         // Gap between a full-bleed canvas BAND and the detail text under it.
         // Shared by the Work carousel -> case panel and the How I Think grid
@@ -499,12 +499,34 @@ export const SPACE = {
         // 2.2x the type size. They are input numbers tuned by eye, so they are
         // tiered px like every other spacing token.
         //
-        // pullGapBefore/After are the TOTAL distance you would measure on
-        // screen, paragraphGap included — SiteTextBlock subtracts the flex gap
-        // so one number owns each relationship. They used to stack silently.
+        // interruptGapBefore/After — the gap around ANY non-paragraph element
+        // interrupting a column of body copy. Renamed from pullGapBefore/After
+        // once it had three consumers and "pull" described only the first:
+        //
+        //   1. pull quotes                     — SiteTextBlock
+        //   2. the Contact / Resume / Location
+        //      button row on Let's Talk        — LetsTalkBody, `options` slot
+        //   3. above/below the logo grid, and
+        //      above the CTA links, on Welcome — page.tsx
+        //
+        // These are ONE number by intent, not by coincidence: the same visual
+        // relationship in three places. Tuning them moves all three, which is
+        // the point. If some future case genuinely wants to differ, give that
+        // case its own token rather than adding an override here.
+        //
+        // WHAT THE NUMBER MEANS: the TOTAL distance you would measure on
+        // screen. Where the container already applies a flex `paragraphGap`
+        // between children — SiteTextBlock does — that shared gap is
+        // subtracted back out at the point of use, so one number owns each
+        // relationship. They used to stack silently.
+        //
+        // Where the container does NOT lay out with a flex gap — Welcome's
+        // page.tsx stacks spacer divs — the value is used RAW. Subtracting
+        // there would make the same token render 30px tighter than it does
+        // inside a text block. Check which case you are in before reusing it.
         paragraphGap:  { desktop:  30, tablet:  22, mobile:  20 },
-        pullGapBefore: { desktop:  45, tablet:  33, mobile:  30 },
-        pullGapAfter:  { desktop:  45, tablet:  33, mobile:  30 },
+        interruptGapBefore: { desktop:  45, tablet:  33, mobile:  30 },
+        interruptGapAfter:  { desktop:  45, tablet:  33, mobile:  30 },
     },
 }
 
@@ -752,10 +774,22 @@ export function useVisibility() {
     return VISIBILITY_TIERS[useBreakpoint()]
 }
 
+// The grid's WIDTH is deliberately not here: it follows the text column via
+// bodyMaxWidth(), the same measure the body copy uses, at every breakpoint.
+// One mechanism for one visual unit — so retuning the reading measure moves
+// the logos with it rather than leaving them behind.
+//
+// gapPx and logoPct ARE here: both are tuned by eye and nothing derives them.
+//   gapPx   — space between cells, px.
+//   logoPct — how much of its cell each logo fills, %. Independent of the
+//             grid's size, so it survives width changes unchanged; this is
+//             the knob for "the logos read too heavy", not the width.
+// Both start at the flat values they had as component prop defaults, so
+// adopting them changed nothing on screen — the width did that on its own.
 export const LOGO_GRID_TIERS = {
-    desktop: { cols: 5, rows: 4 },
-    tablet:  { cols: 4, rows: 5 },
-    mobile:  { cols: 3, rows: 6 },
+    desktop: { cols: 5, rows: 4, gapPx: 14, logoPct: 72 },
+    tablet:  { cols: 4, rows: 5, gapPx: 10, logoPct: 72 },
+    mobile:  { cols: 3, rows: 6, gapPx: 6, logoPct: 70 },
 }
 
 

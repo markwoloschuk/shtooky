@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useCallback } from "react"
-import { COLORS, TIMING, LOGO_GRID_TIERS, useBreakpoint, getVisibility } from "./SiteTokens"
+import { COLORS, TIMING, LOGO_GRID_TIERS, useBreakpoint, getVisibility, useColumn, bodyMaxWidth } from "./SiteTokens"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TUNING — adjust these to change animation behaviour
@@ -458,16 +458,17 @@ function entranceScale(
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
+// gap and logoSizePercent used to be props with flat defaults (16 / 70).
+// Nothing ever passed them — page.tsx sets only triggerOnScroll and
+// onComplete — so they were untiered numbers wearing the costume of an API.
+// They are now tiered tokens in LOGO_GRID_TIERS, deleted rather than
+// parameterised: one place to tune, and no override path to drift from it.
 interface Props {
-    gap?: number
-    logoSizePercent?: number
     triggerOnScroll?: boolean
     onComplete?: () => void
 }
 
 export default function ClientLogoGrid({
-    gap = 16,
-    logoSizePercent = 70,
     triggerOnScroll = false,
     onComplete,
 }: Props) {
@@ -475,7 +476,8 @@ export default function ClientLogoGrid({
     const hasAnimated = useRef(false)
 
     const breakpoint = useBreakpoint()
-    const { cols, rows } = LOGO_GRID_TIERS[breakpoint]
+    const col = useColumn()
+    const { cols, rows, gapPx, logoPct } = LOGO_GRID_TIERS[breakpoint]
     const count = cols * rows
     const containerAspect = (cols / rows) * CELL_ASPECT
 
@@ -548,7 +550,7 @@ export default function ClientLogoGrid({
             `
                 cell.dataset.hue = String(hue)
 
-                cell.innerHTML = `<svg viewBox="${logo.viewBox}" xmlns="http://www.w3.org/2000/svg" style="width:${logoSizePercent}%;height:${logoSizePercent}%;transform:scale(${scaleStart});transition:none;">${logo.svg}</svg>`
+                cell.innerHTML = `<svg viewBox="${logo.viewBox}" xmlns="http://www.w3.org/2000/svg" style="width:${logoPct}%;height:${logoPct}%;transform:scale(${scaleStart});transition:none;">${logo.svg}</svg>`
 
                 // Swap white fills to entrance hue colour
                 const svgEl = cell.querySelector("svg")!
@@ -662,7 +664,7 @@ export default function ClientLogoGrid({
             return () =>
                 document.removeEventListener("mousemove", handleMouseMove)
         },
-        [logoSizePercent, cols, rows, count]
+        [logoPct, gapPx, cols, rows, count]
     )
 
     useEffect(() => {
@@ -732,6 +734,18 @@ export default function ClientLogoGrid({
             style={{
                 position: "relative",
                 width: "100%",
+                // Follows the TEXT column, not the content column — the same
+                // measure the paragraphs above and below this grid use. It ran
+                // full-column before, so on desktop the logos spanned 76vw
+                // against 53.2vw of copy, which is what read as overstuffed.
+                //
+                // No auto margins: body copy is left-aligned within the column
+                // and the grid aligns with it, not with the column's centre.
+                //
+                // aspectRatio derives height from width, so narrowing the grid
+                // shortens it proportionally with no second number to keep in
+                // sync. On mobile bodyColPct is 100, so nothing changes there.
+                maxWidth: bodyMaxWidth(col),
                 aspectRatio: containerAspect,
             }}
         >
@@ -745,7 +759,7 @@ export default function ClientLogoGrid({
                     bottom: 0,
                     display: "grid",
                     gridTemplateColumns: `repeat(${cols}, 1fr)`,
-                    gap,
+                    gap: gapPx,
                     opacity: 0,
                 }}
             />
