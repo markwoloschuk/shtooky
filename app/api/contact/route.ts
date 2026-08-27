@@ -36,11 +36,17 @@ const LIMITS = {
   message: 10000,
 }
 
+// No human opens the Contact panel, reads four labels and types a real
+// message in under this. A script POSTs in tens of milliseconds.
+const MIN_ELAPSED_MS = 3000
+
 type Payload = {
   name?: unknown
   email?: unknown
   subject?: unknown
   message?: unknown
+  website?: unknown    // honeypot — must arrive empty
+  elapsedMs?: unknown  // ms between the form mounting and the POST
 }
 
 // Deliberately loose. Real email validation is impossible with a regex, and
@@ -73,6 +79,33 @@ export async function POST(req: NextRequest) {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+  }
+
+  // ── Spam gate ─────────────────────────────────────────────────────────
+  // Both checks return 200 { ok: true } rather than an error. A bot that
+  // gets a 4xx retries with variations; a bot told it succeeded marks the
+  // job done and leaves. Nothing is sent either way.
+  //
+  // 1. Honeypot. `website` is rendered off-screen, unlabelled and
+  //    untabbable, so no human ever fills it. Scripts fill every field
+  //    they find.
+  if (typeof body.website === 'string' && body.website.trim() !== '') {
+    console.warn('[contact] honeypot tripped — dropped')
+    return NextResponse.json({ ok: true })
+  }
+
+  // 2. Elapsed time. Measured on the CLIENT as (now − mount) and sent as a
+  //    DURATION, not as a timestamp compared against the server's clock —
+  //    so a visitor whose system clock is wrong is unaffected.
+  //
+  //    Absent or non-numeric is allowed through DELIBERATELY. It is
+  //    client-supplied and trivially omitted, so treating a missing value
+  //    as guilt would only ever catch the honest edge cases (a stale
+  //    cached bundle after a deploy) while a bot just leaves the field
+  //    out. The honeypot is the check carrying the weight here.
+  if (typeof body.elapsedMs === 'number' && body.elapsedMs < MIN_ELAPSED_MS) {
+    console.warn('[contact] submitted in', body.elapsedMs, 'ms — dropped')
+    return NextResponse.json({ ok: true })
   }
 
   const name = clean(body.name, LIMITS.name)

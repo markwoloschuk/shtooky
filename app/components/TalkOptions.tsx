@@ -174,6 +174,16 @@ function ContactForm({ onSent }: { onSent: () => void }) {
     const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
     const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" })
 
+    // ── Spam protection, client half. The route holds the other half. ────
+    // The honeypot: a field no human ever sees, so anything in it came
+    // from a script filling every input it found.
+    const [website, setWebsite] = useState("")
+    // How long the visitor has had the form open. ContactForm only mounts
+    // when the Contact panel is opened, so this measures exactly that.
+    // Sent as a DURATION, never as a timestamp — the server must not have to
+    // trust the visitor's clock, only their stopwatch.
+    const mountedAtRef = useRef(Date.now())
+
     // Auto-close, once the confirmation has been up for SENT_HOLD_MS.
     // Cleared on unmount, so closing the panel by hand — or switching to
     // Resume/Location — cancels the timer instead of letting it fire later
@@ -196,7 +206,11 @@ function ContactForm({ onSent }: { onSent: () => void }) {
             const res = await fetch("/api/contact", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(form),
+                body: JSON.stringify({
+                    ...form,
+                    website,
+                    elapsedMs: Date.now() - mountedAtRef.current,
+                }),
             })
             if (!res.ok) throw new Error("Request failed")
             setStatus("sent")
@@ -227,6 +241,22 @@ function ContactForm({ onSent }: { onSent: () => void }) {
 
     return (
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%" }}>
+            {/* Honeypot. Positioned off-screen rather than display:none — some
+                scripts skip fields they can tell are hidden, but fill ones
+                that are merely somewhere else. position:absolute also means
+                it contributes NOTHING to this flex column: no height, and
+                no extra 20px gap. Untabbable and aria-hidden, so keyboard
+                and screen-reader users never reach it either. */}
+            <input
+                type="text"
+                name="website"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                style={{ position: "absolute", left: -9999, top: 0, width: 1, height: 1, opacity: 0 }}
+            />
             <input required placeholder="Name" value={form.name} onChange={update("name")} style={fieldStyle} />
             <input required type="email" placeholder="Email" value={form.email} onChange={update("email")} style={fieldStyle} />
             <input required placeholder="Subject" value={form.subject} onChange={update("subject")} style={fieldStyle} />
