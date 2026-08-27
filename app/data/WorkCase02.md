@@ -27,13 +27,13 @@ it’s the one you can[br]
 THE SOLUTION
 
 [paragraph]
-I campaigned for the other concept – throwing the printer through a window – hard. My quick and dirty storyboards showed how we could pull it off in a single day – by turning the set on its side and dropping the printer straight down. Hard to miss such a straight shot but with only two printers on-hand we only got two chances.
+I campaigned for the other concept – throwing the printer through a window – hard. My quick and dirty storyboards showed how we could pull it off in a single day – by turning the set on its side and dropping the printer straight down. Hard to miss such a straight shot but with only two printers on-hand we only got two chances.
 
 It was a race to the finish and I plugged in every step of the way. On-set I directed a few scenes to keep production rolling while the technical crew nailed the special effects shots. I even got in front of the camera when I realized a scene would hit better with two people.
 
 Back in the studio I supervised post production helping to shape the edit and integrate the visual effects. As the deadline loomed I jumped on a work station to pitch in with graphics and compositing. With the edit locked I could switch over to guiding the sound mix and color correction as the final VFX shots trickled in.
 
-We made it – barely.
+We made it – barely.
 
 [gallery]
 youtube_link
@@ -43,8 +43,8 @@ video {
 }
 
 [pullquote]
-The <constraints> weren't[br]
-the enemy,they were the[br]
+The <constraints> weren’t[br]
+the enemy, they were the[br]
 guard rails to <success.>
 
 [gallery]

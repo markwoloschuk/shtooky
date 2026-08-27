@@ -3,7 +3,7 @@ hold: 2000
 bleed: true
 
 [paragraph]
-As a freelancer, I haven’t had a lot of official titles — but over my career I’ve taken on many jobs.
+As a freelancer, I haven’t had a lot of official titles – but over my career I’ve taken on many jobs.
 
 It all started with a dream of making feature films. I went to film school and became fascinated with lenses and light. I was going to work in the camera department and see the world through a reflex viewfinder.
 
@@ -22,7 +22,7 @@ colorDurIn: 500
 > {changed my life.}   | delay 600, fade, push
 
 [paragraph]
-San Francisco is a home to entrepreneurs, thinkers, artists, misfits and other dreamers. It’s a small city wearing boots a few sizes too big — but also a place with deep community — where common interest brings people together and social universes collide in unexpected ways.
+San Francisco is a home to entrepreneurs, thinkers, artists, misfits and other dreamers. It’s a small city wearing boots a few sizes too big – but also a place with deep community – where common interest brings people together and social universes collide in unexpected ways.
 
 And where three distinct yet overlapping worlds left their mark.
 
@@ -31,14 +31,14 @@ And where three distinct yet overlapping worlds left their mark.
 [pull]
 colorDelay: 300
 colorDurIn: 500
-> Design – a {new} way of being.   | wipe
+> Design – a {new} way of being.   | wipe
 
 [paragraph]
-As a freelance video editor I often found myself waiting on someone else to produce graphics. I’m a patient person — but not on my client’s time — so I was inspired to start creating them myself. That decision opened my eyes to design and to new possibility.
+As a freelance video editor I often found myself waiting on someone else to produce graphics. I’m a patient person – but not on my client’s time – so I was inspired to start creating them myself. That decision opened my eyes to design and to new possibility.
 
-It started with After Effects — Illustrator and Photoshop soon followed. One application opened doors to others — and somewhere in that journey I stopped thinking as much about the tools and more about design itself. Not just as a way to solve problems or create more beautiful work — but as a way of thinking. A way of being.
+It started with After Effects – Illustrator and Photoshop soon followed. One application opened doors to others – and somewhere in that journey I stopped thinking as much about the tools and more about design itself. Not just as a way to solve problems or create more beautiful work – but as a way of thinking. A way of being.
 
-There is something like an invisible language that threads between all design principles and binds them together — a harmonious color palette, an elegant typesetting, a more efficient UX layout. These are very different things and yet something is common to all of them. A quality — the simple recognition that anything can be improved through its application. That, to me, is the power of design.
+There is something like an invisible language that threads between all design principles and binds them together – a harmonious color palette, an elegant typesetting, a more efficient UX layout. These are very different things and yet something is common to all of them. A quality – the simple recognition that anything can be improved through its application. That, to me, is the power of design.
 
 [pull]
 colorDelay: 400
@@ -49,7 +49,7 @@ colorDurIn: 500
 [paragraph]
 San Francisco is also a unique nexus in the world of technology. As a sort of spiritual capital to Silicon Valley its central role in tech innovation further altered my trajectory. Much of my creative energy has been directed towards promoting or explaining technology.
 
-It made sense — as a child I was a voracious reader of science fiction, delighting in future possibility. But here I found myself drawn into present reality — technology NOW — and all the ways in which it shapes our lives. How does it solve problems and remove barriers? Where can it be improved? Who does it empower? Finding the answers to those questions remains the kind of mission I want to be part of.
+It made sense – as a child I was a voracious reader of science fiction, delighting in future possibility. But here I found myself drawn into present reality – technology NOW – and all the ways in which it shapes our lives. How does it solve problems and remove barriers? Where can it be improved? Who does it empower? Finding the answers to those questions remains the kind of mission I want to be part of.
 
 [pull]
 colorDelay: 300
@@ -59,9 +59,9 @@ colorDurIn: 500
 [paragraph]
 Burning Man was born in San Francisco and its cultural roots stretch deep into its history and people. It is many things: an experiment in community and self-expression; a vast ephemeral art gallery; a festival of culture, music and technology; a perfect confluence of the ridiculous and the sublime. But fundamentally it too is a way of being. A path towards greater self-expression, stronger community and positive social values.
 
-The world of art and culture were already familiar to me — my degree is in “Fine Art” after all, but like many, my eyes, ears and mind were only so open. Burning Man expanded my taste and broadened my horizons. Over the years I’ve created many things out in the desert and beyond — interactive sculptures of light and sound, raucous dance parties, experiential media — a bowling alley. But above all else what I found in the desert was a clearer picture of myself and a deeper connection with my communities.
+The world of art and culture was already familiar to me – my degree is in “Fine Art” after all, but like many, my eyes, ears and mind were only so open. Burning Man expanded my taste and broadened my horizons. Over the years I’ve created many things out in the desert and beyond – interactive sculptures of light and sound, raucous dance parties, experiential media – a bowling alley. But above all else what I found in the desert was a clearer picture of myself and a deeper connection with my communities.
 
-Similar to the way design changed my life, this greater exposure to art and self-expression colors every part of how I live. I make my own art — and I help others make theirs.
+Similar to the way design changed my life, this greater exposure to art and self-expression colors every part of how I live. I make my own art – and I help others make theirs.
 
 [pull]
 duration: 1000
@@ -70,20 +70,20 @@ pushY: 18
 + there’s {more}   | delay 500, fade
 
 [paragraph]
-San Francisco had more communities to offer — I became a rock climber, a bike racer, a DJ, and a baker of pies. But in my connection to media production I was led to perhaps the deepest and most impactful one: the world of documentary films.
+San Francisco had more communities to offer – I became a rock climber, a bike racer, a DJ, and a baker of pies. But in my connection to media production I was led to perhaps the deepest and most impactful one: the world of documentary films.
 
 I’ve made three feature-length documentaries and contributed to a number of others. While I have a range of feelings about the end products, I can say with total sincerity that the experience of creating them changed me for the better.
 
-I imagine that many people believe the key to a successful documentary is discovering a great, untold story. My experience suggests that while this is certainly possible, the greater truth is that any story can be great. It then follows that one must find the contours of the story, understand its structure and — most importantly — feel its value.
+I imagine that many people believe the key to a successful documentary is discovering a great, untold story. My experience suggests that while this is certainly possible, the greater truth is that any story can be great. It then follows that one must find the contours of the story, understand its structure and – most importantly – feel its value.
 
-One must empathize with one’s subject, but also one’s audience. We can never truly know another’s experience — but if we cultivate our hearts and minds to be open to them, we can get closer. A well-crafted documentary is like a window of empathy — it allows us to see inside another person, to feel their story. It also lets us see inside ourselves.
+One must empathize with one’s subject, but also one’s audience. We can never truly know another’s experience – but if we cultivate our hearts and minds to be open to them, we can get closer. A well-crafted documentary is like a window of empathy – it allows us to see inside another person, to feel their story. It also lets us see inside ourselves.
 
-I believe that same empathy is at the core of good design (and art, and technology). Understanding the problem, feeling for the client’s needs, and genuinely considering the intended audience — empathy is what elevates good design into great design.
+I believe that same empathy is at the core of good design (and art, and technology). Understanding the problem, feeling for the client’s needs, and genuinely considering the intended audience – empathy is what elevates good design into great design.
 
-And I think a well-developed sense of empathy is part of what makes a good human. I’ve written a fairly long essay on the topic — you can find it over on Medium — but the core premise is that empathy opens us up to greater possibility in all aspects of life. It’s certainly what I’m trying to do.
+And I think a well-developed sense of empathy is part of what makes a good human. I’ve written a fairly long essay on the topic – you can find it over on Medium – but the core premise is that empathy opens us up to greater possibility in all aspects of life. It’s certainly what I’m trying to do.
 
 [paragraph]
-The more we understand about ourselves the more we see there is to know. It feels almost fractal — there’s more to this story. This is just where I am right now.
+The more we understand about ourselves the more we see there is to know. It feels almost fractal – there’s more to this story. This is just where I am right now.
 
 // ─────────────────────────────────────────────────────────────────────────
 // SLOTS

@@ -234,7 +234,7 @@ function ContactForm({ onSent }: { onSent: () => void }) {
     if (status === "sent") {
         return (
             <p style={{ fontFamily: TYPE.display, color: COLORS.white, fontSize: 17 }}>
-                Thanks — message sent. I'll get back to you soon.
+                Thanks&nbsp;– message sent. I’ll get back to you soon.
             </p>
         )
     }
@@ -281,7 +281,7 @@ function ContactForm({ onSent }: { onSent: () => void }) {
             </button>
             {status === "error" && (
                 <p style={{ fontFamily: TYPE.display, color: "rgba(255,255,255,0.6)", fontSize: 14 }}>
-                    Something went wrong — mind trying again?
+                    Something went wrong&nbsp;– mind trying again?
                 </p>
             )}
         </form>

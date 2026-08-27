@@ -72,9 +72,9 @@ const TAGLINES = [
     "I like to make things, but even more I like to figure out what they should be.",
     "I\u2019ve got empathy for clients AND their audience. It gets us on the same page.",
     "I ask a lot of questions at the start. It prevents a lot of problems at the end.",
-    "I\u2019ve shipped some great ideas – but also improved some less great ones.",
+    "I\u2019ve shipped some great ideas\u00A0– but also improved some less great ones.",
     "I zoom between details and big picture so I don\u2019t get lost in either.",
-    "From concept to completion — or any stop along the way.",
+    "From concept to completion\u00A0– or any stop along the way.",
     "There are no bad stories. Only bad storytelling.",
 ]
 

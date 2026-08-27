@@ -825,8 +825,8 @@ export const FOOTER = {
     blurbs: {
         welcome: [
             "25 years of learning to make things look the way I meant.",
-            "Concepting, direction and execution — often all before lunch.",
-            "Making maps to places I've never been – one step at a time.",
+            "Concepting, direction and execution\u00A0– often all before lunch.",
+            "Making maps to places I’ve never been\u00A0– one step at a time.",
         ],
         work: [
             "The work was real and so were the deadlines.",
@@ -836,12 +836,12 @@ export const FOOTER = {
         about: [
             "While not all things to all people, I am many things to some.",
             "Still learning to see and appreciate things in new ways.",
-            "Making maps to places I've never been – one step at a time.",
+            "Making maps to places I’ve never been\u00A0– one step at a time.",
         ],
         thinking: [
             "Unexpected connections create bridges to great ideas.",
             "Still learning to see and appreciate things in new ways.",
-            "Making maps to places I've never been – one step at a time.",
+            "Making maps to places I’ve never been\u00A0– one step at a time.",
         ],
         contact: [
             "Call me normal and I will call you often.",

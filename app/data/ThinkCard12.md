@@ -6,7 +6,7 @@ imagePath: /images/think/12/
 ---
 
 [paragraph]
-I once worked on a launch video for an innovative new hardware product from HP. The device itself was genuinely interesting. It introduced new models of interaction using multi-finger touch, a projector, and the ability to interact with real objects. The brief was polished – it clearly described the story the audience should take in from the video. But that story wasn’t an honest one.
+I once worked on a launch video for an innovative new hardware product from HP. The device itself was genuinely interesting. It introduced new models of interaction using multi-finger touch, a projector, and the ability to interact with real objects. The brief was polished – it clearly described the story the audience should take in from the video. But that story wasn’t an honest one.
 
 [pullquote]
 That disconnect stuck with me.
@@ -18,11 +18,11 @@ We had been given an aspirational narrative that didn’t accurately reflect wha
 We did our best to craft a great story as directed, but it was the WRONG story. The beats we were required to hit weren’t genuine, the final piece was inauthentic and, sadly, the product was a failure.
 
 [pullquote]
-We were’t exaggerating
+We weren’t exaggerating
 we were <lying.>
 
 [paragraph]
-I’ve noticed a similar pattern throughout creative work. The strongest ideas usually aren’t invented—they’re uncovered. Every product, company, or person has something genuinely interesting about them. The job isn’t to manufacture excitement. It’s to discover what deserves it.
+I’ve noticed a similar pattern throughout creative work. The strongest ideas usually aren’t invented – they’re uncovered. Every product, company, or person has something genuinely interesting about them. The job isn’t to manufacture excitement. It’s to discover what deserves it.
 
 [pullquote]
 <Discovering> the story

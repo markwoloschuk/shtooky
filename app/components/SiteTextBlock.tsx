@@ -438,6 +438,32 @@ function PullTextItem({
                                         whiteSpace: "nowrap",
                                     }}
                                 >
+                                    {/* A '+' chunk continues the SAME line, and
+                                        `+` means "the next WORD on this line" —
+                                        so it needs a space before it.
+
+                                        It cannot come from the source: the
+                                        parser trims each chunk's text, and JS
+                                        .trim() strips U+00A0 too, so neither a
+                                        regular nor a non-breaking space
+                                        survives authoring. It cannot come from
+                                        the markup either: a whitespace-only
+                                        text node between flex children is not
+                                        rendered as a flex item.
+
+                                        So it is rendered here, INSIDE the chunk
+                                        span, which is where the pull-quote type
+                                        styles live — a space placed outside it
+                                        would be sized by the inherited font and
+                                        come out the wrong width.
+
+                                        If a future chunk ever needs to butt
+                                        directly against the one before it
+                                        (animating the two halves of a single
+                                        word, say), that wants an explicit
+                                        `tight` flag on the chunk — not the
+                                        removal of this default. */}
+                                    {ci > 0 && "\u00A0"}
                                     {parseChunkText(chunk.text).map((part, pi) => (
                                         <span
                                             key={pi}

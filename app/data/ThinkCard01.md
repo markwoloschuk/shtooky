@@ -6,7 +6,7 @@ imagePath: /images/think/01/
 ---
 
 [paragraph]
-Sometimes, a seemingly attractive design is just decoration in a nice suit. It looks purposeful. It has a grid – pretty colors - nice fonts. But underneath, nothing means anything — the choices were made because they looked right, not because they were right.
+Sometimes, a seemingly attractive design is just decoration in a nice suit. It looks purposeful. It has a grid – pretty colors – nice fonts. But underneath, nothing means anything – the choices were made because they looked right, not because they were right.
 
 [pullquote]
 I <try> very hard[br]
@@ -19,12 +19,12 @@ When we design with meaning we bring purpose to our choices. Every decision answ
 <Design>, don’t decorate.
 
 [paragraph]
-I love making stickers – they’re like the mini-cupcakes of the design world – small, fun and tasty. But even with a small canvas, the bigger rules still apply. Every element has to earn its place because there’s room for only so many choices. We can lard them up with creative sprinkles, but too many might obscure the message we hope to deliver. Less is, most often, actually more.
+I love making stickers – they’re like the mini-cupcakes of the design world – small, fun and tasty. But even with a small canvas, the bigger rules still apply. Every element has to earn its place because there’s room for only so many choices. We can lard them up with creative sprinkles, but too many might obscure the message we hope to deliver. Less is, most often, actually more.
 
 [paragraph]
-And it’s just as true when the canvas is truly large. I’ve designed for large screens in Times Square, Las Vegas and even for tech billboards along the 101. Large scale media needs to be simple – in both copy and visual content. Pixels are free – attention isn’t.
+And it’s just as true when the canvas is truly large. I’ve designed for large screens in Times Square, Las Vegas and even for tech billboards along the 101. Large scale media needs to be simple – in both copy and visual content. Pixels are free – attention isn’t.
 
-The difference isn’t always visible at first glance. But it’s always felt. Audiences are better than we give them credit for — they can sense when something was made with intention and when it was made to fill a space. Sincerity is what separates the two. It’s not a style. It’s a decision you make before you open the software.
+The difference isn’t always visible at first glance. But it’s always felt. Audiences are better than we give them credit for – they can sense when something was made with intention and when it was made to fill a space. Sincerity is what separates the two. It’s not a style. It’s a decision you make before you open the software.
 
 [gallery]
 GalleryTest
@@ -32,7 +32,7 @@ GalleryTest
 
 
 [pullquote]
-Have a reaon[br]
+Have a reason[br]
 for <every> choice
 
 [note]

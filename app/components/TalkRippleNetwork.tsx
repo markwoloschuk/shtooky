@@ -109,7 +109,7 @@ const CFG = {
     // tunable that ties naturally to breakpoint overrides below.
     TEXT_BOTTOM_PADDING: 100,
 
-    maxPairs: 4,
+    maxPairs: 3,
     rampUp: 8,
     birthVar: 100,
     centerBias: 50,
@@ -126,7 +126,7 @@ const CFG = {
     energyLoss: 65,
     fadePct: 25,
     rippleStroke: 1.5,
-    rippleStrokeOp: 0.5,
+    rippleStrokeOp: 0.3,
     rippleFillOp: 0.05,
     rippleOpVar: 20,
 
