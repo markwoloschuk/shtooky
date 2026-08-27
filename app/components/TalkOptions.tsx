@@ -18,7 +18,7 @@
 // document-position tracking, unlike the Think card mechanic. Closer in
 // spirit to ThinkCasePanel's block fade-in than anything canvas-based.
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { COLORS, TYPE, useType, SPACE, useSpace } from "./SiteTokens"
 import { useSequence, unlock } from "./SiteSequenceController"
 
@@ -43,6 +43,13 @@ const CONFIG = {
     // the remaining paragraphs) chains off of — not a separate guess.
     REVEAL_DELAY_MS: 200,
     REVEAL_FADE_MS: 1000,
+
+    // How long the "message sent" confirmation stays up before the panel
+    // closes itself. The panel first shrinks to fit the confirmation, which
+    // takes TRANSITION_MS, so the reader gets roughly
+    // SENT_HOLD_MS - TRANSITION_MS of settled text. Reasoned starting
+    // guess, not tuned by eye yet.
+    SENT_HOLD_MS: 3000,
 }
 
 const RESUME_PATH = "/Mark_Woloschuk_Resume.pdf"
@@ -59,15 +66,30 @@ function Collapsible({ open, children }: { open: boolean; children: React.ReactN
     const innerRef = useRef<HTMLDivElement>(null)
     const [height, setHeight] = useState(0)
 
+    // Height tracks the CONTENT BOX rather than a guess about when the
+    // content changed. The dep array used to be [open, children] — but
+    // `children` only takes a new identity when TalkOptions itself
+    // re-renders, and every state that changes this panel's height
+    // (idle -> sending -> sent -> error, plus the visitor dragging the
+    // textarea, which is resize:vertical) lives INSIDE the child. So the
+    // effect never re-ran on send and the container stayed at the
+    // four-field height while displaying a one-line confirmation.
+    //
+    // A ResizeObserver reports the settled box whatever caused it to
+    // change, which makes the `children` dependency unnecessary rather
+    // than merely unreliable — so it is gone.
     useEffect(() => {
         const el = innerRef.current
         if (!el) return
-        if (open) {
-            setHeight(el.scrollHeight)
-        } else {
+        if (!open) {
             setHeight(0)
+            return
         }
-    }, [open, children])
+        setHeight(el.scrollHeight)
+        const ro = new ResizeObserver(() => setHeight(el.scrollHeight))
+        ro.observe(el)
+        return () => ro.disconnect()
+    }, [open])
 
     return (
         <div
@@ -131,9 +153,19 @@ function OptionLabel({
 }
 
 // ── Contact form ─────────────────────────────────────────────────────────
-function ContactForm() {
+function ContactForm({ onSent }: { onSent: () => void }) {
     const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
     const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" })
+
+    // Auto-close, once the confirmation has been up for SENT_HOLD_MS.
+    // Cleared on unmount, so closing the panel by hand — or switching to
+    // Resume/Location — cancels the timer instead of letting it fire later
+    // and shut whatever the visitor opened next.
+    useEffect(() => {
+        if (status !== "sent") return
+        const t = setTimeout(onSent, CONFIG.SENT_HOLD_MS)
+        return () => clearTimeout(t)
+    }, [status, onSent])
 
     function update(field: keyof typeof form) {
         return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -177,7 +209,7 @@ function ContactForm() {
     }
 
     return (
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 500 }}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%" }}>
             <input required placeholder="Name" value={form.name} onChange={update("name")} style={fieldStyle} />
             <input required type="email" placeholder="Email" value={form.email} onChange={update("email")} style={fieldStyle} />
             <input required placeholder="Subject" value={form.subject} onChange={update("subject")} style={fieldStyle} />
@@ -282,6 +314,11 @@ export default function TalkOptions() {
         setOpen((prev) => (prev === key ? null : key))
     }
 
+    // useCallback so the identity is stable across renders — ContactForm's
+    // auto-close effect depends on it, and a fresh function every render
+    // would restart the timer each time.
+    const handleSent = useCallback(() => setOpen(null), [])
+
     return (
         <div
             style={{
@@ -308,7 +345,7 @@ export default function TalkOptions() {
             </div>
 
             <Collapsible open={open !== null}>
-                {open === "contact" && <ContactForm />}
+                {open === "contact" && <ContactForm onSent={handleSent} />}
                 {open === "resume" && <ResumePanel />}
                 {open === "location" && <LocationPanel />}
             </Collapsible>
