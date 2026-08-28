@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { WORK_MANIFEST } from '../data/WorkManifest'
 import { TYPE, COLORS, useType, useColumn, useBreakpoint, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, BAND_VIGNETTE, getColumn } from './SiteTokens'
 
@@ -715,6 +715,49 @@ if (m === 'nav') {
   }, [render, updateHitLayer, onOpen])
 
   // ── Mount ─────────────────────────────────────────────────────────────────
+  // Sizes the stage, the wrap and the canvas. Hoisted to component scope so the
+  // FIRST run can happen in a layout effect (below) while the resize listener
+  // that also calls it stays in the main effect — one definition, two callers.
+  const scaleStage = useCallback(() => {
+    const wrap = wrapRef.current
+    const stage = stageRef.current
+    const canvas = canvasRef.current
+    const hit = hitRef.current
+    const full = fullHitRef.current
+    if (!wrap || !stage) return
+    isMobileRef.current = window.innerWidth < 768
+    _ech = isMobileRef.current ? Math.round(CH * MOBILE_BAND_HEIGHT_SCALE) : CH
+    const s = wrap.clientWidth / CW
+    // Divide by s so the MOBILE headline lands at BAND_HEADLINE.mobileSizePx on
+    // screen after the stage's own scale is applied.
+    _hlNativeSize = isMobileRef.current
+      ? Math.round(BAND_HEADLINE.mobileSizePx / s)
+      : BAND_HEADLINE.sizePx
+    _hlPadNative = Math.round(getColumn().marginVw * CW / 100)
+    stage.style.transform = `scale(${s})`
+    stage.style.height = `${_ech}px`
+    wrap.style.height = `${_ech * s}px`
+    if (canvas) {
+      if (canvas.width !== CW || canvas.height !== _ech) {
+        canvas.width = CW
+        canvas.height = _ech
+      }
+      canvas.style.height = `${_ech}px`
+    }
+    if (hit) hit.style.height = `${_ech}px`
+    if (full) full.style.height = `${_ech}px`
+  }, [])
+
+  // The wrap has NO height of its own: its only child is the stage, which is
+  // position:absolute and therefore contributes nothing to intrinsic height.
+  // Until scaleStage runs, the wrap measures 0 and the case panel below it sits
+  // at the top of the page. Running this in a plain effect meant a painted frame
+  // with the band collapsed, then a jump down by the full band height once the
+  // height was assigned — the relayout that left stale composited tiles on the
+  // case panel in mobile Safari. A layout effect commits the height before the
+  // browser paints, so the collapsed frame never reaches the screen.
+  useLayoutEffect(() => { scaleStage() }, [scaleStage])
+
   useEffect(() => {
     // Load images
     imgsRef.current = WORK_MANIFEST.map(m => {
@@ -735,37 +778,7 @@ if (m === 'nav') {
     }
     document.addEventListener('mousemove', onMove)
 
-    // Scale stage on resize
- const scaleStage = () => {
-  const wrap = wrapRef.current
-  const stage = stageRef.current
-  const canvas = canvasRef.current
-  const hit = hitRef.current
-  const full = fullHitRef.current
-  if (!wrap || !stage) return
-  isMobileRef.current = window.innerWidth < 768
-  _ech = isMobileRef.current ? Math.round(CH * MOBILE_BAND_HEIGHT_SCALE) : CH
-  const s = wrap.clientWidth / CW
-  // Divide by s so the MOBILE headline lands at BAND_HEADLINE.mobileSizePx on
-  // screen after the stage's own scale is applied.
-  _hlNativeSize = isMobileRef.current
-    ? Math.round(BAND_HEADLINE.mobileSizePx / s)
-    : BAND_HEADLINE.sizePx
-  _hlPadNative = Math.round(getColumn().marginVw * CW / 100)
-  stage.style.transform = `scale(${s})`
-  stage.style.height = `${_ech}px`
-  wrap.style.height = `${_ech * s}px`
-if (canvas) {
-  if (canvas.width !== CW || canvas.height !== _ech) {
-    canvas.width = CW
-    canvas.height = _ech
-  }
-  canvas.style.height = `${_ech}px`
-}  if (hit) hit.style.height = `${_ech}px`
-  if (full) full.style.height = `${_ech}px`
-}
     window.addEventListener('resize', scaleStage)
-    scaleStage()
 
 onRegisterControls(stepCase, closeCase)
     updateHitLayer()
@@ -795,7 +808,7 @@ if (!fadeRan.current) {
       cancelAnimationFrame(rafRef.current)
       cancelFades()
     }
-  }, [tick, render, updateHitLayer])
+  }, [tick, render, updateHitLayer, scaleStage])
 
   // ── Expose stepCase / closeCase to parent via activeIdx ───────────────────
   // Parent passes activeIdx; we watch it to detect external nav requests.
