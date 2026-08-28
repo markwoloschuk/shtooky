@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { PAGES, COLORS, NAV, FOOTER, FRAME_INSET_VW, getActivePage, getType, useBreakpoint, useType } from "../components/SiteTokens"
+import { PAGES, COLORS, NAV, FOOTER, FRAME_INSET_VW, getActivePage, isKnownPage, getType, useBreakpoint, useType } from "../components/SiteTokens"
 
 // ── Locked defaults (from v18 prototype) ─────────────────────
 const S = {
@@ -226,7 +226,14 @@ export default function NavBar() {
 
 useEffect(() => {
     if (stateRef.current?.glitched) return
-    const page = getActivePage()
+    // getActivePage() falls back to "welcome" for ANY unrecognised path. On a
+    // real page that fallback is right — the nav must highlight something. On
+    // the 404 it made the nav believe it was already on Welcome, so Welcome
+    // was highlighted as current AND the click handler's
+    //   if (targetPage === st.activePage) return
+    // early-returned, making the link dead. "" is not any page's id, so on an
+    // unknown route nothing is active and every link works.
+    const page = isKnownPage(pathname) ? getActivePage() : ""
     setActivePage(page)
     setMenuOpen(false)
 }, [pathname])

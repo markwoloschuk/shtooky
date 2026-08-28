@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
-import { COLORS, FOOTER, PAGES, FRAME_INSET_VW, getActivePage, useType } from "../components/SiteTokens"
+import { COLORS, FOOTER, PAGES, FRAME_INSET_VW, getActivePage, isKnownPage, useType } from "../components/SiteTokens"
 
 const FONT_DISPLAY = '"Archivo", sans-serif'
 
@@ -66,8 +66,15 @@ const pageBlurbs =
         return () => clearTimeout(t)
     }, [activePage])
 
-    const pageColor =
-        PAGES.find((p) => p.id === activePage)?.color ?? COLORS.welcome
+    // The rule above the footer normally carries the page colour. The 404 has
+    // no page colour to carry — it is not a place in the building — so it takes
+    // the same neutral the footer links and blurb use. Without this it would
+    // inherit getActivePage()'s "welcome" fallback and show Welcome's cyan on a
+    // route that has no claim to it.
+    const FOOTER_RULE_NEUTRAL = "rgba(255,255,255,0.35)" // matches the links
+    const pageColor = isKnownPage(pathname)
+        ? (PAGES.find((p) => p.id === activePage)?.color ?? COLORS.welcome)
+        : FOOTER_RULE_NEUTRAL
 
     return (
         <div
