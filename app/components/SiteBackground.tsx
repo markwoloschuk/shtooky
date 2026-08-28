@@ -6,7 +6,7 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
-import { PAGES, NAV, COLORS, getActivePage } from "../components/SiteTokens"
+import { PAGES, NAV, COLORS, getActivePage, isKnownPage } from "../components/SiteTokens"
 
 interface NebulaParticle {
     x: number
@@ -78,6 +78,12 @@ const TINT_COMP: Record<string, number> = {
 
 // ── Background color transition duration (seconds) — adjust to taste ────────
 const COLOR_TRANSITION_SECS = 2
+
+// How long each page colour is held on the 404 route before moving to the
+// next. UNTUNED — a reasoned starting guess only. The cross-fade itself is
+// COLOR_TRANSITION_SECS above, so the visible rhythm is (fade 2s, sit 2s);
+// lower this below COLOR_TRANSITION_SECS and the colours never fully arrive.
+const NOT_FOUND_COLOR_HOLD_MS = 4000
 
 const CFG = {
     NB_COUNT: 12,
@@ -262,8 +268,31 @@ const pathname = usePathname()
 const [activePage, setActivePage] = useState("welcome")
 const [visible, setVisible] = useState(false)
 
+// True while we are on the 404 route. Read by the [activePage] effect below to
+// tell a COLOUR CYCLE apart from a NAVIGATION — see the note there.
+const cyclingRef = useRef(false)
+
 useEffect(() => {
-    setActivePage(getActivePage())
+    // A real page has one ambient colour. The 404 route is not a place in the
+    // building, so it has no colour of its own and cycles all five instead.
+    //
+    // This drives the SAME activePage state the nav transitions use, so the
+    // cross-fade is the existing one rather than a second colour mechanism
+    // living alongside it — the cycle only changes how often the target moves.
+    if (isKnownPage(pathname)) {
+        cyclingRef.current = false
+        setActivePage(getActivePage())
+        return
+    }
+    cyclingRef.current = true
+    const ids = PAGES.map((p) => p.id)
+    let i = 0
+    setActivePage(ids[0])
+    const timer = setInterval(() => {
+        i = (i + 1) % ids.length
+        setActivePage(ids[i])
+    }, NOT_FOUND_COLOR_HOLD_MS)
+    return () => clearInterval(timer)
 }, [pathname])
     useEffect(() => {
         const timer = setTimeout(() => setVisible(true), 100)
@@ -284,12 +313,24 @@ useEffect(() => {
                 stateRef.current.colorTransitionElapsed = 0
 stateRef.current.pageColorRgb = { ...stateRef.current.pageColorRgb }
 
-            stateRef.current.nebulaParticles.forEach((p: NebulaParticle) => {
-                p.age = p.lifespan - rand(0, p.fadedur)
-            })
-            stateRef.current.bokehParticles.forEach((p: BokehParticle) => {
-                p.age = p.lifespan - rand(0, p.fadedur)
-            })
+            // Retiring every particle so it respawns in the new colour is
+            // what makes a NAVIGATION feel like walking into a different room.
+            // On the 404 colour cycle it is the wrong gesture entirely: fired
+            // every few seconds it reads as a hard flash, because the whole
+            // atmospheric layer dies and comes back rather than drifting.
+            //
+            // The lerp above was always smooth. This was the flash. So the
+            // cycle moves the target and nothing else, and the particles
+            // simply live out their normal lifespans in a colour that is
+            // quietly changing underneath them.
+            if (!cyclingRef.current) {
+                stateRef.current.nebulaParticles.forEach((p: NebulaParticle) => {
+                    p.age = p.lifespan - rand(0, p.fadedur)
+                })
+                stateRef.current.bokehParticles.forEach((p: BokehParticle) => {
+                    p.age = p.lifespan - rand(0, p.fadedur)
+                })
+            }
             return
         }
 

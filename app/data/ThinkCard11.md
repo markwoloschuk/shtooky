@@ -1,7 +1,7 @@
 ---
 title: Fight for the users
 narrowtitle: Fight for[br]the users
-subtitle: Find the emotional core of the problem[br]and how it connects to the user
+subtitle: Find the emotional core of the problem and how it connects to the user
 imagePath: /images/think/11/
 ---
 

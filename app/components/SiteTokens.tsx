@@ -877,6 +877,18 @@ export function getActivePage(): string {
     return "welcome"
 }
 
+// Is this path one of the five pages? Kept directly beside getActivePage()
+// because the two must agree and they answer different questions.
+// getActivePage() falls back to "welcome" for an unknown path — correct for
+// the nav, which must highlight something — but that fallback would also hand
+// the 404 route the Welcome page colour, which it has no claim to. Anything
+// that needs to know "is this a real page" must ask HERE, not infer it from
+// getActivePage() returning the default.
+export function isKnownPage(path: string): boolean {
+    if (path === "/") return true
+    return PAGES.some((pg) => pg.url !== "/" && path.startsWith(pg.url))
+}
+
 export default {}
 
 // ─── USAGE NOTES ─────────────────────────────────────────────────────────────
