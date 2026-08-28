@@ -5,7 +5,14 @@
 change spans two pages, two panels, a canvas coordinate system and the scroll
 model.*
 
-*Status: **nothing here is built.** Every number is untuned and marked as such.
+*Status (updated 2026-08-28): **§7 and §8 are BUILT** — see project bible v81.
+The step behaviour, the parallel fetch, the both-gate, the scroll-while-invisible,
+the block keying and the explicit clear all shipped, and the two panels were
+extracted into `SiteCasePanel.tsx` (`useCasePanel`) in the same pass. §§3–6 and the
+geometry work are **still unbuilt**, and every number in §10 remains untuned.
+The §12 prediction held: steps 1 and 2 accounted for most of the felt problem.*
+
+*Original status: nothing here was built. Every number is untuned and marked as such.
 The purpose of this document is to hold one model in one place so the two pages
 can stop being two implementations of the same idea.*
 

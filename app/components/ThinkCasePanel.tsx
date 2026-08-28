@@ -26,15 +26,15 @@ const FADE_DUR = 1000
 // A different gesture from opening a card, so it gets its own numbers rather
 // than borrowing the reveal's. No stagger: the reader is already reading and
 // wants the next case, not a performance. All untuned starting values.
-const STEP_OUT = 400      // outgoing card clears, and the wait before the swap
-const STEP_IN = 600       // incoming blocks arrive, all together
-const STEP_OFFSET = 0     // no stagger on a step
+const STEP_OUT = 100      // outgoing card clears, and the wait before the swap
+const STEP_IN = 750       // incoming blocks arrive, all together
+const STEP_OFFSET = 10    // slight ripple, far tighter than the open's stagger
 const FADE_OFFSET = 25
 // Lead-in before the body copy starts arriving on an OPEN, so it does not race
 // the card into place. Starting value = ThinkGridCanvas's TRANSITION_DURATION
 // (750), i.e. "begin once the card has landed". NOT linked to it in code — if
 // that number moves, this one has to be moved by hand.
-const OPEN_DELAY = 5000
+const OPEN_DELAY = 750
 
 interface Frontmatter {
   title: string
