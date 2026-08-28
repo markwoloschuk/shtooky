@@ -72,7 +72,14 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
   const panelPaddingTop = space(SPACE.layout.bandDetailGap)
 
   useEffect(() => {
-    if (!caseFile) { setParsed(null); setBlockOps([]); return }
+    // Clear FIRST, on every change of caseFile — not only when it goes null.
+    // Without this the panel keeps rendering the OUTGOING card for the
+    // whole duration of the fetch and then swaps, so the old content is
+    // genuinely on screen underneath the new band. Block keys stopped
+    // React reusing the nodes; they cannot stop us from asking it to
+    // render the old card. The explicit clear is the other half.
+    setParsed(null); setBlockOps([])
+    if (!caseFile) return
     fetch(`/api/case/${caseFile}`)
       .then(r => r.text())
       .then(raw => {

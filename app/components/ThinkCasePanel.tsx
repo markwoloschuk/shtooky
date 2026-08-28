@@ -67,7 +67,14 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
   const [blockOps, setBlockOps] = useState<number[]>([])
 
   useEffect(() => {
-    if (!cardFile) { setParsed(null); setBlockOps([]); return }
+    // Clear FIRST, on every change of cardFile — not only when it goes null.
+    // Without this the panel keeps rendering the OUTGOING card for the
+    // whole duration of the fetch and then swaps, so the old content is
+    // genuinely on screen underneath the new band. Block keys stopped
+    // React reusing the nodes; they cannot stop us from asking it to
+    // render the old card. The explicit clear is the other half.
+    setParsed(null); setBlockOps([])
+    if (!cardFile) return
     fetch(`/api/think/${cardFile}`)
       .then(r => r.text())
       .then(raw => {
