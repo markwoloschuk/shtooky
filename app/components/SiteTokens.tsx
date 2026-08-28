@@ -738,12 +738,36 @@ export function getVisibility() {
 // mismatch. useBreakpoint() fixes this the same way the project already
 // handles getActivePage(): start at the safe SSR-matching default, then
 // correct via useEffect once we're actually in the browser.
-import { useEffect, useState } from "react"
+import { useEffect, useLayoutEffect, useState } from "react"
+
+// useEffect does not exist on the server, and useLayoutEffect logs a warning
+// there. Every consumer of this is a "use client" component, so the effect only
+// ever RUNS in the browser — this alias just keeps the server render quiet.
+const useIsomorphicLayoutEffect =
+    typeof window !== "undefined" ? useLayoutEffect : useEffect
 
 export function useBreakpoint(): "mobile" | "tablet" | "desktop" {
+    // Starts at "desktop" because the SERVER has no viewport and the hydration
+    // render must match what it produced. That initial value is wrong on a
+    // phone for exactly one render, and the correction below is what makes it
+    // invisible.
     const [breakpoint, setBreakpoint] = useState<"mobile" | "tablet" | "desktop">("desktop")
 
-    useEffect(() => {
+    // LAYOUT effect, not a plain effect, and the difference is visible.
+    //
+    // useEffect runs AFTER the browser paints. On a phone that meant a real
+    // frame drawn at the DESKTOP tier — desktop font sizes, desktop column
+    // width — followed by a relayout to mobile once this corrected. Everything
+    // downstream (useType, useColumn, useSpace, bodyMaxWidth) shifted with it.
+    //
+    // That shift is what produced the mobile-Safari ghosting: the case panels
+    // give every block a permanent opacity transition, so every block is its
+    // own composited layer, and iOS left the pre-shift tiles painted underneath
+    // the corrected ones. Both stacks visible, offset by the rewrap.
+    //
+    // useLayoutEffect commits before the browser paints, so the desktop frame
+    // never reaches the screen and there is no shift to leave ghosts of.
+    useIsomorphicLayoutEffect(() => {
         function update() {
             setBreakpoint(getBreakpoint())
         }
