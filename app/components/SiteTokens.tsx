@@ -593,13 +593,29 @@ export const MOBILE_BAND_HEIGHT_SCALE = 1.65
 //   desktop / tablet: sizePx is a REFERENCE size at refW. Rendered size is
 //                     sizePx × (viewport / refW), so the headline scales with
 //                     the band it sits in.
+//   tablet:           a REAL RENDERED pixel size, flat across the whole tablet
+//                     range (BREAKPOINTS.tablet up to BREAKPOINTS.laptop), the
+//                     same shape as mobile. Tablet used to have no tier at all
+//                     and rode the bottom of the desktop ramp, which put a
+//                     768-wide tablet at 52 * 768/1440 = 28 — the identical
+//                     rendered size a 390-wide PHONE gets, but without the
+//                     phone's 1.65x taller band to sit in. Proportionally the
+//                     ramp was consistent (~11% of band height at every width);
+//                     it just looked mean, because the mobile tier buys its 28
+//                     a much bigger room.
 //   mobile:           the band stops tracking viewport width, so mobileSizePx
 //                     is a real rendered pixel size. This used to read
 //                     PULLQUOTE.sizePx, which meant tuning pullquotes silently
 //                     moved the headline — an unrelated role doing double duty.
+//
+// Both flat tiers drift across their own range by design (mobile's 28 is 13.1%
+// of the band at 390 and 6.6% at 767) — that is what "tuned by eye, per tier"
+// costs, and it is cheaper than a second formula with its own reference width.
+// lineHeightPx is still ONE desktop-referenced number for all three tiers.
 export const BAND_HEADLINE = {
     sizePx:       52,
     lineHeightPx: 55,
+    tabletSizePx: 40,
     mobileSizePx: 28,
     refW:         1440,
 }

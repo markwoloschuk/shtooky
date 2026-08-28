@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useColumn, NAV, COLORS, TYPE, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, BAND_VIGNETTE } from './SiteTokens';
+import { useColumn, NAV, COLORS, TYPE, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, BAND_VIGNETTE, BREAKPOINTS } from './SiteTokens';
 import { THINK_GRID, coverImageFor, offsetFor } from '../data/ThinkManifest';
 
 // ── Layout — 13 cells, native units on a 1440-wide reference canvas ────────
@@ -957,11 +957,15 @@ imgsRef.current = Array.from({ length: N }, (_, i) => {
         ? Math.round(BAND_HEIGHT * MOBILE_BAND_HEIGHT_SCALE)
         : BAND_HEIGHT;
       const titleScale = window.innerWidth / BAND_HEADLINE.refW;
-      // Already screen pixels here, so the reference size is scaled up front —
-      // the mirror of WorkCarousel dividing by its stage scale.
+      const isTablet = !isMobile && window.innerWidth < BREAKPOINTS.laptop;
+      // Already screen pixels here, so the DESKTOP reference size is scaled up
+      // front — the mirror of WorkCarousel dividing by its stage scale. The two
+      // flat tiers are already rendered sizes and need no conversion.
       _bandTitlePx = isMobile
         ? BAND_HEADLINE.mobileSizePx
-        : Math.round(BAND_HEADLINE.sizePx * titleScale);
+        : isTablet
+          ? BAND_HEADLINE.tabletSizePx
+          : Math.round(BAND_HEADLINE.sizePx * titleScale);
       const s = wrap.clientWidth / NATIVE_W;
       scaleRef.current = s;
       gridInsetRef.current = { offset: NATIVE_W * col.marginVw / 100, scale: col.vw / 100 };

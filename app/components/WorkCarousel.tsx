@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { WORK_MANIFEST } from '../data/WorkManifest'
-import { TYPE, COLORS, useType, useColumn, useBreakpoint, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, BAND_VIGNETTE, getColumn } from './SiteTokens'
+import { TYPE, COLORS, useType, useColumn, useBreakpoint, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, BAND_VIGNETTE, BREAKPOINTS, getColumn } from './SiteTokens'
 
 // ── Locked animation constants (from work_carousel_v30.html) ─────────────────
 const CFG = {
@@ -728,11 +728,16 @@ if (m === 'nav') {
     isMobileRef.current = window.innerWidth < 768
     _ech = isMobileRef.current ? Math.round(CH * MOBILE_BAND_HEIGHT_SCALE) : CH
     const s = wrap.clientWidth / CW
-    // Divide by s so the MOBILE headline lands at BAND_HEADLINE.mobileSizePx on
-    // screen after the stage's own scale is applied.
+    // Three tiers. Desktop passes the REFERENCE size straight through — the
+    // stage's own scale turns 52 into 52 * (viewport / 1440) on screen. The two
+    // flat tiers are real rendered sizes, so they are divided by s to survive
+    // that same scale and land at their token value.
+    const isTablet = !isMobileRef.current && window.innerWidth < BREAKPOINTS.laptop
     _hlNativeSize = isMobileRef.current
       ? Math.round(BAND_HEADLINE.mobileSizePx / s)
-      : BAND_HEADLINE.sizePx
+      : isTablet
+        ? Math.round(BAND_HEADLINE.tabletSizePx / s)
+        : BAND_HEADLINE.sizePx
     _hlPadNative = Math.round(getColumn().marginVw * CW / 100)
     stage.style.transform = `scale(${s})`
     stage.style.height = `${_ech}px`
