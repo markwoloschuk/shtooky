@@ -118,11 +118,20 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
       {blocks.map((block, i) => {
         const op = blockOps[i] ?? 0
         const style = { opacity: op, transition: `opacity ${FADE_DUR}ms ease` }
+        // Keyed by FILE + index, not index alone. On a next/prev step the
+        // block list keeps its shape and only its values change, so an
+        // index key lets React reuse the same DOM nodes and rewrite their
+        // text in place. Each node carries an opacity transition, which
+        // promotes it to its own composited layer — and a layer whose
+        // contents are rewritten underneath it is where Safari leaves a
+        // stale tile (fragments of the previous card painted under the
+        // new one). The file in the key forces a real unmount/mount.
+        const blockKey = `${caseFile}-${i}`
 
         if (block.type === 'jobbox') {
           const f = block.fields ?? {}
           return (
-            <div key={i} style={{
+            <div key={blockKey} style={{
               ...style,
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
@@ -145,7 +154,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
         // sharing JOB_LABEL rather than earning a role of its own.
         if (block.type === 'label') {
           return (
-            <p key={i} style={{ ...style, fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display, marginBottom: 10 }}>
+            <p key={blockKey} style={{ ...style, fontSize: type.JOB_LABEL.sizePx, fontWeight: 700, color: PINK, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: TYPE.display, marginBottom: 10 }}>
               {block.content}
             </p>
           )
@@ -153,7 +162,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
 
         if (block.type === 'subtitle') {
           return (
-            <p key={i} style={{ ...style, fontSize: type.CASE_SUBTITLE.sizePx, fontWeight: type.CASE_SUBTITLE.weight, lineHeight: type.CASE_SUBTITLE.lineHeight, letterSpacing: `${type.CASE_SUBTITLE.tracking}em`, color: '#fff', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display, whiteSpace: 'pre-line' }}>
+            <p key={blockKey} style={{ ...style, fontSize: type.CASE_SUBTITLE.sizePx, fontWeight: type.CASE_SUBTITLE.weight, lineHeight: type.CASE_SUBTITLE.lineHeight, letterSpacing: `${type.CASE_SUBTITLE.tracking}em`, color: '#fff', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display, whiteSpace: 'pre-line' }}>
               {parseAccents(block.content, PINK)}
             </p>
           )
@@ -161,7 +170,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
 
         if (block.type === 'paragraph') {
           return (
-            <p key={i} style={{ ...style, fontSize: type.CASE_BODY.sizePx, fontWeight: type.CASE_BODY.weight, lineHeight: type.CASE_BODY.lineHeight, letterSpacing: `${type.CASE_BODY.tracking}em`, color: 'rgba(255,255,255,0.6)', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display }}>
+            <p key={blockKey} style={{ ...style, fontSize: type.CASE_BODY.sizePx, fontWeight: type.CASE_BODY.weight, lineHeight: type.CASE_BODY.lineHeight, letterSpacing: `${type.CASE_BODY.tracking}em`, color: 'rgba(255,255,255,0.6)', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display }}>
               {parseAccents(block.content, PINK)}
             </p>
           )
@@ -169,7 +178,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
 
         if (block.type === 'pullquote') {
           return (
-            <p key={i} style={{ ...style, fontSize: type.PULLQUOTE.sizePx, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, color: '#fff', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display, whiteSpace: 'pre-line' }}>
+            <p key={blockKey} style={{ ...style, fontSize: type.PULLQUOTE.sizePx, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, color: '#fff', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display, whiteSpace: 'pre-line' }}>
               {parseAccents(block.content, PINK)}
             </p>
           )
@@ -178,7 +187,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
         if (block.type === 'video-carousel') {
           const urls = block.content.split('\n').map(u => u.trim()).filter(Boolean)
           return (
-            <div key={i} style={style}>
+            <div key={blockKey} style={style}>
               <VideoCarouselInline urls={urls} />
             </div>
           )
@@ -191,7 +200,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
             : resolveImagePath(fm.imagePath, gallery.source)
           const resolved = resolveGalleryMedia(gallery, fm.imagePath)
           return (
-            <div key={i} style={style}>
+            <div key={blockKey} style={style}>
               <GalleryInline path={path} gallery={resolved} />
             </div>
           )
