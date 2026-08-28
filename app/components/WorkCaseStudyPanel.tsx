@@ -9,9 +9,10 @@
 //   [label] blocks   → TYPE_TIERS.JOB_LABEL  (shares the job box label treatment)
 //   video counter    → TYPE_TIERS.CAPTION     (sizePx — matched, not yet wired)
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { TYPE, COLORS, SPACE, useType, useColumn, useSpace, bodyMaxWidth } from './SiteTokens'
 import SiteGallery from './SiteGallery'
+import { useCasePanel } from './SiteCasePanel'
 import { JOB_FIELDS } from '../data/WorkManifest'
 import {
   parseAccents, parseFrontmatter, parseBlocks, parseGalleryBlock, stripComments,
@@ -21,7 +22,20 @@ import {
 
 const PINK = COLORS.work
 const FADE_DUR = 2000
-const FADE_OFFSET = 25
+// How long the OUTGOING card takes to clear on a step. Independent of
+// FADE_DUR: the wait after pressing next and the luxury of the fade-in are
+// two different gestures. Untuned starting value.
+// ── STEP (prev/next) ─────────────────────────────────────────────────────────
+// A different gesture from opening a card, so it gets its own numbers rather
+// than borrowing the reveal's. No stagger: the reader is already reading and
+// wants the next case, not a performance. Tuned by eye 2026-08-28.
+const STEP_OUT = 50      // outgoing card clears, and the wait before the swap
+const STEP_IN = 1500       // incoming blocks arrive, all together
+const STEP_OFFSET = 10    // slight ripple, far tighter than the open's stagger
+const FADE_OFFSET = 10
+// See ThinkCasePanel. 0 = unchanged behaviour; raise it if the body copy starts
+// arriving before the carousel headline has settled.
+const OPEN_DELAY = 0
 
 
 // Frontmatter now carries ONLY imagePath. Title/client/role/delivery moved
@@ -61,8 +75,6 @@ interface Props {
 export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
   const type = useType()
   const col = useColumn()
-  const [parsed, setParsed] = useState<ParsedCase | null>(null)
-  const [blockOps, setBlockOps] = useState<number[]>([])
   const space = useSpace()
   // One gap from the carousel's bottom edge to whatever block leads the file.
   // Previously this was split in two — a pad on the panel PLUS a pad on the
@@ -71,41 +83,21 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
   // with it if it ever moved down the page.
   const panelPaddingTop = space(SPACE.layout.bandDetailGap)
 
-  useEffect(() => {
-    // Clear FIRST, on every change of caseFile — not only when it goes null.
-    // Without this the panel keeps rendering the OUTGOING card for the
-    // whole duration of the fetch and then swaps, so the old content is
-    // genuinely on screen underneath the new band. Block keys stopped
-    // React reusing the nodes; they cannot stop us from asking it to
-    // render the old card. The explicit clear is the other half.
-    setParsed(null); setBlockOps([])
-    if (!caseFile) return
-    fetch(`/api/case/${caseFile}`)
-      .then(r => r.text())
-      .then(raw => {
-        const p = parseMd(raw)
-        setParsed(p)
-        setBlockOps(new Array(p.blocks.length).fill(0))
-      })
-  }, [caseFile])
-
-  // Fade blocks in successively when visible
-  useEffect(() => {
-    if (!visible || !parsed) return
-    const total = parsed.blocks.length
-    const timers: ReturnType<typeof setTimeout>[] = []
-    for (let i = 0; i < total; i++) {
-      timers.push(setTimeout(() => {
-        setBlockOps(prev => { const n = [...prev]; n[i] = 1; return n })
-      }, i * FADE_OFFSET))
-    }
-    return () => timers.forEach(t => clearTimeout(t))
-  }, [visible, parsed])
-
-  // Reset opacities when hidden
-  useEffect(() => {
-    if (!visible) setBlockOps(prev => new Array(prev.length).fill(0))
-  }, [visible])
+  // Shared with ThinkCasePanel — see SiteCasePanel.tsx. Only the endpoint, the
+  // parser, the slot count and this panel's own fade timings stay here.
+  const { parsed, blockOps, fadeMs } = useCasePanel<ParsedCase>({
+    file: caseFile,
+    visible,
+    endpoint: f => `/api/case/${f}`,
+    parse: parseMd,
+    slots: p => p.blocks.length,
+    fadeDurMs: FADE_DUR,
+    fadeOutMs: STEP_OUT,
+    stepFadeInMs: STEP_IN,
+    stepFadeOffsetMs: STEP_OFFSET,
+    openDelayMs: OPEN_DELAY,
+    fadeOffsetMs: FADE_OFFSET,
+  })
 
   if (!parsed) return null
 
@@ -124,7 +116,7 @@ export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
       {/* Content blocks */}
       {blocks.map((block, i) => {
         const op = blockOps[i] ?? 0
-        const style = { opacity: op, transition: `opacity ${FADE_DUR}ms ease` }
+        const style = { opacity: op, transition: `opacity ${fadeMs}ms ease` }
         // Keyed by FILE + index, not index alone. On a next/prev step the
         // block list keeps its shape and only its values change, so an
         // index key lets React reuse the same DOM nodes and rewrite their

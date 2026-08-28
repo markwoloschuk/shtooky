@@ -7,9 +7,10 @@
 //   figcaption / counter → TYPE_TIERS.CAPTION    (sizePx — matched, not yet wired)
 //   [label] blocks       → TYPE_TIERS.JOB_LABEL  (shared with the Work job box labels)
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { TYPE, COLORS, useType, useColumn, bodyMaxWidth } from './SiteTokens'
 import SiteGallery from './SiteGallery'
+import { useCasePanel } from './SiteCasePanel'
 import {
   parseAccents, parseFrontmatter, parseBlocks, parseGalleryBlock, stripComments,
   resolveImagePath, resolveGalleryMedia,
@@ -18,7 +19,22 @@ import {
 
 const ACCENT = COLORS.thinking
 const FADE_DUR = 1000
+// How long the OUTGOING card takes to clear on a step. Independent of
+// FADE_DUR: the wait after pressing next and the luxury of the fade-in are
+// two different gestures. Untuned starting value.
+// ── STEP (prev/next) ─────────────────────────────────────────────────────────
+// A different gesture from opening a card, so it gets its own numbers rather
+// than borrowing the reveal's. No stagger: the reader is already reading and
+// wants the next case, not a performance. All untuned starting values.
+const STEP_OUT = 400      // outgoing card clears, and the wait before the swap
+const STEP_IN = 600       // incoming blocks arrive, all together
+const STEP_OFFSET = 0     // no stagger on a step
 const FADE_OFFSET = 25
+// Lead-in before the body copy starts arriving on an OPEN, so it does not race
+// the card into place. Starting value = ThinkGridCanvas's TRANSITION_DURATION
+// (750), i.e. "begin once the card has landed". NOT linked to it in code — if
+// that number moves, this one has to be moved by hand.
+const OPEN_DELAY = 5000
 
 interface Frontmatter {
   title: string
@@ -63,42 +79,23 @@ interface Props {
 export default function ThinkCasePanel({ cardFile, visible }: Props) {
   const type = useType()
   const col = useColumn()
-  const [parsed, setParsed] = useState<ParsedCard | null>(null)
-  const [blockOps, setBlockOps] = useState<number[]>([])
-
-  useEffect(() => {
-    // Clear FIRST, on every change of cardFile — not only when it goes null.
-    // Without this the panel keeps rendering the OUTGOING card for the
-    // whole duration of the fetch and then swaps, so the old content is
-    // genuinely on screen underneath the new band. Block keys stopped
-    // React reusing the nodes; they cannot stop us from asking it to
-    // render the old card. The explicit clear is the other half.
-    setParsed(null); setBlockOps([])
-    if (!cardFile) return
-    fetch(`/api/think/${cardFile}`)
-      .then(r => r.text())
-      .then(raw => {
-        const p = parseMd(raw)
-        setParsed(p)
-        setBlockOps(new Array(p.blocks.length + 1).fill(0)) // +1 for subtitle row
-      })
-  }, [cardFile])
-
-  useEffect(() => {
-    if (!visible || !parsed) return
-    const total = parsed.blocks.length + 1
-    const timers: ReturnType<typeof setTimeout>[] = []
-    for (let i = 0; i < total; i++) {
-      timers.push(setTimeout(() => {
-        setBlockOps(prev => { const n = [...prev]; n[i] = 1; return n })
-      }, i * FADE_OFFSET))
-    }
-    return () => timers.forEach(t => clearTimeout(t))
-  }, [visible, parsed])
-
-  useEffect(() => {
-    if (!visible) setBlockOps(prev => new Array(prev.length).fill(0))
-  }, [visible])
+  // All of the fetch / cache / fade / step machinery lives in useCasePanel,
+  // shared with WorkCaseStudyPanel. What stays here is the last mile: which
+  // endpoint, how to parse it, how many fading slots the JSX below needs, and
+  // this panel's own fade timings.
+  const { parsed, blockOps, fadeMs } = useCasePanel<ParsedCard>({
+    file: cardFile,
+    visible,
+    endpoint: f => `/api/think/${f}`,
+    parse: parseMd,
+    slots: p => p.blocks.length + 1, // +1 for the subtitle row, which fades too
+    fadeDurMs: FADE_DUR,
+    fadeOutMs: STEP_OUT,
+    stepFadeInMs: STEP_IN,
+    stepFadeOffsetMs: STEP_OFFSET,
+    openDelayMs: OPEN_DELAY,
+    fadeOffsetMs: FADE_OFFSET,
+  })
 
   if (!parsed) return null
 
@@ -116,7 +113,7 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
         marginBottom: 32,
         paddingTop: 0,
         opacity: blockOps[0] ?? 0,
-        transition: `opacity ${FADE_DUR}ms ease`,
+        transition: `opacity ${fadeMs}ms ease`,
       }}>
         <p style={{
           fontSize: type.SUBTITLE.sizePx,
@@ -133,7 +130,7 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
       {/* Content blocks */}
       {blocks.map((block, i) => {
         const op = blockOps[i + 1] ?? 0
-        const style = { opacity: op, transition: `opacity ${FADE_DUR}ms ease` }
+        const style = { opacity: op, transition: `opacity ${fadeMs}ms ease` }
         // Keyed by FILE + index, not index alone. On a next/prev step the
         // block list keeps its shape and only its values change, so an
         // index key lets React reuse the same DOM nodes and rewrite their
