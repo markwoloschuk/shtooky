@@ -207,9 +207,22 @@ export function useCasePanel<T>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, parsed, fadeOffsetMs, stepFadeOffsetMs, openDelayMs, arrival])
 
-  // Reset opacities when hidden.
+  // Reset opacities when hidden — and record that nothing is on screen.
+  //
+  // hasContentRef means "is there content on screen to fade OUT", which is what
+  // the [file] effect uses to tell an OPEN from a STEP. A hidden panel has
+  // none, so hiding has to clear it. Work gets this for free because closing a
+  // case sets its file to null; Think's close only flips `visible` and leaves
+  // openIdx alone, so without this line the ref stayed true for the life of the
+  // page and every open after the first was misread as a step — running
+  // stepFadeInMs with no openDelayMs lead-in, i.e. fading in underneath the
+  // card's expansion animation instead of after it, which reads as no fade at
+  // all.
   useEffect(() => {
-    if (!visible) setBlockOps(prev => new Array(prev.length).fill(0))
+    if (!visible) {
+      hasContentRef.current = false
+      setBlockOps(prev => new Array(prev.length).fill(0))
+    }
   }, [visible])
 
   return { parsed, blockOps, fadeMs }
