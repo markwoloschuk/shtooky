@@ -759,13 +759,21 @@ if (m === 'nav') {
   useLayoutEffect(() => { scaleStage() }, [scaleStage])
 
   useEffect(() => {
-    // Load images
-    imgsRef.current = WORK_MANIFEST.map(m => {
-      const img = new Image()
-      img.src = m.image
-      img.onload = () => render()
-      return img
-    })
+    // Load images — ONCE, guarded on the ref rather than on the effect running
+    // once. A fresh `new Image()` is undecoded for at least a frame even when it
+    // comes straight from cache, so rebuilding this array mid-animation gives
+    // drawImage nothing to paint: one blank frame, which read as a flash on the
+    // headline image at every prev/next. The effect re-running is fixed at the
+    // source in app/work/page.tsx; this guard means a future re-run for some
+    // other reason cannot bring the flash back.
+    if (imgsRef.current.length === 0) {
+      imgsRef.current = WORK_MANIFEST.map(m => {
+        const img = new Image()
+        img.src = m.image
+        img.onload = () => render()
+        return img
+      })
+    }
 
     // Mouse tracking
     const onMove = (e: MouseEvent) => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import WorkCarousel from '../components/WorkCarousel'
 import CaseStudyPanel from '../components/WorkCaseStudyPanel'
@@ -21,17 +21,24 @@ export default function WorkPage() {
 
   useEffect(() => { setMounted(true) }, [])
 
-  function handleOpen(idx: number) {
+  // Both are useCallback with no deps, and that is load-bearing rather than
+  // tidiness. They are passed to WorkCarousel as onOpen/onClose, which sit in
+  // the dependency arrays of `tick` and `closeCase`, which sit in the dependency
+  // array of the carousel's mount effect. Declared as plain functions they got a
+  // new identity on every render of this page — and onOpen ITSELF calls
+  // setActiveIdx, so every step re-rendered this page, re-created onOpen, and
+  // tore down and re-ran the carousel's mount effect mid-animation.
+  const handleOpen = useCallback((idx: number) => {
     setActiveIdx(idx)
     const n = navRef.current; if (!n) return
     n.style.opacity = '1'; n.style.transform = 'scale(1)'; n.style.pointerEvents = 'auto'
-  }
+  }, [])
 
-  function handleClose() {
+  const handleClose = useCallback(() => {
     setActiveIdx(null)
     const n = navRef.current; if (!n) return
     n.style.opacity = '0'; n.style.transform = 'scale(0.85)'; n.style.pointerEvents = 'none'
-  }
+  }, [])
 
   const manifest = activeIdx !== null ? WORK_MANIFEST[activeIdx] : null
 
