@@ -94,6 +94,10 @@ interface Options<T> {
   scrollTargetY?: () => number
 }
 
+/** How long past openDelayMs to wait for a landing signal before giving up on
+ *  it and fading in anyway. Generous: this is a backstop, not a schedule. */
+const LANDED_GRACE_MS = 400
+
 export function useCasePanel<T>({
   file, visible, endpoint, parse, slots, fadeDurMs, fadeOutMs, fadeOffsetMs,
   stepFadeInMs, stepFadeOffsetMs, openDelayMs = 0, scrollTargetY, landed,
@@ -109,6 +113,9 @@ export function useCasePanel<T>({
   // How the content currently on screen ARRIVED. An open staggers; a step does
   // not. Set at swap time from whether anything was on screen to replace.
   const [arrival, setArrival] = useState<'open' | 'step'>('open')
+
+  // Backstop for a landing signal that never arrives — see the gate below.
+  const [landedFallback, setLandedFallback] = useState(false)
 
   // Parsed results, keyed by filename. Seven Work cases and thirteen Think
   // cards, all small — after the first visit the fetch leaves the timing path
@@ -174,6 +181,7 @@ export function useCasePanel<T>({
       window.scrollTo(0, scrollTargetY ? scrollTargetY() : 0)
 
       hasContentRef.current = true
+      setLandedFallback(false)
       setArrival(hadContent ? 'step' : 'open')
       setFadeMs(hadContent ? stepFadeInMs : fadeDurMs)
       setParsed(p)
@@ -205,9 +213,20 @@ export function useCasePanel<T>({
     if (!visible || !parsed) return
     // Gate the OPEN on the landing event when the caller supplies one. The
     // effect re-runs when `landed` flips, so this is a wait, not a poll.
+    //
+    // FAILS OPEN, deliberately. A gate on WHETHER the content appears is a
+    // different and much worse thing than a delay before it appears: if the
+    // signal never arrives the reader gets a blank card with nothing to
+    // scroll, and no amount of waiting fixes it. So a missed signal degrades
+    // to the old countdown rather than to nothing. openDelayMs stops being
+    // the mechanism and becomes the backstop.
     const useSignal = landed !== undefined
-    if (useSignal && arrival === 'open' && !landed) return
+    const waiting = useSignal && arrival === 'open' && !landed && !landedFallback
     const timers: ReturnType<typeof setTimeout>[] = []
+    if (waiting) {
+      const t = setTimeout(() => setLandedFallback(true), openDelayMs + LANDED_GRACE_MS)
+      return () => clearTimeout(t)
+    }
     let raf2 = 0
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
@@ -229,7 +248,7 @@ export function useCasePanel<T>({
       timers.forEach(t => clearTimeout(t))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, parsed, fadeOffsetMs, stepFadeOffsetMs, openDelayMs, arrival, landed])
+  }, [visible, parsed, fadeOffsetMs, stepFadeOffsetMs, openDelayMs, arrival, landed, landedFallback])
 
   // Reset opacities when hidden — and record that nothing is on screen.
   //
