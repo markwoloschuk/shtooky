@@ -68,6 +68,24 @@ interface Options<T> {
    */
   openDelayMs?: number
   /**
+   * The open animation reporting that it LANDED — the real event openDelayMs
+   * has been standing in for.
+   *
+   * When supplied, it supersedes openDelayMs entirely on an OPEN: the fade does
+   * not start until this turns true, and then starts immediately. openDelayMs
+   * stays as the fallback for a caller that has no such signal (Work today), so
+   * the two panels can migrate independently.
+   *
+   * Why an event and not a better number: openDelayMs is 750 because that is
+   * how long ThinkGridCanvas's expansion currently takes. Nothing enforces the
+   * agreement, and once the open also had to race a scroll there were two
+   * things pretending to happen at the same instant with no ordering between
+   * them. An event cannot drift.
+   *
+   * A step is unaffected — it has no expansion to wait for and its lead is 0.
+   */
+  landed?: boolean
+  /**
    * Where to scroll to when the new content is swapped in, in document px.
    * Defaults to the top of the page. Once the band is fixed rather than in
    * flow (spec §6) the top of the page IS the top of the content, and this
@@ -78,7 +96,7 @@ interface Options<T> {
 
 export function useCasePanel<T>({
   file, visible, endpoint, parse, slots, fadeDurMs, fadeOutMs, fadeOffsetMs,
-  stepFadeInMs, stepFadeOffsetMs, openDelayMs = 0, scrollTargetY,
+  stepFadeInMs, stepFadeOffsetMs, openDelayMs = 0, scrollTargetY, landed,
 }: Options<T>) {
   const [parsed, setParsed] = useState<T | null>(null)
   const [blockOps, setBlockOps] = useState<number[]>([])
@@ -185,13 +203,19 @@ export function useCasePanel<T>({
   // been painted. Then the staggered timers start against a real zero state.
   useEffect(() => {
     if (!visible || !parsed) return
+    // Gate the OPEN on the landing event when the caller supplies one. The
+    // effect re-runs when `landed` flips, so this is a wait, not a poll.
+    const useSignal = landed !== undefined
+    if (useSignal && arrival === 'open' && !landed) return
     const timers: ReturnType<typeof setTimeout>[] = []
     let raf2 = 0
     const raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
         const total = slots(parsed)
         const offset = arrival === 'step' ? stepFadeOffsetMs : fadeOffsetMs
-        const lead = arrival === 'step' ? 0 : openDelayMs
+        // Landed already happened if we got here under the signal, so there is
+        // nothing left to wait out.
+        const lead = arrival === 'step' ? 0 : (useSignal ? 0 : openDelayMs)
         for (let i = 0; i < total; i++) {
           timers.push(setTimeout(() => {
             setBlockOps(prev => { const n = [...prev]; n[i] = 1; return n })
@@ -205,7 +229,7 @@ export function useCasePanel<T>({
       timers.forEach(t => clearTimeout(t))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, parsed, fadeOffsetMs, stepFadeOffsetMs, openDelayMs, arrival])
+  }, [visible, parsed, fadeOffsetMs, stepFadeOffsetMs, openDelayMs, arrival, landed])
 
   // Reset opacities when hidden — and record that nothing is on screen.
   //

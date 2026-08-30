@@ -21,6 +21,18 @@ export const DEBUG = {
     // Traces every SiteRevealQueue decision to the console: what revealed, when,
     // whether pressure was on, and why a hold did or did not engage.
     sequence: false,
+    // Live HUD over the How I Think grid: mode, the band's document anchor, the
+    // live scroll position, where the band canvas actually LANDED on screen,
+    // and the page's own scroll ceiling. Exists to settle "the open card lands
+    // in the wrong place" with numbers rather than screenshots. TURN THIS OFF
+    // BEFORE PUSHING.
+    thinkBand: false,
+
+
+    // The per-frame opening trace inside the thinkBand HUD. Separate flag
+    // because the trace runs to 40 lines and swamps a phone screen, while the
+    // HUD's standing readout is what is wanted most of the time.
+    thinkBandTrace: false,
 }
 
 // ─── COLORS ──────────────────────────────────────────────────────────────────
@@ -344,7 +356,7 @@ const TYPE_TIERS = {
         NAV_NAME: { sizePx: 34, weight: 700, tracking: 0, lineHeight: 1.0 }, // interpolated placeholder — needs visual tuning
         PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         ABOUT_PULLQUOTE: { sizePx: 40, weight: 700, tracking: -0.025, lineHeight: 1.05 }, // UNTUNED — replaces a fluid 31-51px clamp; see desktop tier
-        SUBTITLE: { sizePx: 20, weight: 400, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
+        SUBTITLE: { sizePx: 28, weight: 400, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 11, weight: 700, tracking: 0.12, lineHeight: 1.4 }, // interpolated placeholder — needs visual tuning
         JOB_VALUE: { sizePx: 16, weight: 400, tracking: 0, lineHeight: 1.4 }, // UNTUNED — never rendered at this tier
         CASE_SUBTITLE: { sizePx: 26, weight: 300, tracking: -0.005, lineHeight: 1.3 }, // UNTUNED — never rendered at this tier
@@ -473,7 +485,7 @@ export const SPACE = {
         // diverge, this shared number stops being defensible. They used to
         // be 60/60/24 and a flat 20 respectively, in two unrelated places,
         // for no reason anyone could name.
-        bandDetailGap:      { desktop:  40, tablet:   40, mobile:  16 },
+        bandDetailGap:      { desktop:  20, tablet:   20, mobile:  16 },
 
         // Welcome hero — gap between the headline/carousel and the tagline
         // under it. Desktop and tablet are served by WelcomeHeroAnimation,
@@ -575,7 +587,100 @@ export const FRAME_INSET_VW = 2.5
 
 // Confirmed on-device 2026-07-20. Shared by WorkCarousel and ThinkGridCanvas
 // so the two pages' mobile band heights always move together.
+//
+// NOTE: as of BAND_HEIGHT_TIERS below, THINK no longer reads this — its mobile
+// height is now a tuned tier, not desktop x 1.65. WorkCarousel still does.
+// Left in place rather than deleted for exactly that reason; it is not dead.
 export const MOBILE_BAND_HEIGHT_SCALE = 1.65
+
+// ─── BAND HEIGHT ─────────────────────────────────────────────────────────────
+// REAL SCREEN PIXELS, flat across each tier. Not native units, not a fraction
+// of anything.
+//
+// What these replaced: one number, 480, in NATIVE units on a 1440-wide stage,
+// which meant the rendered band was always viewportW / 3 (mobile x 1.65). That
+// is a function of viewport WIDTH judged against viewport HEIGHT — 53% of a
+// 1440x900 screen, 79% of a 2560x1080 one, 25% of a phone. The inverse of
+// intuition, and spec section 2's core finding.
+//
+// MEASURED, not derived. 2026-08-29, on the live page: open a Think card,
+// scroll until the image crop reads right, read VISIBLE BAND H off the
+// thinkBand HUD. Each number was judged at the size it actually renders.
+//
+//   width   was    now    removed
+//   1440    480    305     -175
+//    768    256    217      -39
+//    390    214.5  165      -49.5
+//
+// The three are not a formula and no formula was fitted to them: as a share of
+// viewport WIDTH they are 21% / 28% / 42%, as a share of HEIGHT 34% / 21% / 20%.
+// Neither is constant. That is the whole argument for tiers over a ramp.
+//
+// ACCEPTED TRADE, the same one the BAND_HEADLINE tiers take: a flat value
+// drifts across its own range and steps at the breakpoint. A 2560-wide desktop
+// gets the same 305 as a 1280 one — which is the point, since the old ramp gave
+// it 853 and ate the screen.
+export const BAND_HEIGHT_TIERS = {
+    desktop: 305,   // >= BREAKPOINTS.laptop   — measured at 1440
+    tablet:  217,   // BREAKPOINTS.tablet..laptop — measured at 768
+    mobile:  165,   // < BREAKPOINTS.tablet    — measured at 390
+}
+
+// Vertical anchor for the BAND image only — 0 top, 0.5 centre, 1 bottom.
+// Passed to drawCover's anchorY. The grid cells stay centred: they are composed
+// for the bento layout and nothing about them changed.
+//
+// Why 1. BAND_HEIGHT_TIERS was measured by SCROLLING the live page, which
+// removes pixels from the TOP of the image only. Shrinking the band in code at
+// the default 0.5 would tighten from both ends around the image's midpoint —
+// the right height, a frame that was never approved, on all thirteen cards.
+// Bottom-anchoring reproduces what was judged with no per-case numbers, and
+// puts the image on the same edge the headline already hangs from.
+//
+// JUDGED 2026-08-29: 0, not 1. The measurement implied bottom-anchoring — the
+// heights were approved by scrolling, which removes the top — but looking at
+// the actual thirteen images, the TOP of each cover is the part worth keeping.
+// The measurement decided the HEIGHT honestly; it does not get to decide the
+// framing, and Mark's eye overrules it here. Recorded because the reasoning
+// above argues for the opposite value and would otherwise read as a mistake.
+export const BAND_ANCHOR_Y = 0
+
+// ─── BAND OPEN — when the card counts as "landed" ────────────────────────────
+// A fraction of the open animation's progress, 0..1, at which ThinkGridCanvas
+// fires onOpenLanded and the case copy begins its fade.
+//
+// This exists because CFG.TRANSITION_DURATION is NOT a duration. The open is an
+// exponential approach — openProg = lerp(openProg, 1, dt/TRANSITION_DURATION *
+// 2.2) — that finishes when it comes within 0.006 of its asymptote. At 750 that
+// takes ~1717ms, of which the last ~950ms is the final 10% of the move: motion
+// you cannot really see, but that the copy would honestly have to wait out.
+//
+// ThinkCasePanel's old OPEN_DELAY = 750 was documented as "matching
+// TRANSITION_DURATION" and was therefore ~967ms EARLY — it fired mid-settle.
+// That early start is what every Think open was judged against, so reproducing
+// it is not a compromise, it is the approved behaviour restated honestly.
+//
+// At TRANSITION_DURATION 750, progress maps to time roughly:
+//   0.80 -> 550ms   0.85 -> 633ms   0.90 -> 767ms   1.00 (asymptote) -> 1717ms
+// The old 750ms lands at about 0.90. Lower = more overlap with the card's
+// travel; 1 would mean waiting for the full settle.
+//
+// JUDGED 2026-08-29 at 0.88 (~700ms) — a touch earlier than the old 750ms, so
+// the copy overlaps the last of the card's travel rather than following it.
+// Re-judge if TRANSITION_DURATION changes: the fraction stays correct, but the
+// time it lands on does not.
+export const BAND_OPEN_LANDED_AT = 0.88
+
+// The band's rendered height in SCREEN pixels at a given viewport width.
+// One resolver, both bands. This existed as six copies of
+// `viewportW * (_bandH / NATIVE_W)` across ThinkGridCanvas and
+// ThinkPageController; the conversion is now done once, here, and callers that
+// need NATIVE units convert back at their own single site.
+export function bandHeightPx(viewportW: number): number {
+    if (viewportW < BREAKPOINTS.tablet) return BAND_HEIGHT_TIERS.mobile
+    if (viewportW < BREAKPOINTS.laptop) return BAND_HEIGHT_TIERS.tablet
+    return BAND_HEIGHT_TIERS.desktop
+}
 
 // ─── BAND HEADLINE ───────────────────────────────────────────────────────────
 // The display line painted at the bottom of a full-bleed canvas band: the Work

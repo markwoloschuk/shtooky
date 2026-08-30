@@ -28,7 +28,7 @@ import {
     type PullChunk,
 } from "./SiteCaseMarkdown"
 import { useSequence } from "./SiteSequenceController"
-import { useSequencedFade, installQueue, armQueue, isRevealed, registerItem } from "./SiteRevealQueue"
+import { useSequencedFade, installQueue, isRevealed, registerItem } from "./SiteRevealQueue"
 
 // ─── Dialect ──────────────────────────────────────────────────────────────────
 // About and Let's Talk share this one. Blocks are SECTIONS: one block is one

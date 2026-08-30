@@ -68,11 +68,10 @@ function parseMd(raw: string): ParsedCase {
 
 interface Props {
   caseFile: string | null   // e.g. 'WorkCase01'
-  caseIdx: number | null    // 0-based index — no longer used inside this file (gallery paths now come from frontmatter's imagePath); left in Props since the caller may still pass/rely on it elsewhere
   visible: boolean
 }
 
-export default function CaseStudyPanel({ caseFile, caseIdx, visible }: Props) {
+export default function CaseStudyPanel({ caseFile, visible }: Props) {
   const type = useType()
   const col = useColumn()
   const space = useSpace()

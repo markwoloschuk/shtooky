@@ -4,7 +4,8 @@
 //   intro blurb → TYPE_TIERS.SUBTITLE  (sizePx — replaces local clamp CONFIG)
 
 import { useEffect, useState } from 'react';
-import { useColumn, useType, bodyMaxWidth, SPACE, useSpace } from './SiteTokens';
+import { TYPE, COLORS, useColumn, useType, bodyMaxWidth, SPACE, useSpace } from './SiteTokens';
+
 
 
 // ── Tunable constants ────────────────────────────────────────────────────

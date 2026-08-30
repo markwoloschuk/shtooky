@@ -29,9 +29,10 @@ export default function ThinkBelowPlaceholder() {
           margin: 0,
         }}
       >
-        Placeholder — stand-in for whatever comes after the grid (closing
-        statement, footer, etc.), so the recede transition can be judged
-        against real content below the fold, not empty space.
+        I think a lot and about many things.<br></br>
+        Sometimes I think it's not enough,<br></br>
+        and other times maybe too much,<br></br>
+        but most of the time it's just right.
       </p>
     </div>
   );

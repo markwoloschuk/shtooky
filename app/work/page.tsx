@@ -48,7 +48,6 @@ export default function WorkPage() {
         <WorkCarousel
           onOpen={handleOpen}
           onClose={handleClose}
-          activeIdx={activeIdx}
           onRegisterControls={(step, close) => {
             stepRef.current = step
             closeRef.current = close
@@ -57,7 +56,6 @@ export default function WorkPage() {
 
 <CaseStudyPanel
           caseFile={manifest?.contentFile ?? null}
-          caseIdx={activeIdx}
           visible={activeIdx !== null}
         />
 

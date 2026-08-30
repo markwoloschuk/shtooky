@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { WORK_MANIFEST } from '../data/WorkManifest'
+import { drawCover } from './SiteCanvasCover'
 import { TYPE, COLORS, useType, useColumn, useBreakpoint, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, BAND_VIGNETTE, BREAKPOINTS, getColumn } from './SiteTokens'
 
 // ── Locked animation constants (from work_carousel_v30.html) ─────────────────
@@ -150,7 +151,6 @@ function easeOut(t: number) { t = clamp(t, 0, 1); return 1 - (1 - t) * (1 - t) }
 interface Props {
   onOpen: (idx: number) => void
   onClose: () => void
-  activeIdx: number | null
   onRegisterControls: (step: (dir: number) => void, close: () => void) => void
 }
 
@@ -160,7 +160,7 @@ interface Props {
 //     fit-to-width scale-down pass so it never wraps; see fitPullquote)
 //   in-image title (canvas) → TYPE_TIERS.PULLQUOTE (sizePx — mobile minimum; desktop = 52px native)
 
-export default function WorkCarousel({ onOpen, onClose, activeIdx, onRegisterControls }: Props) {
+export default function WorkCarousel({ onOpen, onClose, onRegisterControls }: Props) {
 const col  = useColumn()
 const type = useType()
 const canvasRef    = useRef<HTMLCanvasElement>(null)
@@ -350,10 +350,15 @@ function showNav() {
     ctx.translate(contentCX, _ech / 2); ctx.scale(zoom, zoom); ctx.translate(-contentCX, -_ech / 2)
     const img = imgsRef.current[idx]
     if (img && img.complete && img.naturalWidth > 0) {
-      const iw = img.naturalWidth, ih = img.naturalHeight
-      const scale = Math.max(CW / iw, _ech / ih)
-      const dw = iw * scale, dh = ih * scale
-      ctx.drawImage(img, contentCX - dw / 2, (_ech - dh) / 2 + offsetsV[idx], dw, dh)
+      // Cover-fit lives in SiteCanvasCover, shared with ThinkGridCanvas.
+      // The fit box is the whole native band; centerX is the carousel's
+      // SLIDING content centre, which is why the box centre can't be used.
+      // Everything here is in native (1440-wide) canvas units, and so is
+      // offsetV in WORK_MANIFEST.
+      drawCover(ctx, img, { x: 0, y: 0, w: CW, h: _ech }, {
+        centerX: contentCX,
+        offsetY: offsetsV[idx],
+      })
     } else {
       ctx.fillStyle = '#222'
       ctx.fillRect(0, 0, CW, _ech)
@@ -823,10 +828,11 @@ if (!fadeRan.current) {
     }
   }, [tick, render, updateHitLayer, scaleStage])
 
-  // ── Expose stepCase / closeCase to parent via activeIdx ───────────────────
-  // Parent passes activeIdx; we watch it to detect external nav requests.
-  // For now parent drives nav via the buttons rendered here.
-
+  // Nav is exposed to the parent through onRegisterControls (stepCase /
+  // closeCase), not by watching a prop. An earlier activeIdx prop described
+  // here was the remains of a watch-the-index approach that no longer exists;
+  // it was accepted and never read, so both the prop and this comment's claim
+  // have been removed rather than left looking load-bearing.
 
 return (
     <div style={{ position: 'relative', width: '100%' }}>

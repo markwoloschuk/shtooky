@@ -5,17 +5,23 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useColumn, NAV, COLORS, TYPE, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, BAND_VIGNETTE, BREAKPOINTS } from './SiteTokens';
+import { useColumn, NAV, COLORS, TYPE, BAND_HEADLINE, BAND_VIGNETTE, BREAKPOINTS, DEBUG, bandHeightPx, BAND_ANCHOR_Y, BAND_OPEN_LANDED_AT } from './SiteTokens';
 import { THINK_GRID, coverImageFor, offsetFor } from '../data/ThinkManifest';
+import { drawCover } from './SiteCanvasCover';
 
 // ── Layout — 13 cells, native units on a 1440-wide reference canvas ────────
 // adjust gap value here 6 is current setting
 const NATIVE_W = 1440;
 const GAP = 6;
 
-// _bandH (effective band height) — desktop/tablet = BAND_HEIGHT;
-// mobile = BAND_HEIGHT * MOBILE_BAND_HEIGHT_SCALE. Updated by scaleStage.
-let _bandH = 480; // initialised to BAND_HEIGHT — can't reference it before declaration
+// _bandH — the band height in NATIVE units on the 1440-wide stage. It is no
+// longer an authored constant: BAND_HEIGHT_TIERS is authored in SCREEN pixels
+// and scaleStage converts it back to native here, once, so that every existing
+// consumer (the five `logW * (_bandH / NATIVE_W)` sites and the stage-space
+// maths in the open animation) keeps working in the space it already uses.
+// Because the tiers are flat, _bandH now VARIES with viewport width — that is
+// the conversion doing its job, not drift.
+let _bandH = 305; // placeholder until the first scaleStage; see BAND_HEIGHT_TIERS
 let _bandTitlePx = BAND_HEADLINE.sizePx; // SCREEN pixels; updated by scaleStage. See BAND_HEADLINE.
 
 const ROW1_H = 357, ROW2_H = 300, ROW3_H = 355.5, ROW4_H = 280;
@@ -46,13 +52,17 @@ const LAYOUT = [
 ];
 const TOTAL_H = row4Y + ROW4_H;
 const N = LAYOUT.length;
-export const BAND_HEIGHT = 480;
-export { NATIVE_W };
+// Retired: was 480 native units, the single authored band height. Replaced by
+// BAND_HEIGHT_TIERS + bandHeightPx() in SiteTokens. ThinkPageController was its
+// only importer and now calls the resolver directly.
+// NATIVE_W's re-export went with BAND_HEIGHT: ThinkPageController imported both
+// only to recompute the band height itself, and now calls bandHeightPx().
+// (ThinkOpenAnimation has its own CONFIG.NATIVE_W and never read this one.)
 
 const CFG = {
   HOVER_SPEED: 500,
   HOVER_ZOOM: 1.10,
-  OVERLAY_DARKEN: 0.60,
+  OVERLAY_DARKEN: 0.75,
   TITLE_SIZE: 25,
   FADE_DELAY_MS: 3000,
   FADE_DURATION_MS: 2000,
@@ -160,16 +170,19 @@ function unlockScroll() {
   window.removeEventListener('keydown', preventScrollKeys);
 }
 
-// ── Scroll floor — fullview/nav need the page to scroll NORMALLY
-// downward through the detail text, so lockScroll()'s full input-block
-// (right for opening/closing) is wrong here. But once unlockScroll()
-// released input on reaching fullview, nothing stopped scrollY from
-// going ABOVE bandDocYRef — that's the "can scroll above the open card"
-// bug. A passive 'scroll' listener that snaps back the instant scrollY
-// dips below the floor is a one-directional version of the same
-// "instant restore, not an animation driver" pattern closeCard()
-// already uses for its own scrollTo, rather than a second full-block
-// authority competing with normal scroll.
+// ── DELETED 2026-08-29: the scroll floor. ────────────────────────────────────
+// It was a passive 'scroll' listener that snapped scrollY back whenever it fell
+// below bandDocYRef, guarding the "an open card is the top of the page"
+// invariant. Two things were wrong with it, and the fixed band removes both.
+//
+// It could not work. Being passive, it could only correct a scroll that had
+// already happened, and its own scrollTo emitted another scroll event — so
+// pushing up at the floor set the browser's momentum against a per-frame yank
+// and the band visibly vibrated. And it did not fire at all on any card opened
+// from the top of the page, where bandDocY is 0 and `scrollY < 0` is never true.
+//
+// It is not needed. With the band fixed and the content anchored at document 0
+// there is no "above the band" to reach, so there is nothing to guard.
 
 
 interface Rect { x: number; y: number; w: number; h: number; }
@@ -179,19 +192,42 @@ interface Props {
   onClose: () => void;
   onRegisterControls: (step: (dir: number) => void, close: () => void) => void;
   headerRef?: React.RefObject<HTMLDivElement | null>;
-  onBandPositioned?: (docY: number) => void;
+  /** Fired on the exact frame the open animation lands. The case panel's
+   *  fade-in waits for this instead of counting OPEN_DELAY ms from the click. */
+  onOpenLanded?: () => void;
 }
 
-function drawImageCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement | undefined, rect: Rect) {
+// Clip + fallback fill stay here; the fit itself is drawCover, shared with
+// WorkCarousel.
+//
+// `cardNum` is the THINK_GRID value, not the slot index — offsetFor is keyed by
+// card number, the same key coverImageFor uses, so a THINK_GRID reorder can
+// never slide the crops out from under the images.
+//
+// `unit` converts a NATIVE-unit offset into the units this context is drawing
+// in: 1 for the grid canvas (already native), logW / NATIVE_W for the band
+// canvas (real screen pixels). THINK_OFFSETS is authored in native units so it
+// means one thing, the same thing WORK_MANIFEST's offsets mean.
+function drawImageCover(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement | undefined,
+  rect: Rect,
+  cardNum: number,
+  unit: number,
+  anchorY: number,
+) {
   ctx.save();
   ctx.beginPath();
   ctx.rect(rect.x, rect.y, rect.w, rect.h);
   ctx.clip();
   if (img && img.complete && img.naturalWidth > 0) {
-    const scale = Math.max(rect.w / img.naturalWidth, rect.h / img.naturalHeight);
-    const dw = img.naturalWidth * scale, dh = img.naturalHeight * scale;
-    const cx = rect.x + rect.w / 2, cy = rect.y + rect.h / 2;
-    ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
+    const [ox, oy, scalePct] = offsetFor(cardNum);
+    drawCover(ctx, img, rect, {
+      offsetX: ox * unit,
+      offsetY: oy * unit,
+      scalePct,
+      anchorY,
+    });
   } else {
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
@@ -265,7 +301,7 @@ function drawBandTitle(
   ctx.restore();
 }
 
-export default function ThinkGridCanvas({ onOpen, onClose, onRegisterControls, headerRef, onBandPositioned }: Props) {
+export default function ThinkGridCanvas({ onOpen, onClose, onRegisterControls, headerRef, onOpenLanded }: Props) {
     const col = useColumn();
 
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -287,31 +323,34 @@ export default function ThinkGridCanvas({ onOpen, onClose, onRegisterControls, h
   const bandCanvasRef = useRef<HTMLCanvasElement>(null);
 const bandDocYRef = useRef(0);
   const gridDocTopRef = useRef(0);
-  const gridDocBottomRef = useRef(99999);
-
-  // Scroll floor — needs bandDocYRef, so it's a per-instance ref-backed
-  // pair rather than the module-level lockScroll()/unlockScroll(). See
-  // the comment above unlockScroll() for why this exists separately.
-  const scrollFloorHandlerRef = useRef<(() => void) | null>(null);
-  function enableScrollFloor() {
-    if (scrollFloorHandlerRef.current) return;
-    const handler = () => {
-      if (window.scrollY < bandDocYRef.current) {
-        window.scrollTo(0, bandDocYRef.current);
-      }
-    };
-    scrollFloorHandlerRef.current = handler;
-    window.addEventListener('scroll', handler, { passive: true });
-  }
-  function disableScrollFloor() {
-    if (scrollFloorHandlerRef.current) {
-      window.removeEventListener('scroll', scrollFloorHandlerRef.current);
-      scrollFloorHandlerRef.current = null;
-    }
-  }
 
   const fromRectRef = useRef<Rect>({ x: 0, y: 0, w: 0, h: 0 });
   const [bandMounted, setBandMounted] = useState(false);
+  // The band is fixed for its ENTIRE life, not handed over partway through.
+  //
+  // It used to become fixed at the landing frame, which meant that during the
+  // open animation it was still anchored to a DOCUMENT coordinate captured at
+  // click time (bandDocYRef = window.scrollY). Opening collapses the grid and
+  // inflates the spacer, and those two do not cancel exactly — measured, the
+  // document ends ~16px shorter — so the browser clamps scrollY upward and the
+  // anchor is left pointing below the viewport top. Blank band at the top,
+  // then a pop when the handoff arrived. Only when clicking within that last
+  // ~16px of scroll, which is why it healed on a second open: by then the
+  // clamp had already happened and the anchor was reachable.
+  //
+  // Fixed from mount removes the class, not the instance: scroll is LOCKED for
+  // the whole animation, so fixed-at-0 and absolute-at-scrollY paint
+  // identically — but a viewport coordinate cannot be invalidated by a
+  // document height change, so there is nothing left to go stale.
+  // Client-only gate for the debug HUD's portal: createPortal reads `document`
+  // at render, which does not exist during SSR. bandMounted cannot stand in —
+  // the HUD must be up BEFORE a card is opened.
+  const [hudMounted, setHudMounted] = useState(false);
+  // The standard mount gate: one setState, once, on a debug-only path. The
+  // cascading render the lint rule warns about cannot happen with an empty dep
+  // array and no reader outside the HUD's own portal condition.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setHudMounted(true); }, []);
   const [gridVisible, setGridVisible] = useState(false);
 
 const gridInsetRef = useRef({ offset: 0, scale: 1 });
@@ -363,10 +402,11 @@ useEffect(() => {
   const hovIdx = useRef(-1);
 const onOpenRef = useRef(onOpen);
   const onCloseRef = useRef(onClose);
-  const onBandPositionedRef = useRef(onBandPositioned);
+  const onOpenLandedRef = useRef(onOpenLanded);
+  onOpenLandedRef.current = onOpenLanded;
+
   onOpenRef.current = onOpen;
   onCloseRef.current = onClose;
-  onBandPositionedRef.current = onBandPositioned;
 
   const zoom = useRef(new Array(N).fill(1));
   const darken = useRef(new Array(N).fill(0));
@@ -386,6 +426,14 @@ const onOpenRef = useRef(onOpen);
   // Gates progress advancement until bandY has actually been measured
   // AFTER the header's collapse has painted — see openCard() below.
   const bandYReadyRef = useRef(false);
+  // Trace buffer for the opening animation. The symptom ("the card vanishes,
+  // then pops in") lives entirely inside the transition, so a live HUD reading
+  // taken at rest cannot see it. Captured per frame, held after the animation
+  // ends so it can be read at leisure. DEBUG.thinkBand only.
+  const traceRef = useRef<string[]>([]);
+  // Fired-once guard for the landing signal, which now fires part-way through
+  // the animation rather than at its end. Cleared at the start of every open.
+  const landedFiredRef = useRef(false);
 
   // Band title — independent animation timeline (spec: 100ms delay →
   // 1000ms rise on open; 300ms drop on close, doesn't follow card motion)
@@ -404,7 +452,15 @@ const onOpenRef = useRef(onOpen);
   // Color overlay — each cell gets a random palette color at open time
   const cellColors = useRef<string[]>(Array(N).fill(''));
 
-  const drawCardAt = useCallback((ctx: CanvasRenderingContext2D, i: number, rect: Rect, zm: number, dk: number) => {
+  // `unit` is the native-to-context conversion for this card's crop offsets —
+  // 1 on the grid canvas, logW / NATIVE_W on the band canvas. See
+  // drawImageCover.
+  // anchorY is passed EXPLICITLY rather than inferred from `unit`. The two
+  // always coincide today — the band is the only caller with unit !== 1 and the
+  // only one that wants a bottom anchor — but that is a coincidence of the
+  // current call sites, not a relationship. Deriving the anchor from the
+  // coordinate-space converter would be a dependency on a proxy.
+  const drawCardAt = useCallback((ctx: CanvasRenderingContext2D, i: number, rect: Rect, zm: number, dk: number, unit = 1, anchorY = 0.5) => {
     ctx.save();
     ctx.beginPath();
     ctx.rect(rect.x, rect.y, rect.w, rect.h);
@@ -413,7 +469,7 @@ const onOpenRef = useRef(onOpen);
     ctx.translate(cx, cy);
     ctx.scale(zm, zm);
     ctx.translate(-cx, -cy);
-    drawImageCover(ctx, imgsRef.current[i], rect);
+    drawImageCover(ctx, imgsRef.current[i], rect, THINK_GRID[i], unit, anchorY);
     if (dk > 0) {
       ctx.fillStyle = `rgba(13,13,13,${dk})`;
       ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
@@ -543,7 +599,7 @@ for (let i = 0; i < N; i++) {
       ctx.save();
       ctx.beginPath(); ctx.rect(0, 0, to.w, to.h); ctx.clip();
       const outX = nd > 0 ? -absOutShift : absOutShift;
-      drawCardAt(ctx, nf, { x: outX, y: 0, w: to.w, h: to.h }, 1, 0);
+      drawCardAt(ctx, nf, { x: outX, y: 0, w: to.w, h: to.h }, 1, 0, s, BAND_ANCHOR_Y);
       drawVignette(ctx, { x: outX, y: 0, w: to.w, h: to.h });
       ctx.restore();
 
@@ -551,7 +607,7 @@ for (let i = 0; i < N; i++) {
       ctx.save();
       ctx.beginPath(); ctx.rect(0, 0, to.w, to.h); ctx.clip();
       const inX = nd > 0 ? absInShift : -absInShift;
-      drawCardAt(ctx, nt, { x: inX, y: 0, w: to.w, h: to.h }, 1, 0);
+      drawCardAt(ctx, nt, { x: inX, y: 0, w: to.w, h: to.h }, 1, 0, s, BAND_ANCHOR_Y);
       drawVignette(ctx, { x: inX, y: 0, w: to.w, h: to.h });
       ctx.restore();
 
@@ -590,7 +646,22 @@ for (let i = 0; i < N; i++) {
       x: lerp(from.x, to.x, ep), y: lerp(from.y, to.y, ep),
       w: lerp(from.w, to.w, ep), h: lerp(from.h, to.h, ep),
     };
-    drawCardAt(ctx, oi, cur, 1, 0);
+    if (DEBUG.thinkBandTrace && traceRef.current.length < 40) {
+      // Recorded HERE, at the draw call, not in tick(): this is the rect the
+      // card is actually painted into. Everything else is inference.
+      // cardTopOnScreen converts the canvas-local y into viewport space via the
+      // canvas's own live rect, so it stays honest across the absolute->fixed
+      // handoff instead of assuming which coordinate system is in force.
+      const el = bandCanvasRef.current;
+      const canvasTop = el ? el.getBoundingClientRect().top : NaN;
+      traceRef.current.push(
+        `${mode.current[0]} p=${openProg.current.toFixed(2)} y=${cur.y.toFixed(0)} h=${cur.h.toFixed(0)}` +
+        ` cvTop=${canvasTop.toFixed(0)} onScr=${(canvasTop + cur.y).toFixed(0)}` +
+        ` sY=${window.scrollY.toFixed(0)} pos=${el ? getComputedStyle(el).position[0] : '?'}` +
+        ``
+      );
+    }
+    drawCardAt(ctx, oi, cur, 1, 0, s, BAND_ANCHOR_Y);
     drawVignette(ctx, cur);
     // Title — fixed at final position, clipped to current card shape.
     const isClosing = mode.current === 'closing';
@@ -643,12 +714,13 @@ for (let i = 0; i < N; i++) {
     // container, which is what caused the previous bug (that container
     // always ends up at the top of the page once collapsed, contradicting
     // wherever bandY said the band should be).
-bandDocYRef.current = window.scrollY;
-    onBandPositionedRef.current?.(bandDocYRef.current);
+    // The close bookmark: where the reader was when they clicked. Nothing
+    // positions anything from this any more, so the parent no longer needs to
+    // be told — onBandPositioned went with the document anchor it served.
+    bandDocYRef.current = window.scrollY;
         const wrapRect = wrapRef.current?.getBoundingClientRect();
     if (wrapRect) {
       gridDocTopRef.current = wrapRect.top + window.scrollY;
-      gridDocBottomRef.current = gridDocTopRef.current + wrapRect.height;
     }
     // Starting rect: the clicked cell's REAL on-screen position, converted
     // to the band canvas's own local coordinate space (canvas's origin
@@ -658,7 +730,11 @@ bandDocYRef.current = window.scrollY;
     if (cellRect) {
       fromRectRef.current = {
         x: cellRect.left,
-        y: cellRect.top + window.scrollY - bandDocYRef.current,
+        // The canvas origin IS the viewport origin, so the cell's on-screen
+        // top is already the local y. (The old document round-trip,
+        // cellRect.top + scrollY - bandDocY, reduced to this whenever bandDocY
+        // equalled scrollY — which is exactly when it was correct.)
+        y: cellRect.top,
         w: cellRect.width,
         h: cellRect.height,
       };
@@ -672,6 +748,23 @@ document.documentElement.style.overflowX = 'hidden';
     openIdx.current = i;
     openProg.current = 0;
     bandYReadyRef.current = true;
+    landedFiredRef.current = false;
+    traceRef.current = [];
+    {
+      // Scroll to the content NOW, not at the landing.
+      //
+      // It used to happen at the landing, which forced the copy's fade to wait
+      // for the landing too — fire the fade any earlier and the content
+      // appeared at the old scroll position and was then yanked to the top.
+      // That coupling is why the open could not overlap.
+      //
+      // Doing it here is safe only because of the fixed band: the band is a
+      // viewport object so it does not move, and fromRect above was measured
+      // from the cell's on-screen position BEFORE this call, so the card still
+      // starts exactly where it was clicked. bandDocYRef keeps the pre-scroll
+      // position as the close bookmark.
+      window.scrollTo(0, 0);
+    }
     bandTitleProg.current = 0;
     bandTitleStart.current = 0;
     hovIdx.current = -1;
@@ -696,13 +789,25 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     // opened — instant, not animated — then re-lock scroll for the
     // shrink animation. The user may have scrolled anywhere while
     // reading; the shrink assumes the cell is back at its real
-    window.scrollTo(0, bandDocYRef.current);
-    disableScrollFloor();
     lockScroll();
-        // Restore full grid height + collapse the spacer BEFORE the card
-    // starts traveling back — same pairing logic as the height-snap.
+    // ORDER: restore the grid's height BEFORE scrolling to the bookmark.
+    //
+    // These two used to be the other way round, so the scroll was issued while
+    // the grid was still collapsed — a document short enough that the bookmark
+    // was past its maxScroll, so the browser clamped it. The page then grew
+    // back underneath a scroll position that had already been truncated,
+    // leaving the reader ~16px from where they clicked. fromRect was measured
+    // in that original viewport, so the card animated home to a spot that far
+    // off and popped when the grid redrew.
+    //
+    // Same class as the open-side bug: an operation performed while the
+    // document is a different height than the coordinate assumes.
     if (wrapRef.current) wrapRef.current.style.height = `${TOTAL_H * scaleRef.current}px`;
     if (spacerRef.current) spacerRef.current.style.height = '0px';
+    // Band stays fixed through the close too. This restores the reader to the
+    // bookmark so the cell is back at the on-screen position fromRect was
+    // measured at, and the card travels home in the viewport space it left.
+    window.scrollTo(0, bandDocYRef.current);
     mode.current = 'closing';
     updateHitLayer();
     // Fire immediately so detail text starts fading out NOW, not after
@@ -742,8 +847,12 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
       if (m === 'fullview' || m === 'nav') {
         bandCanvas.style.clipPath = `inset(0px 0px ${Math.max(0, logH - bandHpx)}px 0px)`;
       } else {
-        const bottomInset = Math.max(0, bandDocYRef.current + window.innerHeight - gridDocBottomRef.current);
-        bandCanvas.style.clipPath = `inset(0px 0px ${bottomInset}px 0px)`;
+        // No clip while the card is travelling. The old grid-bound inset was
+        // built from bandDocY and gridDocBottom, both document coordinates,
+        // and is meaningless for a viewport-fixed canvas — the card travels
+        // entirely inside the viewport. The hit-box concern it also served
+        // cannot bite here because scroll is locked during opening and closing.
+        bandCanvas.style.clipPath = 'none';
       }
     }
 
@@ -767,6 +876,14 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
         const sp2 = clamp(dt / CFG.TRANSITION_DURATION * 2.2, 0, 1);
         const target = m === 'opening' ? 1 : 0;
         openProg.current = lerp(openProg.current, target, sp2);
+        // The landing signal fires HERE, at a fraction of the travel, not at
+        // the asymptote below. See BAND_OPEN_LANDED_AT for why the end of the
+        // exponential is the wrong moment to hand to the reader.
+        if (m === 'opening' && !landedFiredRef.current
+            && openProg.current >= BAND_OPEN_LANDED_AT) {
+          landedFiredRef.current = true;
+          onOpenLandedRef.current?.();
+        }
 if (Math.abs(openProg.current - target) < 0.006) {
           openProg.current = target;
           if (m === 'opening') {
@@ -796,10 +913,16 @@ if (Math.abs(openProg.current - target) < 0.006) {
             // Only vertical overflow is released; overflowX stays locked
             // until full close, same as before.
             unlockScroll();
-            // Now that free scroll is allowed, keep it from going
-            // ABOVE the band — the "open cards are the top of the
-            // page" invariant.
-            enableScrollFloor();
+            // Nothing to scroll and no floor to arm. The scroll happened at the
+            // click and the landing signal fired at BAND_OPEN_LANDED_AT,
+            // part-way through the travel.
+            //
+            // Safety net only — if the threshold were ever set to a value the
+            // lerp cannot reach, the copy would never appear at all.
+            if (!landedFiredRef.current) {
+              landedFiredRef.current = true;
+              onOpenLandedRef.current?.();
+            }
             } else {
                         mode.current = 'grid';
             openIdx.current = -1;
@@ -905,17 +1028,64 @@ if (navProg.current >= 0.5 && !navSwapped.current) {
 
     const hud = document.getElementById('think-debug-hud');
     if (hud) {
+      // The four lines that actually discriminate between hypotheses for
+      // "the card opens in the wrong place":
+      //   bandTop  — where the band canvas ACTUALLY is on screen. 0 = correct.
+      //   floorGap — scrollY minus the anchor. The floor listener should hold
+      //              this at 0; a positive value means the reader scrolled
+      //              down, a negative one means the floor could not reach.
+      //   maxScroll vs bandDocY — if maxScroll is the smaller number the page
+      //              cannot scroll far enough for the anchor to reach the top
+      //              of the viewport, and no listener can fix that.
+      const bandEl = bandCanvasRef.current;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
       hud.textContent =
         `mode: ${mode.current}\n` +
         `openIdx: ${openIdx.current}\n` +
         `openProg: ${openProg.current.toFixed(3)}\n` +
         `bandYReady: ${bandYReadyRef.current}\n` +
-        `bandDocY: ${bandDocYRef.current.toFixed(1)}\n` +
+        `bandDocY (close bookmark): ${bandDocYRef.current.toFixed(1)}\n` +
+        `band style.top: ${bandEl?.style.top || '(unmounted)'}\n` +
+        `band position: ${bandEl ? getComputedStyle(bandEl).position : '-'}\n` +
+        `BAND TOP ON SCREEN: ${bandEl ? bandEl.getBoundingClientRect().top.toFixed(1) : '-'}\n` +
+        // §4 measuring line. NOT scrollY: the first bandDocY pixels of scroll
+        // only eat the nav clearance above the band, so scrollY overstates the
+        // crop by a tiered amount (thinkNavClearance is 177/136/104). This is
+        // the band's on-screen height with the off-viewport parts subtracted —
+        // scroll until the crop reads right, read this number, and it IS the
+        // tuned BAND_HEIGHT_TIERS value at this width, in screen pixels.
+        `VISIBLE BAND H: ${(() => {
+          if (!bandEl) return '-';
+          // NOT getBoundingClientRect().height — the canvas is a full
+          // window.innerHeight box (line ~379) clipped down to the band strip
+          // by clipPath, and clipPath does not change the layout box. The rect
+          // reports the viewport height and looks entirely plausible.
+          const top = bandEl.getBoundingClientRect().top;
+          const bandHpx = window.innerWidth * (_bandH / NATIVE_W);
+          const vis = Math.min(top + bandHpx, window.innerHeight) - Math.max(top, 0);
+          return `${Math.max(0, vis).toFixed(1)}  (full strip: ${bandHpx.toFixed(1)})`;
+        })()}\n` +
+        `scrollY: ${window.scrollY.toFixed(0)}\n` +
+        // The content half of the layout. Band top, detail top and scrollY
+        // together fully determine what is on screen; the HUD reported only the
+        // band, which is why "the card is low" could not be pinned to either
+        // the band being wrong or the content being wrong.
+        `DETAIL TOP ON SCREEN: ${(() => {
+          const d = document.getElementById('think-detail');
+          return d ? d.getBoundingClientRect().top.toFixed(1) : '-';
+        })()}\n` +
+        `detail style.top: ${document.getElementById('think-detail')?.style.top || '(none)'}\n` +
+
+        `maxScroll: ${maxScroll.toFixed(0)}\n` +
+        `docHeight: ${document.documentElement.scrollHeight}\n` +
         `bandTitleProg: ${bandTitleProg.current.toFixed(3)}\n` +
         `bandMounted: ${bandMounted}\n` +
         `wrap.height: ${wrapRef.current?.style.height || '(unset)'}\n` +
         `stage.top: ${stageRef.current?.style.top || '(unset)'}\n` +
-        `scrollY: ${window.scrollY.toFixed(0)}`;
+        `innerH: ${window.innerHeight}\n` +
+        (DEBUG.thinkBandTrace
+          ? `--- opening trace ---\n` + (traceRef.current.length ? traceRef.current.join('\n') : '(none)')
+          : '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [render, renderBand, updateHitLayer]);
@@ -952,10 +1122,9 @@ imgsRef.current = Array.from({ length: N }, (_, i) => {
       const wrap = wrapRef.current;
       const stage = stageRef.current;
       if (!wrap || !stage) return;
-      const isMobile = window.innerWidth < 768;
-      _bandH = isMobile
-        ? Math.round(BAND_HEIGHT * MOBILE_BAND_HEIGHT_SCALE)
-        : BAND_HEIGHT;
+      const isMobile = window.innerWidth < BREAKPOINTS.tablet;
+      // Screen pixels in, native units out — the one conversion site.
+      _bandH = (bandHeightPx(window.innerWidth) * NATIVE_W) / window.innerWidth;
       const titleScale = window.innerWidth / BAND_HEADLINE.refW;
       const isTablet = !isMobile && window.innerWidth < BREAKPOINTS.laptop;
       // Already screen pixels here, so the DESKTOP reference size is scaled up
@@ -995,7 +1164,6 @@ return () => {
       document.documentElement.style.overflowX = '';
       document.body.style.overflowX = '';
       unlockScroll();
-      disableScrollFloor();
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1013,18 +1181,22 @@ return () => {
       opacity: gridVisible ? 1 : 0,
       transition: `opacity ${CFG.FADE_DURATION_MS}ms ease`,
     }}>
-      {/* TEMPORARY debug HUD — remove once the open/close mechanic is
-          confirmed solid. Shows live state so bugs can be reported as
-          exact numbers instead of visual impressions. 
-      <div
-        id="think-debug-hud"
-        style={{
-          position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 999,
-          background: 'rgba(0,0,0,0.85)', color: '#0f0', fontFamily: 'monospace',
-          fontSize: 11, padding: '8px 10px', lineHeight: 1.5, pointerEvents: 'none',
-          whiteSpace: 'pre',
-        }}
-      />*/}
+      {/* Debug HUD — shows live state so bugs can be reported as exact numbers
+          instead of visual impressions. Gated on DEBUG.thinkBand in SiteTokens,
+          which is the one word to flip. Moved off centre-screen so it does not
+          sit on top of the thing being judged. */}
+      {DEBUG.thinkBand && hudMounted && createPortal(
+        <div
+          id="think-debug-hud"
+          style={{
+            position: 'fixed', top: 12, right: 12, zIndex: 2147483647,
+            background: 'rgba(0,0,0,0.85)', color: '#0f0', fontFamily: 'monospace',
+            fontSize: 11, padding: '8px 10px', lineHeight: 1.5, pointerEvents: 'none',
+            whiteSpace: 'pre',
+          }}
+        />,
+        document.body
+      )}
       <div ref={wrapRef} id="think-wrap" style={{ width: '100%', position: 'relative', overflow: 'hidden' }}>
         <div ref={stageRef} id="think-stage" style={{ width: NATIVE_W, height: TOTAL_H, transformOrigin: '0 0', position: 'absolute', top: 0, left: 0 }}>
           <canvas
@@ -1042,8 +1214,8 @@ return () => {
           ref={bandCanvasRef}
           onClick={closeCard}
           style={{
-            position: 'absolute',
-            top: `${bandDocYRef.current}px`,
+            position: 'fixed',
+            top: 0,
             left: 0,
             zIndex: 10,
             cursor: 'pointer',

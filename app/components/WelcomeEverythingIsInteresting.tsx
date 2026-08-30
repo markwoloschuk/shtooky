@@ -96,10 +96,8 @@ function sineDisp(
 
 function CACanvas({
     opacity = 1,
-    containerWidth,
 }: {
     opacity?: number
-    containerWidth: number
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -416,21 +414,8 @@ export default function EverythingIsInteresting({ onComplete }: Props) {
     const blockRef = useRef<HTMLDivElement>(null)
     const lineRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null])
     const [lineOpacity, setLineOpacity] = useState([0, 0, 0, 0])
-    const [containerWidth, setContainerWidth] = useState(0)
     const completeFired = useRef(false)
     const autoFired = useRef(false)
-
-    useEffect(() => {
-        const block = blockRef.current
-        if (!block) return
-        const ro = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                setContainerWidth(entry.contentRect.width)
-            }
-        })
-        ro.observe(block)
-        return () => ro.disconnect()
-    }, [])
 
     const [displayFontSize, setDisplayFontSize] = useState(31)
     useEffect(() => {
@@ -565,10 +550,7 @@ if (autoFired.current) return
                     lineRefs.current[1] = el
                 }}
             >
-                <CACanvas
-                    opacity={lineOpacity[1]}
-                    containerWidth={containerWidth}
-                />
+                <CACanvas opacity={lineOpacity[1]} />
             </div>
 
             <TextLine

@@ -7,7 +7,7 @@
 //   figcaption / counter → TYPE_TIERS.CAPTION    (sizePx — matched, not yet wired)
 //   [label] blocks       → TYPE_TIERS.JOB_LABEL  (shared with the Work job box labels)
 
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { TYPE, COLORS, useType, useColumn, bodyMaxWidth } from './SiteTokens'
 import SiteGallery from './SiteGallery'
 import { useCasePanel } from './SiteCasePanel'
@@ -74,11 +74,30 @@ function parseMd(raw: string): ParsedCard {
 interface Props {
   cardFile: string | null
   visible: boolean
+  /**
+   * Document Y of the band — the top of this panel's content, and therefore
+   * where the shared hook should scroll to when a card opens or steps.
+   * Without it the hook takes its default of 0 and scrolls to the top of the
+   * DOCUMENT, which on this page is above the band: the viewport jumps to 0
+   * while the band stays anchored at bandDocY, so the open card appears as far
+   * down the screen as the reader happened to be scrolled.
+   */
+  bandDocY: number
+  /** True once ThinkGridCanvas reports the open animation has landed. Replaces
+   *  OPEN_DELAY's countdown with the event it was approximating. */
+  landed: boolean
 }
 
-export default function ThinkCasePanel({ cardFile, visible }: Props) {
+export default function ThinkCasePanel({ cardFile, visible, bandDocY, landed }: Props) {
   const type = useType()
   const col = useColumn()
+  // Read through a ref so the callback identity is stable — useCasePanel
+  // deliberately keeps scrollTargetY out of its effect's deps (it would restart
+  // the step on every render), which means a closure over the prop could go
+  // stale. A ref cannot.
+  const bandDocYRef = useRef(bandDocY)
+  bandDocYRef.current = bandDocY
+  const scrollTargetY = useCallback(() => bandDocYRef.current, [])
   // All of the fetch / cache / fade / step machinery lives in useCasePanel,
   // shared with WorkCaseStudyPanel. What stays here is the last mile: which
   // endpoint, how to parse it, how many fading slots the JSX below needs, and
@@ -93,8 +112,10 @@ export default function ThinkCasePanel({ cardFile, visible }: Props) {
     fadeOutMs: STEP_OUT,
     stepFadeInMs: STEP_IN,
     stepFadeOffsetMs: STEP_OFFSET,
-    openDelayMs: OPEN_DELAY,
+    openDelayMs: OPEN_DELAY, // fallback only; `landed` supersedes it
+    landed,
     fadeOffsetMs: FADE_OFFSET,
+    scrollTargetY,
   })
 
   if (!parsed) return null
