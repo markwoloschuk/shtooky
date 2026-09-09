@@ -70,7 +70,19 @@ export const PAGES = [
 
 export const BREAKPOINTS = {
     mobile: 390,
-    tablet: 768,
+    // 720, not 768, since 2026-08-30. The current iPad mini reports a CSS
+    // viewport of 744 x 1133, so at 768 it fell into the MOBILE tier — mobile
+    // values, every one of them judged at 390, stretched across a 744-wide
+    // screen. 720 is deliberately a round number below 744 rather than 744
+    // itself: the boundary should say where the tier changes, not name one
+    // device. It also picks up small Android tablets that were getting the same
+    // treatment. Nothing else is known to sit in 720–767 — phones in landscape
+    // start around 844 and were already tablet.
+    //
+    // Note what this does NOT fix: mobile still spans 390–719 on values judged
+    // at 390, an 84% stretch. Tablet spans 720–1279 on values judged at 768.
+    // Both tiers do most of their work away from where they were tuned.
+    tablet: 720,
     laptop: 1280,
     desktop: 1440,
 }
@@ -99,14 +111,14 @@ const COLUMN_TIERS = {
     tablet: {
         vw: 86,
         marginVw: 6,
-        bodyColPct: 80,
+        bodyColPct: 82,
         referenceW: 768,
         referenceH: 1024,
     },
     mobile: {
         vw: 90,
         marginVw: 5,
-        bodyColPct: 100,
+        bodyColPct: 98,
         referenceW: 390,
         referenceH: 844,
     },
@@ -118,6 +130,38 @@ export function getColumn() {
 
 // Legacy direct export — use getColumn() for breakpoint-aware access
 export const COLUMN = COLUMN_TIERS.desktop
+
+// ─── VENN DIAGRAM SCALE ──────────────────────────────────────────────────────
+// The Who I Am Venn's only size knob. Everything in WhoVennDiagram derives from
+// its container: R = containerWidth * 0.18 * scale, and the canvas is 100% of
+// the container — so the diagram already follows whatever box it is placed in,
+// and this is the deliberate deviation from that, not the size itself.
+//
+// Was a bare scale={1} at the call site: an untiered number in the costume of an
+// API, with one caller that never overrode it.
+//
+// mobile 1.25 — judged 2026-08-30, +25% against the other two. Mobile is the
+// tier where the container does NOT narrow when the diagram moves to the text
+// column (bodyColPct is 100 there), so its size is a genuinely separate
+// decision from desktop's rather than a consequence of the same change.
+export const VENN_SCALE_TIERS = {
+    desktop: 1,
+    tablet: 1,
+    mobile: 1.25,
+}
+
+// ─── HORIZONTAL RULE ─────────────────────────────────────────────────────────
+// The thin white line above a group of links. Two consumers so far: the Welcome
+// CTA block and the Let's Talk option labels. Shared rather than transcribed —
+// two components drawing "the same line" from two copies of 0.5 is one edit away
+// from being two different lines, and nothing would report it.
+//
+// Inputs, tuned by eye. The GAP below the rule is not here: it is a per-component
+// spacing decision, not a property of the line.
+export const RULE = {
+    heightPx: 0.5,
+    opacity: 0.5,
+}
 
 // ─── TYPOGRAPHY ──────────────────────────────────────────────────────────────
 // Named type roles — use as starting points.
@@ -643,7 +687,14 @@ export const BAND_HEIGHT_TIERS = {
 // The measurement decided the HEIGHT honestly; it does not get to decide the
 // framing, and Mark's eye overrules it here. Recorded because the reasoning
 // above argues for the opposite value and would otherwise read as a mistake.
-export const BAND_ANCHOR_Y = 0
+//
+// TRYING 0.5, 2026-08-30. Both previous values were arrived at as arguments —
+// 1 from the measurement, 0 from the eye overruling it — and the midpoint was
+// never actually put on screen. Mark's read is that no single edge works for
+// every one of the thirteen. If the middle also fails on some, the next step is
+// an OPTIONAL per-card anchorY on the manifest entry defaulting to this token,
+// so the exceptions carry numbers and the rest do not.
+export const BAND_ANCHOR_Y = 0.5
 
 // ─── BAND OPEN — when the card counts as "landed" ────────────────────────────
 // A fraction of the open animation's progress, 0..1, at which ThinkGridCanvas
@@ -783,8 +834,8 @@ export const SEQUENCE = {
 export const NAV = {
     height: 87, // measured desktop height in px — update if navbar changes
     nameFontSize: 38,
+    titleFontSize: 15, // Mark is dialing this in live; scales with nameFontSize
     nameWeight: 700,
-    titleTracking: 0.205,
     lineSpacing: -2,
     stripHeight: 0.13,
     colorBarWidth: 6,
@@ -966,6 +1017,10 @@ export const FOOTER = {
     // two overlapping bottom gradients at different opacities, neither aware
     // of the other.
     height: 52,
+
+    // Shown instead of a random blurb while the nav is in its shtooky
+    // state (useShtookyMode() in SiteFooter). Fixed text, not one of the pool.
+    shtookyBlurb: "It's plural you see\u00A0– one shtooka, many shtooky.",
 
     blurbs: {
         welcome: [

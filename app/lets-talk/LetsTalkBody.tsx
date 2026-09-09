@@ -20,7 +20,7 @@ import { armQueue } from "../components/SiteRevealQueue"
 import RippleNetwork, { TEXT_DELAY, CHUNKS, TIMING } from "../components/TalkRippleNetwork"
 import SiteTextBlock, { itemFadeMs } from "../components/SiteTextBlock"
 import TalkOptions from "../components/TalkOptions"
-import { useColumn, SPACE, SEQUENCE, useSpace } from "../components/SiteTokens"
+import { useColumn, SPACE, SEQUENCE, useSpace, COLORS } from "../components/SiteTokens"
 
 
 
@@ -97,6 +97,7 @@ export default function LetsTalkBody({ md }: { md: string }) {
                 <div style={{ marginTop: `${blurbGap}px` }}>
                     <SiteTextBlock
                         md={md}
+                        accent={COLORS.contact}
                         slots={{
                             options: (
                                 <div style={{ marginTop: optionsGapBefore, marginBottom: optionsGapAfter }}>

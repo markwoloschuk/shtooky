@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { COLORS, TIMING, TYPE, getBreakpoint, useType, SPACE, getSpace } from "./SiteTokens"
+import { COLORS, TIMING, TYPE, getBreakpoint, useType, SPACE, getSpace, RULE } from "./SiteTokens"
 
 // ─────────────────────────────────────────────────────────────
 // DEFAULTS — all tuning lives here
@@ -22,9 +22,10 @@ const DEFAULTS = {
     // SPACE.layout.talkLabelGap — different component, different numbers.
     lineGapPx: 30,
 
-    // Horizontal rule
-    ruleHeightPx: 0.5,
-    ruleOpacity: 0.5,
+    // Horizontal rule — shared with the Let's Talk option labels, so the two
+    // cannot drift into being two slightly different lines.
+    ruleHeightPx: RULE.heightPx,
+    ruleOpacity: RULE.opacity,
 
     // Entrance
     fadeDurationMs: 1200,

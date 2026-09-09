@@ -19,6 +19,7 @@
 
 import { useEffect, useMemo, useRef } from "react"
 import { COLORS, TYPE, SPACE, SEQUENCE, getVisibility, useColumn, useType, useSpace, bodyMaxWidth } from "./SiteTokens"
+import { renderInline } from "./SiteInlineText"
 import {
     stripComments,
     parseFrontmatter,
@@ -136,22 +137,21 @@ function lerpColor(t: number, hlColor: string): string {
     return `rgb(${Math.round(255 + (r - 255) * t)},${Math.round(255 + (g - 255) * t)},${Math.round(255 + (b - 255) * t)})`
 }
 
-function preventOrphan(text: string): string {
-    const lastSpace = text.lastIndexOf(" ")
-    if (lastSpace === -1) return text
-    return text.slice(0, lastSpace) + "\u00A0" + text.slice(lastSpace + 1)
-}
+// preventOrphan moved into SiteInlineText.renderInline, which has to apply it
+// to the last text NODE rather than to a string.
 
 // ─── ParagraphItem ────────────────────────────────────────────────────────────
 
 function ParagraphItem({
     text,
+    accent,
     queueIndex,
     eligible,
     size = "body",
     fast = false,
 }: {
     text: string
+    accent: string
     queueIndex: number
     eligible?: () => boolean
     size?: "body" | "subtitle"
@@ -177,7 +177,14 @@ function ParagraphItem({
                     padding: 0,
                 }}
             >
-                {preventOrphan(normalizeText(text))}
+                {/* These paragraphs used to render as a plain STRING — the one
+                    text renderer on the site that supported no inline markup at
+                    all, so <accent> and [br] were literal characters here and
+                    links were impossible. Now the same vocabulary as the case
+                    panels. The orphan guard moved inside renderInline, which
+                    applies it to the last TEXT segment rather than to the whole
+                    string, since the string is a node list by then. */}
+                {renderInline(normalizeText(text), { accent, orphanGuard: true })}
             </p>
         </div>
     )
@@ -487,9 +494,16 @@ function PullTextItem({
 export default function TextBlock({
     md,
     slots,
+    accent,
 }: {
     md: string
     slots?: Record<string, React.ReactNode>
+    // The page's colour, for <accent> spans and links. Threaded explicitly from
+    // the page rather than read from getActivePage(): that helper reads
+    // window.location, which is undefined on the server, so using it during
+    // render would return "welcome" on the server and the real page on the
+    // client — a hydration mismatch, for a value the page already knows.
+    accent: string
 }) {
     const space = useSpace()
 
@@ -543,6 +557,7 @@ export default function TextBlock({
                         fast={fast}
                         manualSequence={manualSequence}
                         slots={slots}
+                        accent={accent}
                     />
                 </div>
             ))}
@@ -636,6 +651,7 @@ function BlockRenderer({
     fast,
     manualSequence,
     slots,
+    accent,
 }: {
     block: CaseBlock
     paragraphs: string[]
@@ -644,6 +660,7 @@ function BlockRenderer({
     fast: boolean
     manualSequence: boolean
     slots?: Record<string, React.ReactNode>
+    accent: string
 }) {
     // Two kinds of eligibility, one queue.
     //   position-driven — omitted, so the item measures its own leading edge
@@ -687,6 +704,7 @@ function BlockRenderer({
                 <ParagraphItem
                     key={j}
                     text={text}
+                    accent={accent}
                     queueIndex={firstIndex + j}
                     eligible={eligible}
                     size={block.type === "subtitle" ? "subtitle" : "body"}

@@ -730,7 +730,10 @@ if (m === 'nav') {
     const hit = hitRef.current
     const full = fullHitRef.current
     if (!wrap || !stage) return
-    isMobileRef.current = window.innerWidth < 768
+    // BREAKPOINTS.tablet, not a literal 768 — this file already used
+    // BREAKPOINTS.laptop four lines down, so it carried both spellings of the
+    // same idea and only one of them would follow a change to the token.
+    isMobileRef.current = window.innerWidth < BREAKPOINTS.tablet
     _ech = isMobileRef.current ? Math.round(CH * MOBILE_BAND_HEIGHT_SCALE) : CH
     const s = wrap.clientWidth / CW
     // Three tiers. Desktop passes the REFERENCE size straight through — the

@@ -8,16 +8,18 @@
 
 // TYPE ROLES USED IN THIS FILE:
 //   wordmark ("mark woloschuk")  → TYPE_TIERS.NAV_NAME (sizePx — read via getType() in applyLayout())
-//   subtitle / strip height      → derived from nameW / NAV constants (no separate token)
+//   subtitle (both states)       → NAV.titleFontSize (desktop input), scaled with the name via the same nameFontSize/NAV.nameFontSize ratio as nameHit/hitAbove/etc.; tracking solved to match nameW
+//   strip height                  → derived from nameW / NAV constants (no separate token)
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { PAGES, COLORS, NAV, FOOTER, FRAME_INSET_VW, getActivePage, isKnownPage, getType, useBreakpoint, useType } from "../components/SiteTokens"
+import { setShtookyMode } from "./SiteEasterEgg"
 
 // ── Locked defaults (from v18 prototype) ─────────────────────
 const S = {
     fontSize: NAV.nameFontSize,
-    tracking: NAV.titleTracking,
+    titleFontSize: NAV.titleFontSize,
     lineHeight: NAV.lineSpacing,
     nameHit: 8,
     textGap: -3,
@@ -34,8 +36,9 @@ const S = {
     clickSpeed: 150,
     glitchDur: 550,
     glitchFade: 2000,
-    titleText: "Creative Lead & Designer",
+    titleText: "Creative Director & Producer",
     shtookyTitle: "Stunts, Tricks & Tiny Pieces",
+    shtookyName: "shtooky are*",
     carouselDelay: 3,
     wordStagger: 80,
     wordY: 30,
@@ -120,24 +123,6 @@ function getNameWidth(span: HTMLElement, fontSize = S.fontSize): number {
             )
         ) + 8
     )
-}
-
-function fitFontSize(
-    span: HTMLElement,
-    text: string,
-    tracking: number,
-    targetW: number
-): number {
-    let lo = 3,
-        hi = 200,
-        mid = 10
-    for (let i = 0; i < 32; i++) {
-        mid = (lo + hi) / 2
-        meas(span, text, mid, "500", tracking + "em", "uppercase") < targetW
-            ? (lo = mid)
-            : (hi = mid)
-    }
-    return mid
 }
 
 function fitTracking(
@@ -439,11 +424,13 @@ useEffect(() => {
             const scaledHitAbove   = Math.round(S.hitAbove   * scale)
             const scaledHitBelow   = Math.round(S.hitBelow   * scale)
             const scaledStripGap   = Math.round(S.stripGap   * scale)
+            const scaledTitleFontSize = Math.round(S.titleFontSize * scale)
 
             const nameW = getNameWidth(ms!, nameFontSize)
             const nameH = measH(ms!, nameFontSize, "700") * .73
-            const titleFs = fitFontSize(ms!, S.titleText, S.tracking, nameW)
+            const titleFs = scaledTitleFontSize
             const titleH = Math.ceil(measH(ms!, titleFs, "500")) + 2
+            const normalTracking = fitTracking(ms!, S.titleText, titleFs, nameW)
             const shtookyTracking = fitTracking(
                 ms!,
                 S.shtookyTitle,
@@ -461,7 +448,7 @@ useEffect(() => {
                 nameH,
                 titleH,
                 titleFs,
-                normalTracking: S.tracking,
+                normalTracking,
                 shtookyTracking,
                 stripH,
                 titleTopY,
@@ -479,7 +466,7 @@ useEffect(() => {
             setNameText(navName, "mark woloschuk", "#fff")
 
             titleWrap.style.cssText += `top:${titleTopY}px;width:${nameW}px;height:${titleH}px;`
-            renderTitleStatic(S.titleText, S.tracking, titleFs)
+            renderTitleStatic(S.titleText, normalTracking, titleFs)
 
             stripsAnchor.style.top = stripsTopY + "px"
             stripsAnchor.style.width = nameW + "px"
@@ -645,9 +632,9 @@ useEffect(() => {
                 { t: 0.32, text: "штука", corr: 0.5, phase: 0.5 },
                 { t: 0.44, text: "штуки", corr: 0.4, phase: 0.62 },
                 { t: 0.56, text: "sh█ooky", corr: 0.3, phase: 0.74 },
-                { t: 0.68, text: "shtooky", corr: 0.15, phase: 0.84 },
+                { t: 0.68, text: S.shtookyName, corr: 0.15, phase: 0.84 },
                 { t: 0.8, text: "sh▓oky", corr: 0.08, phase: 0.92 },
-                { t: 1.0, text: "shtooky", corr: 0.0, phase: 1.0 },
+                { t: 1.0, text: S.shtookyName, corr: 0.0, phase: 1.0 },
             ]
 
             nF.forEach((f) => {
@@ -677,7 +664,7 @@ useEffect(() => {
 
             st.glitchTimers.push(
                 setTimeout(() => {
-                    setNameText(navName, "shtooky", dest)
+                    setNameText(navName, S.shtookyName, dest)
                     setTimeout(() => {
                         navName.querySelectorAll("span").forEach((sp) => {
                             ;(sp as HTMLElement).style.transition =
@@ -697,7 +684,7 @@ useEffect(() => {
             const dur = S.glitchDur
 
             const nF = [
-                { t: 0.0, text: "shtooky", corr: 0.7, phase: 1.0 },
+                { t: 0.0, text: S.shtookyName, corr: 0.7, phase: 1.0 },
                 { t: 0.1, text: "sh▓oky", corr: 0.6, phase: 0.9 },
                 { t: 0.22, text: "штуки", corr: 0.6, phase: 0.75 },
                 { t: 0.34, text: "штука", corr: 0.5, phase: 0.6 },
@@ -782,7 +769,13 @@ useEffect(() => {
         nameWrap.addEventListener("click", (e) => {
             e.stopPropagation()
             clearGlitchTimers()
-            st.glitched ? glitchReverse() : glitchForward()
+            if (st.glitched) {
+                glitchReverse()
+                setShtookyMode(false)
+            } else {
+                glitchForward()
+                setShtookyMode(true)
+            }
         })
 
         wraps.forEach((wrap) => {

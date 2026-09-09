@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { COLORS, FOOTER, PAGES, FRAME_INSET_VW, getActivePage, isKnownPage, useType } from "../components/SiteTokens"
+import { useShtookyMode } from "./SiteEasterEgg"
 
 const FONT_DISPLAY = '"Archivo", sans-serif'
 
@@ -40,6 +41,7 @@ const [activePage, setActivePage] = useState("welcome")
     const [visible, setVisible] = useState(false)
     const pathname = usePathname()
     const type = useType()
+    const shtookyMode = useShtookyMode()
 
     useEffect(() => {
         setActivePage(getActivePage())
@@ -57,14 +59,21 @@ const pageBlurbs =
     const [blurbVisible, setBlurbVisible] = useState(true)
 
     useEffect(() => {
+        // While the nav is in its shtooky state, lock to the fixed easter-egg
+        // line instead of rerolling — reads useShtookyMode(), never writes it;
+        // NavBar's click handler is the only writer (see SiteEasterEgg.ts).
         const blurbs = FOOTER.blurbs[activePage as keyof typeof FOOTER.blurbs] ?? FOOTER.blurbs.welcome
         setBlurbVisible(false)
         const t = setTimeout(() => {
-            setBlurb(blurbs[Math.floor(Math.random() * blurbs.length)])
+            setBlurb(
+                shtookyMode
+                    ? FOOTER.shtookyBlurb
+                    : blurbs[Math.floor(Math.random() * blurbs.length)]
+            )
             setBlurbVisible(true)
         }, 500)
         return () => clearTimeout(t)
-    }, [activePage])
+    }, [activePage, shtookyMode])
 
     // The rule above the footer normally carries the page colour. The 404 has
     // no page colour to carry — it is not a place in the building — so it takes

@@ -12,10 +12,11 @@
 import { useState } from 'react'
 import { TYPE, COLORS, SPACE, useType, useColumn, useSpace, bodyMaxWidth } from './SiteTokens'
 import SiteGallery from './SiteGallery'
+import { renderInline } from './SiteInlineText'
 import { useCasePanel } from './SiteCasePanel'
 import { JOB_FIELDS } from '../data/WorkManifest'
 import {
-  parseAccents, parseFrontmatter, parseBlocks, parseGalleryBlock, stripComments,
+  parseFrontmatter, parseBlocks, parseGalleryBlock, stripComments,
   resolveImagePath, resolveGalleryMedia,
   type CaseBlock, type GalleryData,
 } from './SiteCaseMarkdown'
@@ -161,7 +162,7 @@ export default function CaseStudyPanel({ caseFile, visible }: Props) {
         if (block.type === 'subtitle') {
           return (
             <p key={blockKey} style={{ ...style, fontSize: type.CASE_SUBTITLE.sizePx, fontWeight: type.CASE_SUBTITLE.weight, lineHeight: type.CASE_SUBTITLE.lineHeight, letterSpacing: `${type.CASE_SUBTITLE.tracking}em`, color: '#fff', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display, whiteSpace: 'pre-line' }}>
-              {parseAccents(block.content, PINK)}
+              {renderInline(block.content, { accent: PINK })}
             </p>
           )
         }
@@ -169,7 +170,7 @@ export default function CaseStudyPanel({ caseFile, visible }: Props) {
         if (block.type === 'paragraph') {
           return (
             <p key={blockKey} style={{ ...style, fontSize: type.CASE_BODY.sizePx, fontWeight: type.CASE_BODY.weight, lineHeight: type.CASE_BODY.lineHeight, letterSpacing: `${type.CASE_BODY.tracking}em`, color: 'rgba(255,255,255,0.6)', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display }}>
-              {parseAccents(block.content, PINK)}
+              {renderInline(block.content, { accent: PINK })}
             </p>
           )
         }
@@ -177,7 +178,7 @@ export default function CaseStudyPanel({ caseFile, visible }: Props) {
         if (block.type === 'pullquote') {
           return (
             <p key={blockKey} style={{ ...style, fontSize: type.PULLQUOTE.sizePx, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, color: '#fff', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display, whiteSpace: 'pre-line' }}>
-              {parseAccents(block.content, PINK)}
+              {renderInline(block.content, { accent: PINK })}
             </p>
           )
         }
@@ -198,7 +199,12 @@ export default function CaseStudyPanel({ caseFile, visible }: Props) {
             : resolveImagePath(fm.imagePath, gallery.source)
           const resolved = resolveGalleryMedia(gallery, fm.imagePath)
           return (
-            <div key={blockKey} style={style}>
+            <div key={blockKey} style={{ ...style, maxWidth: bodyMaxWidth(col) }}>
+              {/* Text measure, not the full content column — the same width the copy,
+                the pullquotes and [img] already use. A gallery is read, not just
+                looked at: the captions and the eye's travel between frames
+                belong to the same measure as the sentences around them.
+                Unchanged on mobile, where bodyColPct is 100 by definition. */}
               <GalleryInline path={path} gallery={resolved} />
             </div>
           )

@@ -10,9 +10,10 @@
 import { useCallback, useRef, useState } from 'react'
 import { TYPE, COLORS, useType, useColumn, bodyMaxWidth } from './SiteTokens'
 import SiteGallery from './SiteGallery'
+import { renderInline } from './SiteInlineText'
 import { useCasePanel } from './SiteCasePanel'
 import {
-  parseAccents, parseFrontmatter, parseBlocks, parseGalleryBlock, stripComments,
+  parseFrontmatter, parseBlocks, parseGalleryBlock, stripComments,
   resolveImagePath, resolveGalleryMedia,
   type CaseBlock, type GalleryData,
 } from './SiteCaseMarkdown'
@@ -144,7 +145,11 @@ export default function ThinkCasePanel({ cardFile, visible, bandDocY, landed }: 
           margin: 0,
           maxWidth: 640,
         }}>
-          {fm.subtitle}
+          {/* Was raw {fm.subtitle}: [br] worked in card titles and body blocks
+              and silently did nothing here, because this was the one piece of
+              authored text on the page that reached the DOM without passing
+              through a parser at all. */}
+          {renderInline(fm.subtitle, { accent: ACCENT })}
         </p>
       </div>
 
@@ -175,7 +180,7 @@ export default function ThinkCasePanel({ cardFile, visible, bandDocY, landed }: 
         if (block.type === 'paragraph') {
           return (
             <p key={blockKey} style={{ ...style, fontSize: type.CASE_BODY.sizePx, fontWeight: type.CASE_BODY.weight, lineHeight: type.CASE_BODY.lineHeight, letterSpacing: `${type.CASE_BODY.tracking}em`, color: 'rgba(255,255,255,0.6)', maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display }}>
-              {parseAccents(block.content, ACCENT)}
+              {renderInline(block.content, { accent: ACCENT })}
             </p>
           )
         }
@@ -183,7 +188,7 @@ export default function ThinkCasePanel({ cardFile, visible, bandDocY, landed }: 
         if (block.type === 'pullquote') {
           return (
             <p key={blockKey} style={{ ...style, fontSize: type.PULLQUOTE.sizePx, fontWeight: type.PULLQUOTE.weight, lineHeight: type.PULLQUOTE.lineHeight, color: COLORS.white, maxWidth: bodyMaxWidth(col), marginBottom: 28, fontFamily: TYPE.display, whiteSpace: 'pre-line' }}>
-              {parseAccents(block.content, ACCENT)}
+              {renderInline(block.content, { accent: ACCENT })}
             </p>
           )
         }
@@ -216,7 +221,12 @@ export default function ThinkCasePanel({ cardFile, visible, bandDocY, landed }: 
             : resolveImagePath(fm.imagePath, gallery.source)
           const resolved = resolveGalleryMedia(gallery, fm.imagePath)
           return (
-            <div key={blockKey} style={style}>
+            <div key={blockKey} style={{ ...style, maxWidth: bodyMaxWidth(col) }}>
+              {/* Text measure, not the full content column — the same width the copy,
+                the pullquotes and [img] already use. A gallery is read, not just
+                looked at: the captions and the eye's travel between frames
+                belong to the same measure as the sentences around them.
+                Unchanged on mobile, where bodyColPct is 100 by definition. */}
               <GalleryInline path={path} gallery={resolved} />
             </div>
           )

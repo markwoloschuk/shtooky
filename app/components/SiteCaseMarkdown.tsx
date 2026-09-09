@@ -107,18 +107,10 @@ const PULL_FLAGS = new Set(['wipe', 'fade', 'push'])
 // ── Text ─────────────────────────────────────────────────────────────────────
 
 // `<text>` becomes accent-coloured; `[br]` becomes a line break.
-export function parseAccents(text: string, accent: string): React.ReactNode[] {
-  const parts = text.split(/(<[^>]+>)/)
-  return parts.map((part, i) => {
-    if (part.startsWith('<') && part.endsWith('>')) {
-      return <span key={i} style={{ color: accent }}>{part.slice(1, -1)}</span>
-    }
-    const lines = part.split('[br]')
-    return lines.map((line, j) => (
-      <span key={`${i}-${j}`}>{line}{j < lines.length - 1 && <br />}</span>
-    ))
-  })
-}
+// parseAccents lived here and understood <accent> and [br]. It is now
+// renderInline in SiteInlineText.tsx, which understands those plus [text](url)
+// and is shared with About and Talk — see that file for why one vocabulary
+// rather than three.
 
 // A `[br]` at end-of-line is one break; a trailing `[br]` is dropped.
 export function normBreaks(t: string): string {
@@ -225,7 +217,23 @@ export function parseBlocks(body: string, opts: ParseBlocksOptions): CaseBlock[]
   const { allowed, keyValue, splitParagraphs, groupParagraphs, pullBlocks, nameValue } = opts
   const blocks: CaseBlock[] = []
 
-  for (const sec of body.trim().split(/\n(?=\[)/)) {
+  // Split ONLY at a known block name, not at any line that happens to start
+  // with a bracket.
+  //
+  // This used to be /\n(?=\[)/ — every leading "[" began a new section, and a
+  // section whose header did not then match ^\[(\S+)\] was dropped without a
+  // word. That made "[text](url)" unusable at the start of a line: it either
+  // failed to match and took the rest of the paragraph with it, or matched as an
+  // unknown block type and was discarded. Silent both ways.
+  //
+  // Verified by running both splitters over all 22 files in app/data and
+  // diffing the parsed block lists: identical everywhere, once ThinkCard01's
+  // [note] became a // comment. That [note] is the whole behavioural difference
+  // — the old parser threw it away, this one would have rendered it.
+  const names = [...allowed].map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+  const sectionStart = new RegExp(`\\n(?=\\[(?:${names})\\](?:[ \\t]|$))`, 'm')
+
+  for (const sec of body.trim().split(sectionStart)) {
     const match = sec.match(/^\[(\S+)\]\s*\n?([\s\S]*)/)
     if (!match) continue
     const type = match[1]

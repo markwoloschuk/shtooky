@@ -83,6 +83,18 @@ const CFG = {
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 function clamp(v: number, a: number, b: number) { return Math.max(a, Math.min(b, v)); }
 function easeIO(t: number) { t = clamp(t, 0, 1); return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+// The eased progress at the moment the open is declared landed — the frame
+// where collapseLayoutForOpen() runs and the grid's box goes to zero height.
+//
+// This is the deadline for anything still being drawn on the grid canvas.
+// BAND_OPEN_LANDED_AT is 0.88 of the RAW lerp; eased that is 0.971, and the
+// twelve other cards were fading on a ramp that only reached zero at 1.0 — so
+// they were still at 7.2% opacity when their container vanished underneath
+// them. Not a fade ending: a cut. Deriving the deadline instead of writing
+// 0.971 down means re-judging BAND_OPEN_LANDED_AT cannot reintroduce it.
+const GRID_FADE_START = 0.6;   // eased progress at which the twelve start fading out
+const EP_AT_LANDING = easeIO(BAND_OPEN_LANDED_AT);
 function titleEaseOut(t: number, strength = 6) { return 1 - Math.pow(1 - clamp(t, 0, 1), strength); }
 function titleEaseIn(t: number, strength = 6) { return Math.pow(clamp(t, 0, 1), strength); }
 
@@ -309,7 +321,6 @@ export default function ThinkGridCanvas({ onOpen, onClose, onRegisterControls, h
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const hitRef = useRef<HTMLDivElement>(null);
-  const spacerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
   const prevTime = useRef<number | null>(null);
   const scaleRef = useRef(1);
@@ -330,9 +341,9 @@ const bandDocYRef = useRef(0);
   //
   // It used to become fixed at the landing frame, which meant that during the
   // open animation it was still anchored to a DOCUMENT coordinate captured at
-  // click time (bandDocYRef = window.scrollY). Opening collapses the grid and
-  // inflates the spacer, and those two do not cancel exactly — measured, the
-  // document ends ~16px shorter — so the browser clamps scrollY upward and the
+  // click time (bandDocYRef = window.scrollY). Opening collapsed the grid and
+  // inflated a spacer, and those two did not cancel exactly — measured, the
+  // document ended ~16px shorter — so the browser clamped scrollY upward and the
   // anchor is left pointing below the viewport top. Blank band at the top,
   // then a pop when the handoff arrived. Only when clicking within that last
   // ~16px of scroll, which is why it healed on a second open: by then the
@@ -520,7 +531,10 @@ if (m === 'grid') {
     // card's own growth — this is what eliminates the jump, in either
     // direction, since nothing here is an instant snap anymore.
     if (m !== 'fullview' && m !== 'nav') {
-      const totalShift = headerNaturalHRef.current + 40;
+      // The gap above the grid is a child of the header now, so scrollHeight
+      // already includes it and the literal 40 that used to be added here is
+      // gone. One number, in one file, measured rather than agreed.
+      const totalShift = headerNaturalHRef.current;
       if (headerRef?.current) headerRef.current.style.transform = `translateY(${-headerNaturalHRef.current * ep}px)`;
       if (outerRef.current) outerRef.current.style.transform = `translateY(${-totalShift * ep}px)`;
     }
@@ -535,9 +549,13 @@ if (m === 'grid') {
 for (let i = 0; i < N; i++) {
         if (i === oi) continue;
         const r = cellToScreen(LAYOUT[i]);
-        // Two-phase fade: image stays while color grows (0→0.6),
-        // then everything fades to nothing together (0.6→1).
-        const fadeAll = ep < 0.6 ? 1 : 1 - (ep - 0.6) / 0.4;
+        // Two-phase fade: image stays while color grows (0→GRID_FADE_START),
+        // then everything fades to nothing together, reaching zero at the
+        // landing rather than at the asymptote — see EP_AT_LANDING.
+        const fadeAll = clamp(
+          1 - (ep - GRID_FADE_START) / (EP_AT_LANDING - GRID_FADE_START),
+          0, 1,
+        );
         ctx.save();
         ctx.globalAlpha = fadeAll;
         drawCardAt(ctx, i, r, 1, 0);
@@ -777,7 +795,66 @@ document.documentElement.style.overflowX = 'hidden';
     onOpenRef.current(i);
   }
 
-function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
+// Collapse everything above the case copy to zero height.
+  //
+  // The document while a card is open is now exactly the content:
+  // #think-detail sits in NORMAL FLOW with padding-top: bandHeight + gap,
+  // under a viewport-fixed band, and the grid, the header and the grid's 40px
+  // margin contribute nothing.
+  //
+  // What this replaces: wrap collapsed to the band's height, and a spacer
+  // inflated by whatever wrap lost. The spacer was never preserving document
+  // height for its own sake — the detail panel was position: absolute and
+  // contributed NO height at all, so the spacer was standing in for the height
+  // of content it had never measured. It was close because a card's copy
+  // happens to be about as tall as the grid was; the ~16px it was off by is
+  // what got a scroll clamped at both ends of the gesture.
+  //
+  // TIMING: this runs at the LANDING (BAND_OPEN_LANDED_AT), not at the settle.
+  // In flow, the copy is only on screen once this has run — leave it until the
+  // settle and the fade starts ~1000ms before the layout it is fading into
+  // exists, and the reader watches nothing appear. The absolute panel did not
+  // care when this ran; the in-flow one does. Nothing visible moves here: the
+  // band covers the top of the viewport, the other cards are ~7% opaque by
+  // this point, and the placeholder below is already faded out.
+  function collapseLayoutForOpen() {
+    // ONLY properties React does not itself declare are safe to write here.
+    // wrap's height is never set in JSX, so this survives a re-render. The
+    // outer div's marginTop WAS set in JSX, and writing to it imperatively is
+    // what broke the first close: clearing it back to '' on close removed the
+    // 40px gap for good, because React still believed it had set it and never
+    // re-applied it. The gap now lives inside the header as a real child, so
+    // there is nothing to write here at all.
+    if (wrapRef.current) wrapRef.current.style.height = '0px';
+    // The header's layout space goes too. The comment that used to forbid
+    // exactly this cited the band's document coordinate — shortening the page
+    // invalidated it. The band is viewport-fixed now; there is no document
+    // coordinate left to invalidate.
+    // display: flow-root is not cosmetic here — it is what makes height: 0
+    // actually zero.
+    //
+    // ThinkOpenAnimation's first child carries marginTop: thinkNavClearance
+    // (177/136/104 by tier). The header div has no padding and no border, so
+    // that margin COLLAPSES THROUGH its parent and pushes the header's own box
+    // down by the clearance — an explicit height: 0 does nothing about it. The
+    // detail panel used to be position: absolute and never saw it; in flow it
+    // inherits the whole clearance as dead space above the copy, which is the
+    // "content sits low at every tier" report. overflow: hidden makes the
+    // header a block formatting context, so the child's margin stays inside it
+    // and a zero-height box is zero pixels tall.
+    //
+    // flow-root rather than overflow: hidden, for two reasons. React declares
+    // overflow: 'visible' on this div in JSX and does not declare display, and
+    // writing to a property React declares is the bug this function used to
+    // have. It also leaves the header unclipped, which is what the JSX comment
+    // asks for — the flash/particle burst extends past this box.
+    if (headerRef?.current) {
+      headerRef.current.style.height = '0px';
+      headerRef.current.style.display = 'flow-root';
+    }
+  }
+
+  function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     if (mode.current !== 'fullview' && mode.current !== 'nav') return;
     // Only close if click is within the band's visible area — the canvas
     // is viewport-height for animation room, but the band itself is much shorter.
@@ -790,7 +867,14 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     // shrink animation. The user may have scrolled anywhere while
     // reading; the shrink assumes the cell is back at its real
     lockScroll();
-    // ORDER: restore the grid's height BEFORE scrolling to the bookmark.
+    // ORDER: restore the collapsed heights BEFORE scrolling to the bookmark.
+    //
+    // Now that the spacer is gone these restore the document to EXACTLY the
+    // height it had when the card was clicked -- grid, header and margin all
+    // back to their own values, nothing standing in for anything -- so the
+    // bookmark cannot be past maxScroll and cannot be clamped. The order still
+    // matters (scroll first and the page is still short), but it is no longer
+    // load-bearing against a mismatch.
     //
     // These two used to be the other way round, so the scroll was issued while
     // the grid was still collapsed — a document short enough that the bookmark
@@ -803,7 +887,10 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
     // Same class as the open-side bug: an operation performed while the
     // document is a different height than the coordinate assumes.
     if (wrapRef.current) wrapRef.current.style.height = `${TOTAL_H * scaleRef.current}px`;
-    if (spacerRef.current) spacerRef.current.style.height = '0px';
+    if (headerRef?.current) {
+      headerRef.current.style.height = '';
+      headerRef.current.style.display = '';
+    }
     // Band stays fixed through the close too. This restores the reader to the
     // bookmark so the cell is back at the on-screen position fromRect was
     // measured at, and the card travels home in the viewport space it left.
@@ -882,15 +969,15 @@ function closeCard(e?: React.MouseEvent<HTMLCanvasElement>) {
         if (m === 'opening' && !landedFiredRef.current
             && openProg.current >= BAND_OPEN_LANDED_AT) {
           landedFiredRef.current = true;
+          // Layout first, THEN the signal — the copy fades in against the
+          // layout it will live in, not the one it is about to get.
+          collapseLayoutForOpen();
           onOpenLandedRef.current?.();
         }
 if (Math.abs(openProg.current - target) < 0.006) {
           openProg.current = target;
           if (m === 'opening') {
             mode.current = 'fullview';
-            const delta = (TOTAL_H - _bandH) * scaleRef.current;
-            if (wrapRef.current) wrapRef.current.style.height = `${_bandH * scaleRef.current}px`;
-            if (spacerRef.current) spacerRef.current.style.height = `${delta}px`;
             // Shift the whole canvas up so the band's ACTUAL drawn
             // location (previously at a value that could be anywhere down the
             // tall canvas, not just row 1) lines up with wrap's
@@ -902,11 +989,6 @@ if (Math.abs(openProg.current - target) < 0.006) {
             // stage.top shift removed — the band no longer lives inside
             // stage's clipped/scaled coordinate system at all, so there's
             // nothing here that needs realigning with it anymore.
-            // Header stays at its natural height, just transformed
-            // offscreen — don't actually remove its layout space, because
-            // doing so shortens the page and invalidates the band's
-            // document-coordinate position (which was computed from
-            // scrollY before the page got shorter).
             updateHitLayer();
             // Growth animation is done — release the scroll lock so the
             // page (and the band riding along in it) scrolls normally.
@@ -921,6 +1003,7 @@ if (Math.abs(openProg.current - target) < 0.006) {
             // lerp cannot reach, the copy would never appear at all.
             if (!landedFiredRef.current) {
               landedFiredRef.current = true;
+              collapseLayoutForOpen();
               onOpenLandedRef.current?.();
             }
             } else {
@@ -1177,7 +1260,8 @@ return () => {
 
   return (
     <div ref={outerRef} style={{
-      width: '100%', marginTop: '40px',
+      // marginTop moved into the header as a real child — see the note there.
+      width: '100%',
       opacity: gridVisible ? 1 : 0,
       transition: `opacity ${CFG.FADE_DURATION_MS}ms ease`,
     }}>
@@ -1208,7 +1292,6 @@ return () => {
           <div ref={hitRef} style={{ position: 'absolute', top: 0, left: 0, width: NATIVE_W, height: TOTAL_H }} />
         </div>
       </div>
-      <div ref={spacerRef} style={{ height: 0 }} />
 {bandMounted && createPortal(
 <canvas
           ref={bandCanvasRef}

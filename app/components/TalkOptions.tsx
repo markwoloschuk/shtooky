@@ -19,10 +19,16 @@
 // spirit to ThinkCasePanel's block fade-in than anything canvas-based.
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { COLORS, TYPE, useType, SPACE, useSpace, useColumn, bodyMaxWidth } from "./SiteTokens"
+import { COLORS, TYPE, useType, SPACE, useSpace, useColumn, bodyMaxWidth, RULE } from "./SiteTokens"
 import { useSequence, unlock } from "./SiteSequenceController"
 
 const ACCENT = COLORS.contact
+
+// Gap between the rule and the option labels. Started from WelcomeCTA's
+// lineGapPx (30) because it is the same visual relationship on the other page,
+// but that value was judged against Welcome's type at Welcome's size — not a
+// token, not tiered, and not yet looked at here.
+const LABEL_RULE_GAP_PX = 30
 
 // ── Tunable constants ───────────────────────────────────────────────────
 const CONFIG = {
@@ -132,9 +138,12 @@ function Collapsible({ open, children }: { open: boolean; children: React.ReactN
     )
 }
 
-// ── Label — the always-visible single-line toggle. Purple always (not
-// just when active) per Mark's request — opacity is what now signals
-// which one's open, instead of a color swap. ────────────────────────────
+// ── Label — the always-visible single-line toggle. Colour swap, not an
+// opacity swap: solid purple at rest, white when open. This reverses an
+// earlier decision (purple always, dimmed to 0.65 when closed) — recorded
+// because the previous comment argued for the opposite and would otherwise
+// read as a mistake. The dimmed purple made the closed labels read as
+// disabled rather than as available. ─────────────────────────────────────
 function OptionLabel({
     label,
     active,
@@ -159,9 +168,8 @@ function OptionLabel({
                 fontWeight: ct.weight,
                 letterSpacing: `${ct.tracking}em`,
                 lineHeight: ct.lineHeight,
-                color: ACCENT,
-                opacity: active ? 1 : 0.65,
-                transition: `opacity ${CONFIG.TRANSITION_MS}ms ease`,
+                color: active ? COLORS.white : ACCENT,
+                transition: `color ${CONFIG.TRANSITION_MS}ms ease`,
             }}
         >
             {label}
@@ -376,19 +384,46 @@ export default function TalkOptions() {
                 pointerEvents: visible ? "auto" : "none",
             }}
         >
-            {/* Horizontal at every breakpoint, explicit tunable gap at each
-                (SPACE.layout.talkLabelGap) — was column at
-                tablet only (768–1279px), and mobile/tablet used
-                "space-between" (auto-fills the row, not a real tunable)
-                instead of a settable gap. */}
-            <div style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    gap: space(SPACE.layout.talkLabelGap),
-                }}>
-                <OptionLabel label="Contact" active={open === "contact"} onClick={() => toggle("contact")} />
-                <OptionLabel label="Resume" active={open === "resume"} onClick={() => toggle("resume")} />
-                <OptionLabel label="Location" active={open === "location"} onClick={() => toggle("location")} />
+            {/* The rule above the labels — same line as the Welcome CTA block,
+                reading the shared RULE spec so the two cannot drift apart.
+                Static here: Welcome's scales in from the left as part of that
+                page's entrance, and this group already has its own reveal fade.
+                LABEL_RULE_GAP_PX is Welcome's gap as a starting guess and is
+                UNJUDGED at this width — change it here. */}
+            {/* The rule spans the LABELS, not the content column — so it is
+                sized by them rather than given a width of its own. fit-content
+                plus alignSelf makes this wrapper exactly as wide as the row
+                inside it (three labels at their own type size, plus two
+                talkLabelGap gaps), and the rule's 100% resolves against that.
+                No width to keep in sync at any breakpoint: change the type or
+                the gap and the line follows. alignSelf is needed because the
+                parent is a flex column, which would otherwise stretch this to
+                full width regardless of fit-content. */}
+            <div style={{ width: "fit-content", alignSelf: "flex-start" }}>
+                <hr style={{
+                    border: "none",
+                    background: COLORS.white,
+                    display: "block",
+                    height: `${RULE.heightPx}px`,
+                    opacity: RULE.opacity,
+                    margin: `0 0 ${LABEL_RULE_GAP_PX}px 0`,
+                    width: "100%",
+                }} />
+
+                {/* Horizontal at every breakpoint, explicit tunable gap at each
+                    (SPACE.layout.talkLabelGap) — was column at
+                    tablet only (768–1279px), and mobile/tablet used
+                    "space-between" (auto-fills the row, not a real tunable)
+                    instead of a settable gap. */}
+                <div style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        gap: space(SPACE.layout.talkLabelGap),
+                    }}>
+                    <OptionLabel label="Contact" active={open === "contact"} onClick={() => toggle("contact")} />
+                    <OptionLabel label="Resume" active={open === "resume"} onClick={() => toggle("resume")} />
+                    <OptionLabel label="Location" active={open === "location"} onClick={() => toggle("location")} />
+                </div>
             </div>
 
             <Collapsible open={open !== null}>

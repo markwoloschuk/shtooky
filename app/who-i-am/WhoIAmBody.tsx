@@ -14,7 +14,7 @@ import { armQueue } from "../components/SiteRevealQueue"
 import SkillsSphere from "../components/WhoSkillsSphere"
 import VennDiagram from "../components/WhoVennDiagram"
 import SiteTextBlock from "../components/SiteTextBlock"
-import { useColumn, useBreakpoint, SPACE, useSpace } from "../components/SiteTokens"
+import { useColumn, useBreakpoint, SPACE, useSpace, bodyMaxWidth, VENN_SCALE_TIERS, COLORS } from "../components/SiteTokens"
 
 
 // Sphere section box height. Desktop 360 == the old 40vh at the 900px
@@ -71,6 +71,7 @@ export default function WhoIAmBody({ md }: { md: string }) {
             >
                 <SiteTextBlock
                     md={md}
+                    accent={COLORS.about}
                     slots={{
                         sphere:
                             bp === "desktop" ? (
@@ -96,8 +97,19 @@ export default function WhoIAmBody({ md }: { md: string }) {
                                 </div>
                             ),
                         venn: (
-                            <div style={{ marginTop: "4vh", marginBottom: "4vh" }}>
-                                <VennDiagram scale={1} xOffset={0} triggerOnScroll={true} />
+                            // Text column, not the content column — the same
+                            // measure the copy above and below it uses, so the
+                            // diagram reads as part of the argument rather than
+                            // as a full-width interruption of it. Nothing inside
+                            // WhoVennDiagram needs to know: R derives from the
+                            // container's width, so narrowing this box is the
+                            // whole change on desktop and tablet.
+                            //
+                            // On mobile bodyColPct is 100, so this maxWidth is a
+                            // no-op there and the size comes entirely from
+                            // VENN_SCALE_TIERS.mobile.
+                            <div style={{ marginTop: "4vh", marginBottom: "4vh", maxWidth: bodyMaxWidth(col) }}>
+                                <VennDiagram scale={VENN_SCALE_TIERS[bp]} xOffset={0} triggerOnScroll={true} />
                             </div>
                         ),
                     }}

@@ -75,6 +75,12 @@ export default function ThinkPageController() {
   //
   // Same gap the Work carousel uses down to its case panel — both bands end in
   // the same vignette, so they read as the same edge.
+  // Not a document coordinate any more — the detail panel is in NORMAL FLOW
+  // and this is its padding-top. Everything above it (header, grid, the grid's
+  // 40px margin) collapses to zero height at the landing frame, so the panel
+  // starts at document 0 and this padding puts its first line just below the
+  // viewport-fixed band. The document's height while open is the content's own
+  // height, which is the whole point of deleting the spacer.
   const detailTopPx = bandH + space(SPACE.layout.bandDetailGap);
 const cardFile = openIdx >= 0 ? contentFileFor(THINK_GRID[openIdx]) : null;
 
@@ -83,6 +89,15 @@ const cardFile = openIdx >= 0 ? contentFileFor(THINK_GRID[openIdx]) : null;
       <div ref={headerRef} style={{ overflow: 'visible', opacity: cardOpen ? 0 : 1, transition: 'opacity 300ms ease' }}>
         <ThinkOpenAnimation />
         <ThinkBlurb />
+        {/* The gap between the blurb and the grid. It was marginTop: '40px' on
+            ThinkGridCanvas's own outer div, which meant collapsing it for an
+            open card required writing to a style React had declared — and
+            clearing that back on close deleted the gap permanently, because
+            React still thought it had set it. As a child of the header it
+            collapses along with everything else here, needs no imperative
+            write, and ThinkGridCanvas's transform picks it up automatically via
+            the header's scrollHeight. */}
+        <div style={{ height: '40px' }} />
       </div>
 
 <ThinkGridCanvas
@@ -105,25 +120,30 @@ in its own fixed/scrolling box. */}
           paddingLeft: `${col.marginVw}vw`,
           paddingRight: `${col.marginVw}vw`,
           ...(cardOpen ? {
-            position: 'absolute' as const,
-            top: `${detailTopPx}px`,
-            left: '0',
-            right: '0',
-            zIndex: 15,
+            // position: absolute is gone. It was what made this panel
+            // contribute no height to the document, which is what the spacer
+            // was compensating for. In flow, the panel IS the document.
+            paddingTop: `${detailTopPx}px`,
             paddingBottom: '24px',
           } : {
             marginTop: '56px',
           }),
         }}
       >
-        {/* bandDocY is where the band is anchored in the document, so it is
-            also the top of this panel's content — the panel needs it to scroll
-            to the right place when a card opens or steps. Work does not: its
-            band is in flow at the top of the page, so its content top is 0. */}
+        {/* bandDocY is 0 and stays 0: this panel's content top is the top of
+            the document, exactly as Work's is. The band is not in the document
+            at all. */}
         <ThinkCasePanel cardFile={cardFile} visible={cardOpen} bandDocY={0} landed={landed} />
       </div>
       
-      <div style={{ opacity: cardOpen ? 0 : 1, transition: 'opacity 300ms ease' }}>
+      {/* Collapsed while a card is open, not just faded. Left at its natural
+          height it adds a screenful of empty scroll below the case copy — the
+          document is supposed to be the content and nothing else now. */}
+      <div style={{
+        opacity: cardOpen ? 0 : 1,
+        transition: 'opacity 300ms ease',
+        ...(cardOpen ? { height: 0, overflow: 'hidden' as const } : {}),
+      }}>
         <ThinkBelowPlaceholder />
       </div>
 
