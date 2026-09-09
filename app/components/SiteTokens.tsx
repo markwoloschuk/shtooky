@@ -1020,7 +1020,7 @@ export const FOOTER = {
 
     // Shown instead of a random blurb while the nav is in its shtooky
     // state (useShtookyMode() in SiteFooter). Fixed text, not one of the pool.
-    shtookyBlurb: "It's plural you see\u00A0– one shtooka, many shtooky.",
+    shtookyBlurb: "* It's plural you see\u00A0– one shtooka, many shtooky.",
 
     blurbs: {
         welcome: [
