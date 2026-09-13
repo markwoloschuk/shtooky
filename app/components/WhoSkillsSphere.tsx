@@ -16,12 +16,6 @@ const FOG_ENABLED = false
 
 const playOnce = true
 
-const SCROLL_FADE = {
-    topStart: 1,
-    topEnd: 0,
-    bottomStart: 0.17,
-    bottomEnd: 0.35,
-}
 
 const TEXTS = [
     "Video Editing",
@@ -404,7 +398,6 @@ function rotPt(ox: number, oy: number, oz: number, rx: number, ry: number) {
 export default function SkillsSphere() {
     const containerRef = useRef<HTMLDivElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
-    const debugRef = useRef<HTMLDivElement>(null)
     const bp = useBreakpoint()
 
     // Merged tuning for the current breakpoint. Deliberately shadows the
@@ -668,27 +661,6 @@ export default function SkillsSphere() {
             } catch (_) {}
         }
 
-        function getScrollOpacity(): number {
-            if (!container) return 1
-            if (DEBUG.disableScrollFades) return 1
-            const rect = container.getBoundingClientRect()
-            const vh = window.innerHeight
-            const bottomFrac = rect.bottom / vh
-            if (bottomFrac < SCROLL_FADE.bottomStart) return 0
-            if (bottomFrac < SCROLL_FADE.bottomEnd)
-                return (
-                    (bottomFrac - SCROLL_FADE.bottomStart) /
-                    (SCROLL_FADE.bottomEnd - SCROLL_FADE.bottomStart)
-                )
-            const topFrac = rect.top / vh
-            if (topFrac > SCROLL_FADE.topStart) return 1
-            if (topFrac > SCROLL_FADE.topEnd)
-                return (
-                    (topFrac - SCROLL_FADE.topEnd) /
-                    (SCROLL_FADE.topStart - SCROLL_FADE.topEnd)
-                )
-            return 1
-        }
 
         const WHITE_RGB: [number, number, number] = [232, 232, 224]
         const DARK_RGB: [number, number, number] = [18, 12, 0]
@@ -1039,28 +1011,6 @@ export default function SkillsSphere() {
                     }}
                 />
             </div>
-            {DEBUG.disableScrollFades && (
-                <div
-                    ref={debugRef}
-                    id="skills-sphere-debug"
-                    style={{
-                        position: "fixed",
-                        bottom: 80,
-                        left: 16,
-                        background: "rgba(0,0,0,0.7)",
-                        color: "#fff",
-                        fontFamily: '"Archivo", sans-serif',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        padding: "4px 10px",
-                        borderRadius: 3,
-                        pointerEvents: "none",
-                        zIndex: 100,
-                    }}
-                />
-            )}
         </div>
     )
 }

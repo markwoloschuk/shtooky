@@ -5,7 +5,8 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useColumn, NAV, COLORS, TYPE, BAND_HEADLINE, BAND_VIGNETTE, BREAKPOINTS, DEBUG, bandHeightPx, BAND_ANCHOR_Y, BAND_OPEN_LANDED_AT } from './SiteTokens';
+
+import { useColumn, NAV, COLORS, TYPE, BAND_HEADLINE, BAND_VIGNETTE, BREAKPOINTS, DEBUG, bandHeightPx, BAND_ANCHOR_Y, BAND_OPEN_LANDED_AT, STAGE_MAX_PX, stageFalloffMask, BAND_GROWTH, bandFalloffMask } from './SiteTokens';
 import { THINK_GRID, coverImageFor, offsetFor } from '../data/ThinkManifest';
 import { drawCover } from './SiteCanvasCover';
 
@@ -280,7 +281,7 @@ function drawTitleBlock(ctx: CanvasRenderingContext2D, rect: Rect, title: string
 function drawBandTitle(
   ctx: CanvasRenderingContext2D,
   clipRect: Rect, posRect: Rect, title: string,
-  alpha: number, padL: number, riseOffset: number,
+  alpha: number, titleX: number, riseOffset: number,
 ) {
   if (alpha <= 0) return;
   ctx.save();
@@ -305,10 +306,14 @@ function drawBandTitle(
   ctx.textBaseline = 'bottom';
   const lines = title.split('\n');
   const totalH = lines.length * lineH;
-  // Position relative to the FINAL band rect — title never moves horizontally
+  // VERTICAL position is relative to the FINAL band rect. HORIZONTAL is not:
+  // titleX is an absolute viewport x, so the title sticks to the content
+  // column's left edge no matter where the band rect starts or how it is
+  // animating. Callers that want a horizontal slide (the next/prev step) add
+  // it to titleX themselves rather than getting it for free from the rect.
   const baseY = posRect.y + posRect.h - padB - totalH + riseOffset;
   lines.forEach((line, i) => {
-    ctx.fillText(line, posRect.x + padL, baseY + (i + 1) * lineH);
+    ctx.fillText(line, titleX, baseY + (i + 1) * lineH);
   });
   ctx.restore();
 }
@@ -600,9 +605,23 @@ for (let i = 0; i < N; i++) {
     if (oi < 0) return;
     const m = mode.current;
     const bandH = logW * (_bandH / NATIVE_W);
-    const to: Rect = { x: 0, y: 0, w: logW, h: bandH };
+    // BAND_GROWTH, 2026-09-13. The band reaches past the stage but no longer
+    // spans the window. HEIGHT IS UNTOUCHED - bandH is already flat at the
+    // tier value above 1280, and it is flat on purpose: shrinking it is what
+    // moves the card content higher in frame. Only the WIDTH damps here.
+    // This is the JS half of the formula in SiteTokens.BAND_GROWTH; the CSS
+    // half is bandFalloffMask(). Change one, change the other.
+    const bandW = Math.min(logW, STAGE_MAX_PX + (logW - STAGE_MAX_PX) * BAND_GROWTH);
+    const to: Rect = { x: (logW - bandW) / 2, y: 0, w: bandW, h: bandH };
     const s = logW / NATIVE_W;
-    const padL = logW * col.marginVw / 100;
+    // THE STAGE. The band title used to sit at col.marginVw of the WINDOW, so
+    // on a wide screen it drifted left of the content column while the copy
+    // below stayed on the stage. This is stageInset() in canvas coordinates:
+    // below STAGE_MAX_PX the first term wins and nothing changes.
+    const padL = Math.max(
+      logW * col.marginVw / 100,
+      (logW - STAGE_MAX_PX) / 2 + STAGE_MAX_PX * col.marginVw / 100
+    );
 
     // ── Nav mode — horizontal push between two cards ───────────────────
     if (m === 'nav') {
@@ -615,18 +634,18 @@ for (let i = 0; i < N; i++) {
 
       // Outgoing card — slides partially out
       ctx.save();
-      ctx.beginPath(); ctx.rect(0, 0, to.w, to.h); ctx.clip();
+      ctx.beginPath(); ctx.rect(to.x, 0, to.w, to.h); ctx.clip();
       const outX = nd > 0 ? -absOutShift : absOutShift;
-      drawCardAt(ctx, nf, { x: outX, y: 0, w: to.w, h: to.h }, 1, 0, s, BAND_ANCHOR_Y);
-      drawVignette(ctx, { x: outX, y: 0, w: to.w, h: to.h });
+      drawCardAt(ctx, nf, { x: to.x + outX, y: 0, w: to.w, h: to.h }, 1, 0, s, BAND_ANCHOR_Y);
+      drawVignette(ctx, { x: to.x + outX, y: 0, w: to.w, h: to.h });
       ctx.restore();
 
       // Incoming card — slides in from opposite side, on top
       ctx.save();
-      ctx.beginPath(); ctx.rect(0, 0, to.w, to.h); ctx.clip();
+      ctx.beginPath(); ctx.rect(to.x, 0, to.w, to.h); ctx.clip();
       const inX = nd > 0 ? absInShift : -absInShift;
-      drawCardAt(ctx, nt, { x: inX, y: 0, w: to.w, h: to.h }, 1, 0, s, BAND_ANCHOR_Y);
-      drawVignette(ctx, { x: inX, y: 0, w: to.w, h: to.h });
+      drawCardAt(ctx, nt, { x: to.x + inX, y: 0, w: to.w, h: to.h }, 1, 0, s, BAND_ANCHOR_Y);
+      drawVignette(ctx, { x: to.x + inX, y: 0, w: to.w, h: to.h });
       ctx.restore();
 
       // Outgoing title — fades out + slides opposite to nav direction
@@ -643,14 +662,16 @@ for (let i = 0; i < N; i++) {
       const rawTP = bandTitleProg.current;
       const tp = titleEaseOut(rawTP);
       if (tp > 0) {
-        const clipX = nd > 0 ? inX : 0;
+        // to.x, not 0: the band is centred on the stage now, so every x in
+        // this block is an OFFSET FROM THE BAND, not from the viewport.
+        const clipX = to.x + (nd > 0 ? inX : 0);
         const clipW = nd > 0 ? to.w - inX : to.w + inX;
         if (clipW > 0) {
           drawBandTitle(
             ctx,
             { x: clipX, y: 0, w: clipW, h: to.h },
             { x: inX, y: 0, w: to.w, h: to.h },
-            bandTitleForSlot(nt), tp, padL, 0
+            bandTitleForSlot(nt), tp, padL + inX, 0
           );
         }
       }
@@ -1218,10 +1239,19 @@ imgsRef.current = Array.from({ length: N }, (_, i) => {
         : isTablet
           ? BAND_HEADLINE.tabletSizePx
           : Math.round(BAND_HEADLINE.sizePx * titleScale);
-      const s = wrap.clientWidth / NATIVE_W;
+      // THE STAGE. The grid canvas is NATIVE_W wide and CSS-scaled to fit, so
+      // an uncapped scale is what made the bento grid spread across the whole
+      // window while the copy around it sat on the stage. Capping the scale at
+      // 1 and centring puts the grid's own inset (col.marginVw of NATIVE_W)
+      // exactly on the content column. Below 1440 the first term wins.
+      const s = Math.min(wrap.clientWidth, STAGE_MAX_PX) / NATIVE_W;
+      const stageX = (wrap.clientWidth - NATIVE_W * s) / 2;
       scaleRef.current = s;
       gridInsetRef.current = { offset: NATIVE_W * col.marginVw / 100, scale: col.vw / 100 };
-      stage.style.transform = `scale(${s})`;
+      // translate THEN scale: transformOrigin is 0 0, and transform functions
+      // apply right-to-left, so the scale happens first and the translate
+      // moves the already-scaled stage.
+      stage.style.transform = `translateX(${stageX}px) scale(${s})`;
       if (mode.current === 'grid') wrap.style.height = `${TOTAL_H * s}px`;
       // Band canvas also needs to track viewport width on resize, same
       // reasoning as the grid's own scale — otherwise a resize mid-open
@@ -1302,6 +1332,11 @@ return () => {
             left: 0,
             zIndex: 10,
             cursor: 'pointer',
+            // Side falloff. CSS-live, so it needs no resize handler, and it is
+            // a MASK - clipPath on this element is already owned by the open
+            // animation's height clip and must not be touched here.
+            maskImage: bandFalloffMask(),
+            WebkitMaskImage: bandFalloffMask(),
           }}
         />,
         document.body

@@ -18,7 +18,7 @@
 // value on top of that — no ratio, no guessing.
 
 import { useEffect, useRef, useState } from "react"
-import { TYPE, COLORS, TIMING, getType, getSpace, SPACE } from "./SiteTokens"
+import { TYPE, COLORS, TIMING, getType, getSpace, SPACE, openingPx } from "./SiteTokens"
 
 // ─── TUNING ──────────────────────────────────────────────────────────────────
 
@@ -222,11 +222,28 @@ const WHITE_RGB: [number, number, number] = [255, 255, 255]
 
 export default function HeroAnimationTwoLine({
     autoPlay = true,
+    onComplete,
+    dismissed = false,
 }: {
     autoPlay?: boolean
+    onComplete?: () => void
+    dismissed?: boolean
 }) {
     const wrapRef = useRef<HTMLDivElement>(null)
     const [height, setHeight] = useState(0)
+
+    // onComplete and dismissed are read through refs so neither can retrigger
+    // the animation effect below (its dep array is [autoPlay] and must stay
+    // that way — re-running it rebuilds the DOM and replays the hero).
+    const onCompleteRef = useRef(onComplete)
+    const dismissedRef = useRef(dismissed)
+    const completeFired = useRef(false)
+    useEffect(() => {
+        onCompleteRef.current = onComplete
+    }, [onComplete])
+    useEffect(() => {
+        dismissedRef.current = dismissed
+    }, [dismissed])
 
     useEffect(() => {
         const wrap = wrapRef.current!
@@ -341,7 +358,7 @@ export default function HeroAnimationTwoLine({
         }
 
         function calcLayout() {
-            const fontSize = Math.round(window.innerWidth * (getType().OPENING.sizeVw / 100))
+            const fontSize = openingPx()
             const fontSizeStr = fontSize + "px"
             const lineH = measureText("A", fontSizeStr, FONT_DISPLAY, getType().OPENING.weight).h
             const glyphH = measureGlyphHeight(fontSizeStr, FONT_DISPLAY, getType().OPENING.weight)
@@ -544,6 +561,14 @@ function positionTagline(glyphH: number, lineGap: number) {
                     } else {
                         taglineEl.style.opacity = "1"
                         taglineEl.style.transform = "translateY(0px)"
+                        // THE HERO IS FULLY PLAYED OUT. The tagline is the
+                        // last pixel to settle (TAGLINE_DELAY + TAGLINE_DUR),
+                        // so this — not the headline resolve — is the real
+                        // completion moment.
+                        if (!completeFired.current) {
+                            completeFired.current = true
+                            onCompleteRef.current?.()
+                        }
                     }
                 }
                 taglineRaf = requestAnimationFrame(taglineFrame)
@@ -563,6 +588,12 @@ function positionTagline(glyphH: number, lineGap: number) {
         }
 
         function handleScroll() {
+            // SECOND OWNER GUARD. This handler writes wrap.style.opacity
+            // directly. Once the page has dismissed the hero, the page owns
+            // that opacity — and because a scroll is itself a dismiss
+            // trigger, the very event that starts the fade would otherwise
+            // run this and write the hero straight back to 1.
+            if (dismissedRef.current) return
             const scrollY = window.scrollY
             const raw = (scrollY - SCROLL_FADE.fadeStart) / (SCROLL_FADE.fadeEnd - SCROLL_FADE.fadeStart)
             const opacity = 1 - Math.max(0, Math.min(1, raw))

@@ -47,10 +47,13 @@ const SCROLL_FADE = {
     topMargin: 30,
     topFadeZone: 160,
     yOffset: 0,
-    // Auto-fire timing (ms) when block is already in viewport on mount
+    // Stagger between lines once the sequence is running.
     autoStagger: 100,
-    // Delay before auto-fire sequence begins
-    autoDelay: 6000,
+    // Lead-in once page.tsx says start. WAS 6000 — a flat duration
+    // standing in for "the hero has finished". page.tsx now owns that
+    // wait (hero onComplete -> idle/interaction -> fade -> collapse), so
+    // a second delay here would be a second owner of the same moment.
+    autoDelay: 0,
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -407,9 +410,12 @@ function DebugOverlay() {
 
 interface Props {
     onComplete?: () => void
+    // Externally driven start. The sequence no longer self-fires on
+    // mount; page.tsx raises this once the hero has faded and collapsed.
+    start?: boolean
 }
 
-export default function EverythingIsInteresting({ onComplete }: Props) {
+export default function EverythingIsInteresting({ onComplete, start = false }: Props) {
     const type = useType()
     const blockRef = useRef<HTMLDivElement>(null)
     const lineRefs = useRef<(HTMLDivElement | null)[]>([null, null, null, null])
@@ -434,13 +440,13 @@ export default function EverythingIsInteresting({ onComplete }: Props) {
         const block = blockRef.current
         if (!block) return
 
-// ── Check if block is in viewport on mount ───────────────────────────
-        // Defer one frame so layout has settled before measuring
+        // ── Externally triggered ─────────────────────────────────────────
+        // WAS: measure on mount and auto-fire if this block happened to be
+        // in viewport. On desktop it always was, which meant the scroll
+        // path below was never attached at all. The trigger is now an
+        // explicit signal from page.tsx.
         requestAnimationFrame(() => {
-        const rect = block.getBoundingClientRect()
-        const inViewport = rect.top < window.innerHeight && rect.bottom > 0
-
-        if (inViewport && !autoFired.current) {
+        if (start && !autoFired.current) {
     autoFired.current = true
 const delays = [
     0,
@@ -521,7 +527,7 @@ return () => timers.forEach(clearTimeout)
 if (autoFired.current) return
         window.addEventListener("scroll", handleScroll, { passive: true })
         return () => window.removeEventListener("scroll", handleScroll)
-    }, [onComplete, type])
+    }, [onComplete, type, start])
 
     return (
         <div

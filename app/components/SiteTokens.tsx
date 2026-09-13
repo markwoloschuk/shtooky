@@ -14,8 +14,6 @@
 // ─── DEBUG ───────────────────────────────────────────────────────────────────
 
 export const DEBUG = {
-    // Disables per-component scroll fade hooks (legacy, pre-ScrollConfig)
-    disableScrollFades: true,
     // Shows zone lines (TF0, TF100, BF100, BF0) and false-color gradient in ScrollConfig
     visibility: false,
     // Traces every SiteRevealQueue decision to the console: what revealed, when,
@@ -515,6 +513,15 @@ export const SPACE = {
         // ripple network, whose box reserves more height than it paints.
         talkBlurbGap:       { desktop: -100, tablet: -60, mobile: -25 },
 
+        // Let's Talk — bottom padding under the whole page body. Was 18vh,
+        // converted 2026-09-13 for the same reason whoSphereBoxHeight was:
+        // a vh box scales with the WINDOW while everything it is spacing is
+        // now fixed to the stage, so the gap grew on a tall screen and
+        // collapsed on a short one with nothing else moving to match.
+        // Derived from 18% of each tier's referenceH as a starting guess -
+        // judge by eye, they are inputs now.
+        talkBottomPad:      { desktop: 162, tablet: 184, mobile: 152 },
+
         // Let's Talk — gap between Contact / Resume / Location.
         talkLabelGap:       { desktop: 160, tablet:  86, mobile:  58 },
 
@@ -788,6 +795,15 @@ export const BAND_HEADLINE = {
 // converted value (0.6) directly, which meant the two files held the same
 // number under opposite meanings. Don't reintroduce that.
 export const BAND_VIGNETTE = {
+    // TRIAL, 2026-09-13. How far the band FADES OUT past the stage edge, in
+    // real px. Above STAGE_MAX_PX the band still DRAWS full width - this only
+    // stops it being visible out in the empty margin, so the photograph ends
+    // where the composition ends instead of declaring the window's width.
+    // The fade lives entirely OUTSIDE the stage: the full stage image is
+    // always visible. 0 = no falloff. NOTE: this is a CSS mask while the
+    // bottom vignette below is drawn in canvas - two mechanisms on one band,
+    // deliberate for a trial, worth revisiting if it stays.
+    sideFeatherPx: 200,
     heightFrac: 0.40, // fraction of band height the fade occupies, bottom-up
     opacity:    0.85, // black at the very bottom edge
 }
@@ -961,8 +977,135 @@ export function bodyMaxWidth(
     col: ReturnType<typeof getColumn>,
     overridePct?: number
 ): string {
-    return `${(col.vw * (overridePct ?? col.bodyColPct)) / 100}vw`
+    return stagePx((col.vw * (overridePct ?? col.bodyColPct)) / 100)
 }
+// ─── THE STAGE ───────────────────────────────────────────────────────────────
+// The whole page is a STAGE_MAX_PX-wide layout, centred in the window. Below
+// that width the stage IS the window and every value here resolves to the plain
+// `vw` it always was. Above it the stage stops growing and the leftover width
+// becomes empty margin - the frame, the content column and the reading measure
+// all freeze together, keeping their 1440 relationship to each other.
+//
+// ONE owner. Every capped value is derived from this number, so there is no
+// second place to keep in sync and nothing to re-judge per tier.
+export const STAGE_MAX_PX = COLUMN_TIERS.desktop.referenceW // 1440
+//
+// Both helpers are CSS-live: min()/max() re-resolve every paint, so none of
+// this is a frozen window.innerWidth read. And both are SELF-GATING - below
+// STAGE_MAX_PX the vw term always wins, which is why no tier flag is needed.
+
+// A horizontal INSET from the viewport edge: where this sits on the stage.
+export function stageInset(vwPct: number): string {
+    const onStage = (vwPct / 100) * STAGE_MAX_PX
+    return `max(${vwPct}vw, (100vw - ${STAGE_MAX_PX}px) / 2 + ${onStage}px)`
+}
+// A LENGTH that should stop growing once the stage caps.
+export function stagePx(vwPct: number): string {
+    return `min(${vwPct}vw, ${(vwPct / 100) * STAGE_MAX_PX}px)`
+}
+
+// The opening headline's size in real pixels, capped at the stage.
+//
+// OPENING.sizeVw is a fraction of the VIEWPORT, which was the original idea:
+// design at 1440 and let every size scale up with the window. Retired
+// 2026-09-13 - it is not what the web actually does, and past about 1800 it
+// makes the type grotesque. Capping the multiplier at STAGE_MAX_PX freezes
+// the headline at its 1440 size and leaves everything at or below 1440
+// untouched.
+//
+// Deliberately a HELPER rather than a change to the token: OPENING.sizeVw has
+// six consumers across all five pages, and ThinkOpenAnimation DERIVES its
+// Lottie scale from it with a formula that assumes vw. Callers opt in.
+export function openingPx(): number {
+    if (typeof window === "undefined") return 0
+    return Math.round((Math.min(window.innerWidth, STAGE_MAX_PX) * getType().OPENING.sizeVw) / 100)
+}
+
+export function contentWidth(col: ReturnType<typeof getColumn>): string {
+    return stagePx(col.vw)
+}
+export function contentInset(col: ReturnType<typeof getColumn>): string {
+    return stageInset(col.marginVw)
+}
+// NavBar and Footer. Still the leftmost elements - now leftmost ON THE STAGE
+// rather than in the window, which is what keeps the shared edge true above
+// 1440 instead of stranding the frame out at the viewport edge.
+// The STAGE FALLOFF. A mask for anything that spans the full viewport but
+// should stop declaring the window's width: the band images, the footer rule.
+// Opaque across the stage, fading out over BAND_VIGNETTE.sideFeatherPx
+// OUTSIDE it - so the composed image is never eaten, only the margin.
+// Self-gating: at or below STAGE_MAX_PX both terms resolve to 0px and the
+// mask is opaque everywhere. ONE owner - do not write a second copy.
+// TRIAL, 2026-09-13. How far a full-bleed band image reaches PAST the stage
+// before it dissolves. 0 = hard cap at the stage; 1 = spans the window, as it
+// did. The overhang IS the falloff - the band is fully opaque across exactly
+// the 1440 stage and everything beyond it is gradient - so there is no second
+// feather number to keep in agreement with this one.
+//
+// NOTE: this formula is evaluated TWICE by necessity - as CSS in
+// bandFalloffMask() for the mask, and as JS in ThinkGridCanvas.renderBand()
+// for the canvas rect. One token, one expression, two evaluators. If you
+// change one, change the other; they are commented at both sites.
+export const BAND_GROWTH = 0.4
+
+// The band's falloff: transparent at the band's own edge, fully opaque by the
+// stage edge. Self-gating - at or below STAGE_MAX_PX every term is 0px.
+export function bandFalloffMask(): string {
+    const bandEdge = `max(0px, (100vw - ${STAGE_MAX_PX}px) * ${(1 - BAND_GROWTH) / 2})`
+    const stageEdge = `max(0px, (100vw - ${STAGE_MAX_PX}px) / 2)`
+    return (
+        `linear-gradient(to right, transparent 0, transparent ${bandEdge}, #000 ${stageEdge}, ` +
+        `#000 calc(100% - ${stageEdge}), transparent calc(100% - ${bandEdge}), transparent 100%)`
+    )
+}
+
+// TRIAL, 2026-09-13. The carousel's edge fade, in real px, and deliberately
+// its OWN number rather than the band's. The band fades across its whole
+// overhang, which suits one photograph; the carousel is N equal slices, so it
+// grows the same way but keeps almost all of that width SOLID and only softens
+// a short distance at the very edge. Raise for a gentler edge, 0 for a hard one.
+export const CAROUSEL_EDGE_FADE_PX = 100
+
+// The carousel's falloff: solid across nearly the whole strip, fading out over
+// CAROUSEL_EDGE_FADE_PX at each end. The strip's own edge is where BAND_GROWTH
+// puts it, not the stage edge. Self-gating below STAGE_MAX_PX.
+export function carouselFalloffMask(): string {
+    const stripEdge = `max(0px, (100vw - ${STAGE_MAX_PX}px) * ${(1 - BAND_GROWTH) / 2})`
+    // The fade can never be longer than the margin it has to fade INTO, or it
+    // eats the strip itself. min(2*edge, edge + FADE) is edge + min(FADE, edge):
+    // no fade at all at 1440, easing in to the full CAROUSEL_EDGE_FADE_PX once
+    // there is room for it. Self-gating, like everything else on the stage.
+    const solid = `min(${stripEdge} * 2, calc(${stripEdge} + ${CAROUSEL_EDGE_FADE_PX}px))`
+    return (
+        `linear-gradient(to right, transparent 0, transparent ${stripEdge}, #000 ${solid}, ` +
+        `#000 calc(100% - ${solid}), transparent calc(100% - ${stripEdge}), transparent 100%)`
+    )
+}
+
+// The footer rule's falloff. Two knobs, because a line reads as a pointy
+// spear when the ramp is short relative to its length.
+export function ruleFalloffMask(): string {
+    const solid = `max(0px, (100vw - ${STAGE_MAX_PX}px) / 2 + ${FOOTER.ruleFadeInsetPx}px)`
+    const clear = `max(0px, (100vw - ${STAGE_MAX_PX}px) / 2 + ${FOOTER.ruleFadeInsetPx - FOOTER.ruleFadeLengthPx}px)`
+    return (
+        `linear-gradient(to right, transparent 0, transparent ${clear}, #000 ${solid}, ` +
+        `#000 calc(100% - ${solid}), transparent calc(100% - ${clear}), transparent 100%)`
+    )
+}
+
+export function stageFalloffMask(): string {
+    const edge = `max(0px, (100vw - ${STAGE_MAX_PX}px) / 2)`
+    const fade = `max(0px, (100vw - ${STAGE_MAX_PX}px) / 2 - ${BAND_VIGNETTE.sideFeatherPx}px)`
+    return (
+        `linear-gradient(to right, transparent 0, transparent ${fade}, #000 ${edge}, ` +
+        `#000 calc(100% - ${edge}), transparent calc(100% - ${fade}), transparent 100%)`
+    )
+}
+
+export function frameInset(): string {
+    return stageInset(FRAME_INSET_VW)
+}
+
 export function useType() {
     return TYPE_TIERS[useBreakpoint()]
 }
@@ -1009,6 +1152,15 @@ export const BACKGROUND = {
 
 
 export const FOOTER = {
+    // TRIAL, 2026-09-13. The footer rule's OWN falloff, deliberately not the
+    // band's: the band has one knob and "softer" and "tighter" fight over it.
+    // Here they are separate. ruleFadeInsetPx pulls the solid part further IN
+    // from the stage edge; ruleFadeLengthPx is how long the ramp takes. NOTE:
+    // unlike everything else on the stage this is NOT a no-op at 1440 - with a
+    // non-zero inset the rule fades at both ends at every width. Set the inset
+    // to 0 to get the old hard edge back.
+    ruleFadeInsetPx: 140,
+    ruleFadeLengthPx: 320,
     // Measured footer height in px — update if the footer changes.
     // SiteScrollConfig reads this: the bottom gradient must be FULLY opaque
     // by the top of the footer, because the footer type is small and nothing

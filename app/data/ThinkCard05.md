@@ -21,7 +21,7 @@ Design doesn’t start in a box that you escape through creativity. It starts in
 
 
 [paragraph]
-And good design, once it’s in the world, keeps the conversation going. The best work leaves something unsaid – not because it’s incomplete – it’s so we create a gap where the audience can enter. 
+And good design, once it’s in the world, keeps the conversation going. The best work leaves something unsaid – not because it’s incomplete – it’s so we create a gap where the audience can enter.
 
 
 [paragraph]

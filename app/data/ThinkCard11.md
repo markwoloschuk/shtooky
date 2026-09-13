@@ -9,7 +9,7 @@ imagePath: /images/think/11/
 One of my favorite podcasts is “Judge John Hodgman” – the fake courtroom for such weighty disputes as “is a hot-dog a sandwich?”* Ironically, listening to this show has made me LESS judgmental and more open-minded. Beneath the absurdity, hosts John Hodgman and Jesse Thorn never fail to uncover the real crux of any dispute – what the litigants are FEELING.
 
 [pullquote]
-Great design works 
+Great design works
 the same way.
 
 [paragraph]

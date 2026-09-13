@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useColumn, COLORS, SPACE, useSpace, bandHeightPx } from './SiteTokens';
+import { useColumn, COLORS, SPACE, useSpace, bandHeightPx, contentInset } from './SiteTokens';
 import ThinkOpenAnimation from './ThinkOpenAnimation';
 import ThinkBlurb from './ThinkBlurb';
 import ThinkGridCanvas from './ThinkGridCanvas';
@@ -117,8 +117,8 @@ in its own fixed/scrolling box. */}
           width: '100%',
           boxSizing: 'border-box' as const,
           pointerEvents: cardOpen ? 'auto' : 'none',
-          paddingLeft: `${col.marginVw}vw`,
-          paddingRight: `${col.marginVw}vw`,
+          paddingLeft: contentInset(col),
+          paddingRight: contentInset(col),
           ...(cardOpen ? {
             // position: absolute is gone. It was what made this panel
             // contribute no height to the document, which is what the spacer
@@ -149,7 +149,7 @@ in its own fixed/scrolling box. */}
 
       {cardOpen && createPortal(
         <div style={{
-          position: 'fixed', bottom: '84px', right: '32px', zIndex: 45,
+          position: 'fixed', bottom: '84px', right: contentInset(col), zIndex: 45,
           display: 'flex', gap: '8px',
         }}>
           <button

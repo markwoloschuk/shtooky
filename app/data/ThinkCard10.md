@@ -16,10 +16,10 @@ gain in the long-term
 Then you make the switch anyway. And for a while, you’re worse. But then comes new capability – new possibility. It happened to me with editing software. Avid to Media 100. Media 100 to Final Cut. Final Cut to Premiere. Each time, a period of lost fluency. Each time, a cost. Each time… worth it.
 
 [paragraph]
-AI is the current version of this conversation, and it’s bigger than any of the others. I’m embracing the chance, but sometimes it’s an uncomfortable hug. The disruption is real – and it’s ongoing. But so is the growth. 
+AI is the current version of this conversation, and it’s bigger than any of the others. I’m embracing the chance, but sometimes it’s an uncomfortable hug. The disruption is real – and it’s ongoing. But so is the growth.
 
 [paragraph]
-The capability gap between what AI can do versus what it could do is changing faster than anything I’ve navigated before. And so is my own journey. I’m along for the ride – suddenly I too can do more than ever before. I’ve made this trade enough times to know how it goes. You give up short-term mastery. You gain long-term possibility. 
+The capability gap between what AI can do versus what it could do is changing faster than anything I’ve navigated before. And so is my own journey. I’m along for the ride – suddenly I too can do more than ever before. I’ve made this trade enough times to know how it goes. You give up short-term mastery. You gain long-term possibility.
 
 [pullquote]
 AI augments capability

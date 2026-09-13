@@ -28,7 +28,7 @@ Over the years I’ve been a contributor to many Burning Man projects. Nevada’
 At its core, Shackleton was a simple and delightful concept – an ice-cold dance party in the blazing heat of the desert. The experience was centered around a “reefer”, a refrigerated semi-trailer normally used to transport food. But what really elevated the experience was a narrative overlay based around the doomed Antarctic expedition of the eponymous explorer.
 
 [paragraph]
-I created a range of media to support the project – from 8-screen synchronized video “portholes” to signage and accompanying schwag. I did extensive research and reading on the Shackleton Expedition so I could tie everything together with story threads and related content. And always moving from wide to close and back again – ensuring that every element was a carefully fitted puzzle piece in the overall experience. 
+I created a range of media to support the project – from 8-screen synchronized video “portholes” to signage and accompanying schwag. I did extensive research and reading on the Shackleton Expedition so I could tie everything together with story threads and related content. And always moving from wide to close and back again – ensuring that every element was a carefully fitted puzzle piece in the overall experience.
 
 [paragraph]
 Details create delight. Vision creates meaning. Great experiences need both.

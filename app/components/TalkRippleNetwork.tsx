@@ -14,7 +14,7 @@
 // near the top almost regardless of HEIGHT.
 
 import { useEffect, useRef } from "react"
-import { COLORS, TYPE, getType, useBreakpoint } from "./SiteTokens"
+import { COLORS, TYPE, getType, openingPx, useBreakpoint } from "./SiteTokens"
 
 // ─── LAYOUT ───────────────────────────────────────────────────────────────────
 
@@ -535,9 +535,13 @@ export default function RippleNetwork() {
         function buildTextDOM() {
             textLayer!.innerHTML = ""
             const opening = getType().OPENING
-            const fontSize = typeof window !== "undefined"
-                ? Math.round(window.innerWidth * (opening.sizeVw / 100))
-                : 72
+            // Capped at STAGE_MAX_PX via openingPx() — above 1440 the headline
+            // stops growing. The text layer is bottom-anchored (position:
+            // absolute; bottom: 0), so an uncapped size grew UPWARD into the
+            // wordmark; capping the size freezes the vertical position too.
+            // openingPx() returns 0 with no window, so || 72 keeps the SSR
+            // fallback this line always had.
+            const fontSize = openingPx() || 72
 
             const lines: Record<number, { chunk: typeof CHUNKS[0]; idx: number }[]> = {}
             CHUNKS.forEach((chunk, i) => {

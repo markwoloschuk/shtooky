@@ -12,7 +12,7 @@ I once worked on a launch video for an innovative new hardware product from HP. 
 That disconnect stuck with me.
 
 [paragraph]
-We had been given an aspirational narrative that didn’t accurately reflect what the product could actually do. Instead of focusing on its very real innovation and potential we were directed to paint targets this device was incapable of hitting. And no amount of pushback was able to bend the message closer to the truth. 
+We had been given an aspirational narrative that didn’t accurately reflect what the product could actually do. Instead of focusing on its very real innovation and potential we were directed to paint targets this device was incapable of hitting. And no amount of pushback was able to bend the message closer to the truth.
 
 [paragraph]
 We did our best to craft a great story as directed, but it was the WRONG story. The beats we were required to hit weren’t genuine, the final piece was inauthentic and, sadly, the product was a failure.

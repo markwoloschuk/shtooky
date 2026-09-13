@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
-import { COLORS, FOOTER, PAGES, FRAME_INSET_VW, getActivePage, isKnownPage, useType } from "../components/SiteTokens"
+import { COLORS, FOOTER, PAGES, frameInset, getActivePage, isKnownPage, useType, ruleFalloffMask } from "../components/SiteTokens"
 import { useShtookyMode } from "./SiteEasterEgg"
 
 const FONT_DISPLAY = '"Archivo", sans-serif'
@@ -97,8 +97,8 @@ const pageBlurbs =
                 alignItems: "center",
                 justifyContent: "space-between",
                 // Adjust margin padding here
-                paddingLeft: `${FRAME_INSET_VW}vw`,
-                paddingRight: `${FRAME_INSET_VW}vw`,
+                paddingLeft: frameInset(),
+                paddingRight: frameInset(),
 
                 zIndex: 40,
                 // No background. The bottom gradient in SiteScrollConfig is
@@ -117,6 +117,11 @@ const pageBlurbs =
         right: 0,
         height: 1,
         background: pageColor,
+        // The BAND's falloff, not the stage's - so the rule fades over exactly
+        // the same span as the card images and the two read as one edge.
+        // Governed by BAND_GROWTH, the same single knob.
+        maskImage: ruleFalloffMask(),
+        WebkitMaskImage: ruleFalloffMask(),
         transition: "background 0.4s ease",
     }}
 />

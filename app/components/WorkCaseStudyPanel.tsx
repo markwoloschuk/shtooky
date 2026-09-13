@@ -10,7 +10,7 @@
 //   video counter    → TYPE_TIERS.CAPTION     (sizePx — matched, not yet wired)
 
 import { useState } from 'react'
-import { TYPE, COLORS, SPACE, useType, useColumn, useSpace, bodyMaxWidth } from './SiteTokens'
+import { TYPE, COLORS, SPACE, useType, useColumn, useSpace, bodyMaxWidth, contentInset } from './SiteTokens'
 import SiteGallery from './SiteGallery'
 import { renderInline } from './SiteInlineText'
 import { useCasePanel } from './SiteCasePanel'
@@ -106,8 +106,8 @@ export default function CaseStudyPanel({ caseFile, visible }: Props) {
 
   return (
     <div style={{
-      paddingLeft: `${col.marginVw}vw`,
-      paddingRight: `${col.marginVw}vw`,
+      paddingLeft: contentInset(col),
+      paddingRight: contentInset(col),
         paddingTop: panelPaddingTop,
         paddingBottom: 80,
       position: 'relative',

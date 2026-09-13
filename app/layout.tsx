@@ -27,8 +27,18 @@ const sourceSerif4 = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "shtooky",
-  description: "Mark Woloschuk — Creative Lead & Designer",
+  metadataBase: new URL("https://shtooky.com"),
+  title: "Mark Woloschuk — Creative Director & Producer",
+  description:
+    "Mark Woloschuk — Creative Director & Producer in San Francisco. I ask the whos and whats before the hows.",
+  openGraph: {
+    title: "Mark Woloschuk — Creative Director & Producer",
+    description:
+      "I believe any story can be interesting if it’s told in the right way, and to the right audience.",
+    url: "https://shtooky.com",
+    type: "website",
+  },
+  twitter: { card: "summary" },
 };
 
 export default function RootLayout({

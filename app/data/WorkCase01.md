@@ -25,9 +25,9 @@ to its customers’ <feelings.>
 [paragraph]
 It feels good to give gifts at the holidays – it feels even better to give gifts that people actually love. That was the idea that inspired “Give gifts people want instead of things they don’t”. A simple narrative hook that was the scaffold for 13 light hearted holiday spots. One narrative system spanning 12 different products.
 
-Each spot featured the same family of characters encountering a variety of familiar holiday situations. Narrowing down to two locations – a home and an office – kept the budget lean with only one company move. 
+Each spot featured the same family of characters encountering a variety of familiar holiday situations. Narrowing down to two locations – a home and an office – kept the budget lean with only one company move.
 
-On-set I helped co-direct the action – ensuring that every product was featured in its best light and selling not just itself, but the Microsoft Store and the entire holiday campaign. 
+On-set I helped co-direct the action – ensuring that every product was featured in its best light and selling not just itself, but the Microsoft Store and the entire holiday campaign.
 
 [gallery]
 youtube_link
@@ -48,7 +48,7 @@ video {
 }
 
 [pullquote]
-Use narrative thread[br] 
+Use narrative thread[br]
 to tie in the emotion.
 
 [gallery]

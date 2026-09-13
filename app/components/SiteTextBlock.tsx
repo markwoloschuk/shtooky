@@ -18,7 +18,7 @@
 //   subtracted back out at the pull wrapper so one number owns each gap.
 
 import { useEffect, useMemo, useRef } from "react"
-import { COLORS, TYPE, SPACE, SEQUENCE, getVisibility, useColumn, useType, useSpace, bodyMaxWidth } from "./SiteTokens"
+import { TYPE, SPACE, SEQUENCE, getVisibility, useColumn, useType, useSpace, bodyMaxWidth } from "./SiteTokens"
 import { renderInline } from "./SiteInlineText"
 import {
     stripComments,
@@ -196,10 +196,12 @@ function PullTextItem({
     pull,
     queueIndex,
     eligible,
+    accent,
 }: {
     pull: PullSpec
     queueIndex: number
     eligible?: () => boolean
+    accent: string
 }) {
     const space = useSpace()
     const type = useType()
@@ -296,9 +298,11 @@ function PullTextItem({
         const hlEls = Array.from(chunkEl.querySelectorAll<HTMLElement>("[data-hl]"))
         if (hlEls.length > 0) {
             const t = setTimeout(() => {
-                // Page colour, always. The per-quote `highlightColor` field is
-                // gone — all six quotes carried "#FAAF40", which IS COLORS.about.
-                const hlColor = COLORS.about
+                // The page's colour, threaded in as `accent`. The per-quote
+                // `highlightColor` field is gone: all six About quotes carried
+                // "#FAAF40", which IS COLORS.about, so this is a no-op on Who
+                // I Am and correct anywhere else a [pull] lands.
+                const hlColor = accent
                 if (timing.colorDurIn === 0) {
                     hlEls.forEach((el) => (el.style.color = hlColor))
                     scheduleColorOut(hlEls, hlColor)
@@ -691,6 +695,7 @@ function BlockRenderer({
                 pull={block.pull!}
                 queueIndex={firstIndex}
                 eligible={eligible}
+                accent={accent}
             />
         )
     }

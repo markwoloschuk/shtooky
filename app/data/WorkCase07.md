@@ -19,7 +19,7 @@ I love talking to people – but not if I feel like I’m bothering them. That 
 [label]
 THE SOLUTION
 [paragraph]
-I was inspired by infographics my friend Katie Peek created for the New York Times. I reasoned that revealing the relationships between family and friends would create interesting visualizations. 
+I was inspired by infographics my friend Katie Peek created for the New York Times. I reasoned that revealing the relationships between family and friends would create interesting visualizations.
 
 It begins with a clipboard and questions, “how do you know the couple?” Each event is different but patterns emerge in the process. Data gathered over the course of the event is transformed into a visual map of connections. Working in a flowcharting app I sculpt the data – each guest a circle – each connection a line.
 

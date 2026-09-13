@@ -6,7 +6,7 @@ imagePath: /images/think/07/
 ---
 
 [paragraph]
-When I was working for Facebook’s comms team I once did thirty-two rounds on an infographic. Thirty-two! 
+When I was working for Facebook’s comms team I once did thirty-two rounds on an infographic. Thirty-two!
 
 [paragraph]
 I’m not complaining – the client was engaged, the feedback was real, and round thirty-two was genuinely better than round one. But somewhere around round twenty-five I had a quiet realization: we were past the point of meaningful improvement and onto a hamster wheel of preference cycling. A change would come back. Then the previous version would come back. Then a hybrid. Then we’d land somewhere close to where we’d been three rounds ago and call it done.

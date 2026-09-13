@@ -34,7 +34,7 @@ I’ll do this any time I take photos. My friends tease me for getting on the gr
 The full picture requires more than one vantage point – sometimes more than one pair of eyes. Collaboration is perspective access – other people occupy angles you can’t reach alone. The best creative partnerships I’ve had weren’t with people who saw what I saw, they were with people who saw what I missed.
 
 [paragraph]
-I built a slightly ridiculous interactive art piece called “Make-Out in the Third Person.” I was playing with this idea of how a different perspective changes your experience. Participants wore FPV video goggles that were being fed an image coming from a camera on the end of a long boom pole. Instead of seeing through their own eyes, they saw themselves from several feet away, almost as if they were characters in someone else’s film. Then I invited them to kiss. This new and unique point of view changed their relationship to the moment and themselves. 
+I built a slightly ridiculous interactive art piece called “Make-Out in the Third Person.” I was playing with this idea of how a different perspective changes your experience. Participants wore FPV video goggles that were being fed an image coming from a camera on the end of a long boom pole. Instead of seeing through their own eyes, they saw themselves from several feet away, almost as if they were characters in someone else’s film. Then I invited them to kiss. This new and unique point of view changed their relationship to the moment and themselves.
 
 [paragraph]
 There’s a real power in seeing things from a different perspective. So stand somewhere else occasionally.

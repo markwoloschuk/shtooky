@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useRef, useCallback } from 'react'
-import { WORK_MANIFEST } from '../data/WorkManifest'
+import { WORK_CARDS } from '../data/WorkManifest'
 import { drawCover } from './SiteCanvasCover'
-import { TYPE, COLORS, useType, useColumn, useBreakpoint, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, BAND_VIGNETTE, BREAKPOINTS, getColumn } from './SiteTokens'
+import { TYPE, COLORS, useType, useColumn, useBreakpoint, MOBILE_BAND_HEIGHT_SCALE, BAND_HEADLINE, BAND_VIGNETTE, BREAKPOINTS, getColumn, contentInset, contentWidth, STAGE_MAX_PX, BAND_GROWTH, CAROUSEL_EDGE_FADE_PX } from './SiteTokens'
 
 // ── Locked animation constants (from work_carousel_v30.html) ─────────────────
 const CFG = {
@@ -40,7 +40,7 @@ const CFG = {
   VIG_HEIGHT:      BAND_VIGNETTE.heightFrac, // AMOUNT: fade occupies bottom 40%
 }
 
-const N    = 7
+const N    = WORK_CARDS.length
 const CW   = 1440
 const CH   = 480
 const BASE_W = CW / N
@@ -177,8 +177,8 @@ const stageRef     = useRef<HTMLDivElement>(null)
   const imgsRef = useRef<HTMLImageElement[]>([])
 
   // ── Per-slice image offsets from manifest ─────────────────────────────────
-  const offsetsH = WORK_MANIFEST.map(m => m.offsetH)
-  const offsetsV = WORK_MANIFEST.map(m => m.offsetV)
+  const offsetsH = WORK_CARDS.map(m => m.offsetH)
+  const offsetsV = WORK_CARDS.map(m => m.offsetV)
 
   // ── Mutable animation state — all in refs ─────────────────────────────────
   const widths      = useRef(new Array(N).fill(BASE_W))
@@ -387,7 +387,7 @@ function showNav() {
   ) => {
     if (alpha <= 0 || idx < 0 || idx >= N) return
     if (clipW !== undefined && clipW < 1) return
-    const lines = (WORK_MANIFEST[idx]?.headline ?? '').split('\n')
+    const lines = (WORK_CARDS[idx]?.headline ?? '').split('\n')
     ctx.save()
     if (clipX !== undefined) { ctx.beginPath(); ctx.rect(clipX, 0, clipW, _ech); ctx.clip() }
     if (translateX) ctx.translate(translateX, 0)
@@ -735,7 +735,18 @@ if (m === 'nav') {
     // same idea and only one of them would follow a change to the token.
     isMobileRef.current = window.innerWidth < BREAKPOINTS.tablet
     _ech = isMobileRef.current ? Math.round(CH * MOBILE_BAND_HEIGHT_SCALE) : CH
-    const s = wrap.clientWidth / CW
+    // BAND_GROWTH, 2026-09-13. The strip grows past the stage exactly as
+    // Think's band does - so the slices get wider - but its FALLOFF is its own
+    // and much shorter (CAROUSEL_EDGE_FADE_PX). The band fades across its whole
+    // overhang, which suits one photograph; a strip of N equal slices wants
+    // nearly all of that width solid and only the very edge softened. The hit
+    // layer lives inside this transformed stage, so click targets follow.
+    const bandW = Math.min(
+      wrap.clientWidth,
+      STAGE_MAX_PX + (wrap.clientWidth - STAGE_MAX_PX) * BAND_GROWTH
+    )
+    const s = bandW / CW
+    const stageX = (wrap.clientWidth - bandW) / 2
     // Three tiers. Desktop passes the REFERENCE size straight through — the
     // stage's own scale turns 52 into 52 * (viewport / 1440) on screen. The two
     // flat tiers are real rendered sizes, so they are divided by s to survive
@@ -747,7 +758,20 @@ if (m === 'nav') {
         ? Math.round(BAND_HEADLINE.tabletSizePx / s)
         : BAND_HEADLINE.sizePx
     _hlPadNative = Math.round(getColumn().marginVw * CW / 100)
-    stage.style.transform = `scale(${s})`
+    stage.style.transform = `translateX(${stageX}px) scale(${s})`
+    // The mask has to be computed HERE, not written as a static CSS string.
+    // Gradient stops resolve against the ELEMENT'S OWN BOX - this stage is CW
+    // wide and then scaled - so a `100vw` stop would be measured against the
+    // wrong ruler entirely. In screen px the strip is bandW wide, so the fade
+    // as a percentage of the element is fadePx / bandW. Clamped to the margin
+    // available so it can never eat the strip: zero at 1440.
+    const fadePx = Math.min(CAROUSEL_EDGE_FADE_PX, (wrap.clientWidth - bandW) / 2)
+    const fadePct = bandW > 0 ? (fadePx / bandW) * 100 : 0
+    const mask = fadePct > 0
+      ? `linear-gradient(to right, transparent 0, #000 ${fadePct}%, #000 ${100 - fadePct}%, transparent 100%)`
+      : 'none'
+    stage.style.maskImage = mask
+    stage.style.webkitMaskImage = mask
     stage.style.height = `${_ech}px`
     wrap.style.height = `${_ech * s}px`
     if (canvas) {
@@ -780,7 +804,7 @@ if (m === 'nav') {
     // source in app/work/page.tsx; this guard means a future re-run for some
     // other reason cannot bring the flash back.
     if (imgsRef.current.length === 0) {
-      imgsRef.current = WORK_MANIFEST.map(m => {
+      imgsRef.current = WORK_CARDS.map(m => {
         const img = new Image()
         img.src = m.image
         img.onload = () => render()
@@ -841,11 +865,15 @@ return (
     <div style={{ position: 'relative', width: '100%' }}>
       <div
         ref={wrapRef}
-style={{ width: '100%', position: 'relative', background: '#000', overflow: 'hidden' }}
+style={{ width: '100%', position: 'relative', overflow: 'hidden' }}
       >
         <div
           ref={stageRef}
-          style={{ width: CW, height: CH, transformOrigin: 'top left', position: 'absolute', top: 0, left: 0, background: '#111', overflow: 'hidden' }}
+          style={{
+            width: CW, height: CH, transformOrigin: 'top left',
+            position: 'absolute', top: 0, left: 0,
+            background: '#111', overflow: 'hidden',
+          }}
         >
 
        <canvas
@@ -870,7 +898,7 @@ style={{ width: '100%', position: 'relative', background: '#000', overflow: 'hid
 {/* Carousel text — resting state headline + subhead */}
       <div
   ref={carTextRef}
-  style={{ position: 'absolute', top: '100%', left: `${col.marginVw}vw`, width: `${col.vw}vw`, pointerEvents: 'none', zIndex: 1, marginTop: 24, opacity: 0, transform: 'translateY(12px)' }}
+  style={{ position: 'absolute', top: '100%', left: contentInset(col), width: contentWidth(col), pointerEvents: 'none', zIndex: 1, marginTop: 24, opacity: 0, transform: 'translateY(12px)' }}
 >
 <p
   ref={pullWrapRef}

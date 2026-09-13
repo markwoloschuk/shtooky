@@ -14,7 +14,7 @@ import { armQueue } from "../components/SiteRevealQueue"
 import SkillsSphere from "../components/WhoSkillsSphere"
 import VennDiagram from "../components/WhoVennDiagram"
 import SiteTextBlock from "../components/SiteTextBlock"
-import { useColumn, useBreakpoint, SPACE, useSpace, bodyMaxWidth, VENN_SCALE_TIERS, COLORS } from "../components/SiteTokens"
+import { useColumn, useBreakpoint, SPACE, useSpace, bodyMaxWidth, VENN_SCALE_TIERS, COLORS, contentWidth } from "../components/SiteTokens"
 
 
 // Sphere section box height. Desktop 360 == the old 40vh at the 900px
@@ -61,7 +61,7 @@ export default function WhoIAmBody({ md }: { md: string }) {
             {/* ── content column ── */}
             <div
                 style={{
-                    width: `${col.vw}vw`,
+                    width: contentWidth(col),
                     marginLeft: "auto",
                     marginRight: "auto",
                     display: "flex",

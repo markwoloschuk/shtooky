@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { PAGES, COLORS, NAV, FOOTER, FRAME_INSET_VW, getActivePage, isKnownPage, getType, useBreakpoint, useType } from "../components/SiteTokens"
+import { PAGES, COLORS, NAV, FOOTER, frameInset, stagePx, getActivePage, isKnownPage, getType, useBreakpoint, useType } from "../components/SiteTokens"
 import { setShtookyMode } from "./SiteEasterEgg"
 
 // ── Locked defaults (from v18 prototype) ─────────────────────
@@ -898,9 +898,9 @@ useEffect(() => {
                 style={{
                     position: "fixed",
                     // Adjust spacing here
-                    top: "2.4vw",
+                    top: stagePx(2.4),
                     // set navbar to be left or right side here
-                    left: `${FRAME_INSET_VW}vw`,
+                    left: frameInset(),
                     zIndex: 40,
                     pointerEvents: "auto",
                 }}
@@ -1063,8 +1063,8 @@ useEffect(() => {
                         aria-label={menuOpen ? "Close menu" : "Open menu"}
                         style={{
                             position: "fixed",
-                            top: "2.4vw",
-                            right: `${FRAME_INSET_VW}vw`,
+                            top: stagePx(2.4),
+                            right: frameInset(),
                             zIndex: 45,
                             pointerEvents: "auto",
                             background: "none",
@@ -1111,8 +1111,8 @@ useEffect(() => {
                         <div
                             style={{
                                 position: "fixed",
-                                top: "calc(2.4vw + 44px)",
-                                right: `${FRAME_INSET_VW}vw`,
+                                top: `calc(${stagePx(2.4)} + 44px)`,
+                                right: frameInset(),
                                 zIndex: 45,
                                 pointerEvents: "auto",
                                 background: "rgba(13,13,13,0.85)",

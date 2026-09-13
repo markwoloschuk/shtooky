@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Lottie from 'lottie-react';
-import { useColumn, useType, COLORS, SPACE, useSpace } from './SiteTokens';
+import { useColumn, useType, COLORS, SPACE, useSpace, contentWidth } from './SiteTokens';
 
 
 // ── Tunable constants ────────────────────────────────────────────────────
@@ -315,7 +315,7 @@ const navClearance = useSpace()(SPACE.layout.thinkNavClearance);
     <div
       style={{
         position: 'relative',
-        width: `${col.vw}vw`,
+        width: contentWidth(col),
         marginTop: `${navClearance}px`,
         marginLeft: 'auto',
         marginRight: 'auto',

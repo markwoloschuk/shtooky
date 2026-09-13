@@ -20,7 +20,7 @@ import { armQueue } from "../components/SiteRevealQueue"
 import RippleNetwork, { TEXT_DELAY, CHUNKS, TIMING } from "../components/TalkRippleNetwork"
 import SiteTextBlock, { itemFadeMs } from "../components/SiteTextBlock"
 import TalkOptions from "../components/TalkOptions"
-import { useColumn, SPACE, SEQUENCE, useSpace, COLORS } from "../components/SiteTokens"
+import { useColumn, SPACE, SEQUENCE, useSpace, COLORS, contentWidth } from "../components/SiteTokens"
 
 
 
@@ -83,12 +83,12 @@ export default function LetsTalkBody({ md }: { md: string }) {
         <div
             style={{
                 paddingTop: navClearance,
-                paddingBottom: "18vh",
+                paddingBottom: space(SPACE.layout.talkBottomPad),
             }}
         >
             <div
                 style={{
-                    width: `${col.vw}vw`,
+                    width: contentWidth(col),
                     marginLeft: "auto",
                     marginRight: "auto",
                 }}

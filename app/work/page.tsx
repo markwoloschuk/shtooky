@@ -4,8 +4,8 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import WorkCarousel from '../components/WorkCarousel'
 import CaseStudyPanel from '../components/WorkCaseStudyPanel'
-import { WORK_MANIFEST } from '../data/WorkManifest'
-import { useColumn } from '../components/SiteTokens'
+import { WORK_CARDS } from '../data/WorkManifest'
+import { useColumn, contentInset } from '../components/SiteTokens'
 
 const NAV_BTN_SIZE = 32
 const SYM_PCT = 0.50
@@ -40,7 +40,7 @@ export default function WorkPage() {
     n.style.opacity = '0'; n.style.transform = 'scale(0.85)'; n.style.pointerEvents = 'none'
   }, [])
 
-  const manifest = activeIdx !== null ? WORK_MANIFEST[activeIdx] : null
+  const manifest = activeIdx !== null ? WORK_CARDS[activeIdx] : null
 
   return (
     <>
@@ -65,7 +65,7 @@ export default function WorkPage() {
       {mounted && createPortal(<div
         ref={navRef}
         style={{
-          position: 'fixed', bottom: 84, right: 32,
+          position: 'fixed', bottom: 84, right: contentInset(col),
           display: 'flex', gap: 8, zIndex: 9999,
           pointerEvents: 'none', opacity: 0,
           transform: 'scale(0.85)',

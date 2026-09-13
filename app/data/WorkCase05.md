@@ -9,14 +9,14 @@ role: Designer / Project Manager
 delivery: Steel and Glass Gate
 
 [subtitle]
-Creative skills are handy for more[br] 
+Creative skills are handy for more[br]
 than just graphics and video.
 
 [label]
 THE SITUATION
 
 [paragraph]
-In 2018 – against all odds – my partner and I purchased a home in San Francisco. What we didn’t know was that we had also bought into a dispute with the City Planning Department over un-permitted construction. 
+In 2018 – against all odds – my partner and I purchased a home in San Francisco. What we didn’t know was that we had also bought into a dispute with the City Planning Department over un-permitted construction.
 
 When we tried to get our own permits to perform desperately needed maintenance we found ourselves embroiled in a multi-year saga to appease the City planners. A chimera of physical, regulatory, aesthetic, practical and relationship challenges.
 
@@ -28,11 +28,11 @@ for <any> kind of problem
 THE SOLUTION
 
 [paragraph]
-Much of what I produce is just colored light on a screen – but here was an opportunity to test my design skills in a new medium: steel and civic codes. We attacked the problem like any design challenge. We began by trying to understand the problem and our audience. Questions, research and conversation gave shape to the problem and its solution. 
+Much of what I produce is just colored light on a screen – but here was an opportunity to test my design skills in a new medium: steel and civic codes. We attacked the problem like any design challenge. We began by trying to understand the problem and our audience. Questions, research and conversation gave shape to the problem and its solution.
 
 We were tasked with meeting very specific city requirements – San Francisco’s building codes are complex and highly variable. We had to collaborate with architects and our case manager to fully understand what was required of us and how our options were constrained.
 
-Our space provided its own challenges – the existing arbor could not withstand the weight of a gate and would have to be rebuilt. A concrete wall dividing us from our neighbor would need to factor into the design. 
+Our space provided its own challenges – the existing arbor could not withstand the weight of a gate and would have to be rebuilt. A concrete wall dividing us from our neighbor would need to factor into the design.
 
 [pullquote]
 It wasn’t a requirement[br]
@@ -50,7 +50,7 @@ With a clever architectural plan in place I moved into 3D modeling – ensuring
 From pixels into steel
 
 [paragraph]
-The end product is one of my favorite pieces of work – a testament to everything I have learned up to this point. The transformation of a digital design into a beautiful physical object is a truly satisfying outcome. 
+The end product is one of my favorite pieces of work – a testament to everything I have learned up to this point. The transformation of a digital design into a beautiful physical object is a truly satisfying outcome.
 
 [gallery]
 GateGallery

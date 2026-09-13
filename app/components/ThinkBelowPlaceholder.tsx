@@ -1,6 +1,6 @@
 'use client';
 
-import { useColumn } from './SiteTokens';
+import { useColumn, contentWidth } from './SiteTokens';
 
 // ── Tunable constants ────────────────────────────────────────────────────
 const CONFIG = {
@@ -14,7 +14,7 @@ export default function ThinkBelowPlaceholder() {
   return (
     <div
       style={{
-        width: `${col.vw}vw`,
+        width: contentWidth(col),
         margin: `${CONFIG.GAP_ABOVE}px auto 0`,
         paddingBottom: `${CONFIG.PADDING_BOTTOM}px`,
       }}

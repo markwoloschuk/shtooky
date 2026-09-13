@@ -6,7 +6,7 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
-import { PAGES, NAV, COLORS, getActivePage, isKnownPage } from "../components/SiteTokens"
+import { PAGES, NAV, COLORS, getActivePage, isKnownPage, STAGE_MAX_PX } from "../components/SiteTokens"
 
 interface NebulaParticle {
     x: number
@@ -715,7 +715,19 @@ stateRef.current.pageColorRgb = { ...stateRef.current.pageColorRgb }
             const vb = (pc.b * CFG.VIG_TINT) | 0
             const cx = CFG.VIG_CX * 100,
                 cy = CFG.VIG_CY * 100
-            const rx = CFG.VIG_RX * 100
+            // THE STAGE, 2026-09-13. VIG_RX is a fraction of the VIEWPORT, so the
+            // bright centre used to grow with the window - meaning the vignette
+            // sat at the same relative position at every width (the screen edge
+            // always landed 77% along the gradient) and framed the BROWSER
+            // rather than the composition. Freezing the bright radius at its
+            // 1440 value means that above the stage the dark sides grow exactly
+            // as the empty margins grow. Below 1440 the first term wins and
+            // this is unchanged. Recomputed on resize with the rest of the
+            // layer, so it is not a frozen read. VIG_RX is still the knob.
+            const rx = Math.min(
+                CFG.VIG_RX * 100,
+                (CFG.VIG_RX * STAGE_MAX_PX / window.innerWidth) * 100
+            )
             const ry = CFG.VIG_RY * 100
             const i = CFG.VIG_INTENSITY
             vignetteLayer.style.background = `radial-gradient(ellipse ${rx}% ${ry}% at ${cx}% ${cy}%,transparent 0%,rgba(${vr},${vg},${vb},${(i * 0.45).toFixed(3)}) 55%,rgba(${vr},${vg},${vb},${i}) 100%)`
