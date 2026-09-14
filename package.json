@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "gen:gallery": "node scripts/gen-gallery-manifest.mjs",
+    "predev": "npm run gen:gallery",
+    "prebuild": "npm run gen:gallery",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

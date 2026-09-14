@@ -15,6 +15,14 @@ import { drawCover } from './SiteCanvasCover';
 const NATIVE_W = 1440;
 const GAP = 6;
 
+// How far past the current window.innerHeight the band canvas's box is
+// deliberately oversized, so an iOS toolbar collapsing mid-scroll never
+// needs to grow the box at all — see the bandMounted effect's own comment
+// for why growing it on every resize event was the actual bug. 160px
+// comfortably clears the combined address-bar + bottom-toolbar height on
+// every iOS device Safari runs on as of this writing.
+const BAND_CANVAS_H_BUFFER = 160;
+
 // _bandH — the band height in NATIVE units on the 1440-wide stage. It is no
 // longer an authored constant: BAND_HEIGHT_TIERS is authored in SCREEN pixels
 // and scaleStage converts it back to native here, once, so that every existing
@@ -200,6 +208,23 @@ function unlockScroll() {
 
 interface Rect { x: number; y: number; w: number; h: number; }
 
+// Rounds a rect's EDGES to whole (device) pixels — x+w and y+h land on
+// integers, not just x/y themselves, so w/h absorb whatever fraction was
+// there rather than compounding it. Two canvas draws that clip to
+// independently-computed-but-geometrically-identical rects (an image and
+// its vignette, say) can each land their own antialiasing a half-pixel
+// apart when the shared rect is fractional, which reads as a faint seam
+// along whichever edge the mismatch falls on — worse still during an
+// animation, where the fractional part changes every frame and the seam
+// flickers in and out as it drifts on and off a pixel boundary. Passing
+// BOTH draws the exact same snapped rect removes the fraction before
+// either one clips, so there is nothing left for them to disagree about.
+function snapRect(r: Rect): Rect {
+  const x = Math.round(r.x);
+  const y = Math.round(r.y);
+  return { x, y, w: Math.round(r.x + r.w) - x, h: Math.round(r.y + r.h) - y };
+}
+
 interface Props {
   onOpen: (idx: number) => void;
   onClose: () => void;
@@ -246,6 +271,60 @@ function drawImageCover(
     ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
   }
   ctx.restore();
+}
+
+// MASK INHERITS THE TRANSFORM, 2026-09-14. Used only by the open/close/
+// fullview path in renderBand(), where the card's own shape changes (cell
+// aspect -> band aspect) while it moves. Lerping a screen-space box on
+// x/y/w/h and re-running drawCover's cover-fit against it FRESH every frame
+// (the old approach here) makes the mask and the image agree exactly at
+// ep=0 and ep=1 — both are derived from the same box — but not in between:
+// re-deriving a centred/anchored crop from a RESHAPING box produces a crop
+// position that moves at a different rate than the box's own edges, same
+// eased progress, different slope. Reads as the image sliding inside a mask
+// edge that looks stationary. Confirmed outside the app before landing this
+// — different grid positions drift in different directions, so no single
+// anchor constant can fix it (see BAND_ANCHOR_Y's own history in
+// SiteTokens.tsx for the failed attempt).
+//
+// This solves the identical cover-fit formula — same offsetFor, same
+// scalePct, same anchorY, same overflow clamp — but only twice: once at
+// `from`, once at `to`. Each solve gives a "camera" (uniform translate +
+// scale, like an AE layer's Position/Scale) and the visible mask expressed
+// in that camera's own LOCAL space (like an AE mask drawn on the layer,
+// which inherits the layer's transform automatically). Every frame between
+// the two endpoints is a plain lerp of those two authored states, driven by
+// the same shared `ep` already used everywhere else here. Because the mask
+// and the image are pushed through the identical transform, the mask cannot
+// drift relative to the image content — not tuned to avoid it, structurally
+// incapable of it, regardless of a card's aspect ratio or grid position.
+function solveCardEndpoint(
+  box: Rect,
+  img: HTMLImageElement | undefined,
+  cardNum: number,
+  unit: number,
+  anchorY: number,
+): { scale: number; tx: number; ty: number; mask: Rect } {
+  if (!img || !img.complete || !img.naturalWidth) {
+    // No image yet — an identity camera whose local mask is just the box's
+    // own size keeps the fallback fill (drawn by the caller) at the right
+    // place without a special case at the call site.
+    return { scale: 1, tx: box.x, ty: box.y, mask: { x: 0, y: 0, w: box.w, h: box.h } };
+  }
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const [ox, oy, scalePct] = offsetFor(cardNum);
+  const offsetX = ox * unit, offsetY = oy * unit;
+  const scale = Math.max(box.w / iw, box.h / ih) * (scalePct / 100);
+  const dw = iw * scale, dh = ih * scale;
+  const tx = box.x + box.w / 2 - dw / 2 + offsetX;
+  let ty = box.y + (box.h - dh) * anchorY + offsetY;
+  // Same COVER GUARANTEE clamp as drawCover — an authored offsetY larger than
+  // the available overflow can't expose empty space beyond the image.
+  if (dh >= box.h) ty = Math.min(box.y, Math.max(box.y + box.h - dh, ty));
+  return {
+    scale, tx, ty,
+    mask: { x: (box.x - tx) / scale, y: (box.y - ty) / scale, w: box.w / scale, h: box.h / scale },
+  };
 }
 
 function drawTitleBlock(ctx: CanvasRenderingContext2D, rect: Rect, title: string, alpha: number, size: number) {
@@ -341,6 +420,17 @@ const bandDocYRef = useRef(0);
   const gridDocTopRef = useRef(0);
 
   const fromRectRef = useRef<Rect>({ x: 0, y: 0, w: 0, h: 0 });
+  // The band canvas's own CURRENT assigned CSS/backing-store height — not
+  // necessarily window.innerHeight, since it's deliberately oversized by
+  // BAND_CANVAS_H_BUFFER and only ever grows, never shrinks, on resize. The
+  // fullview/nav clip-path math needs the box's actual height, not the live
+  // viewport height, to compute the right inset — see applyBandClip().
+  const bandCanvasHeightRef = useRef(0);
+  // Mirrors bandCanvasHeightRef for width — tracked so the resize handler
+  // only touches canvas.width/height (which wipes the WHOLE canvas, not
+  // just the changed dimension) when something has actually changed,
+  // instead of unconditionally on every 'resize' event.
+  const bandCanvasWidthRef = useRef(0);
   const [bandMounted, setBandMounted] = useState(false);
   // The band is fixed for its ENTIRE life, not handed over partway through.
   //
@@ -380,11 +470,50 @@ const gridInsetRef = useRef({ offset: 0, scale: 1 });
   // fullview/nav, so a cell's rect can't be read from the DOM at that
   // point. Same math, same coordinate system (band-canvas-local,
   // relative to bandDocYRef), just derived instead of measured.
-  function computeCellRect(i: number): Rect {
+  // anchor is the scroll position (document Y) being treated as "0" for
+  // this rect's local Y — pass bandDocYRef.current for a preview against
+  // wherever the reader started, or scrollAnchorForCell()'s result for the
+  // actual close target. Split out as a parameter, 2026-09-14, because using
+  // the SAME anchor for every card regardless of where it actually sits on
+  // the page is what caused the close-after-nav bug: see
+  // scrollAnchorForCell's own comment.
+  function computeCellRect(i: number, anchor: number): Rect {
     const raw = cellToScreen(LAYOUT[i]);
     const s = scaleRef.current;
     const docY = gridDocTopRef.current + raw.y * s;
-    return { x: raw.x * s, y: docY - bandDocYRef.current, w: raw.w * s, h: raw.h * s };
+    return { x: raw.x * s, y: docY - anchor, w: raw.w * s, h: raw.h * s };
+  }
+
+  // 2026-09-14 — what scroll position should CLOSING land on, for
+  // whichever card is actually open right now?
+  //
+  // bandDocYRef is a single bookmark captured once, when the reader first
+  // clicked a card — it's correct for THAT card by construction, but nav
+  // can leave a completely different card open, one that may sit nowhere
+  // near the original bookmark's scroll position. Reusing that bookmark
+  // unconditionally for computeCellRect's anchor (the old behaviour) gave a
+  // "from" rect computed correctly in the page's own coordinates, but
+  // measured against a scroll position that doesn't show that cell at
+  // all — the close animation dutifully travelled toward the real cell,
+  // off the bottom of the screen, then popped into place once the grid's
+  // own DOM (scrolled back to the ORIGINAL bookmark) took over. Worst on a
+  // big jump like first-to-last, which is exactly what surfaced it.
+  //
+  // The fix: don't move the page at all if the original bookmark already
+  // shows this card's cell — most closes, nav or not, land here unchanged.
+  // Only when it doesn't, move the MINIMUM amount that brings the cell
+  // fully on screen, aligned to whichever edge (top or bottom) it's
+  // actually past — the same "nearest" logic as Element.scrollIntoView.
+  function scrollAnchorForCell(i: number): number {
+    const raw = cellToScreen(LAYOUT[i]);
+    const s = scaleRef.current;
+    const docY = gridDocTopRef.current + raw.y * s;
+    const cellH = raw.h * s;
+    const bookmark = bandDocYRef.current;
+    const viewportH = window.innerHeight;
+    if (docY < bookmark) return docY;
+    if (docY + cellH > bookmark + viewportH) return docY + cellH - viewportH;
+    return bookmark;
   }
   
   // Sizing the band canvas in openCard() itself isn't reliable — after a
@@ -396,15 +525,27 @@ const gridInsetRef = useRef({ offset: 0, scale: 1 });
 useEffect(() => {
     if (bandMounted && bandCanvasRef.current) {
       const dpr = window.devicePixelRatio || 1;
+      // 2026-09-14 — two CSS-native-sizing attempts ('100vw', then '100dvh'
+      // for height alone) each fixed the down-scroll-only flicker at the
+      // cost of a new bug (a desktop scrollbar-gutter shift; a bounce-time
+      // stretch), because a canvas's on-screen box and its raster
+      // resolution have to move together, and nothing can make the browser
+      // move both instantly and atomically in response to a native,
+      // JS-invisible viewport change. This takes a different angle: don't
+      // try to track the viewport's height tightly at all. Oversize the box
+      // by BAND_CANVAS_H_BUFFER up front, so a toolbar collapsing mid-scroll
+      // (fast or slow) still fits inside it — nothing needs to grow, so
+      // there's no gap and no stretch to have. Only a genuine resize that
+      // actually exceeds the buffer (scaleStage's resize handler) ever grows
+      // it again, and that's rare enough not to matter.
       // CSS display size = logical pixels; backing store = physical pixels for sharpness on HiDPI.
       bandCanvasRef.current.style.width  = `${window.innerWidth}px`;
-      // Tall enough to encompass both the card's starting position
-      // (which can be anywhere in the viewport) AND the band's final
-      // position (at the top). Was bandHeight before, which clipped
-      // the card at its starting position — causing the "unmask" look.
-      bandCanvasRef.current.style.height = `${window.innerHeight}px`;
-      bandCanvasRef.current.width  = window.innerWidth  * dpr;
-      bandCanvasRef.current.height = window.innerHeight * dpr;
+      const initH = window.innerHeight + BAND_CANVAS_H_BUFFER;
+      bandCanvasRef.current.style.height = `${initH}px`;
+      bandCanvasRef.current.width  = window.innerWidth * dpr;
+      bandCanvasRef.current.height = initH * dpr;
+      bandCanvasWidthRef.current = window.innerWidth;
+      bandCanvasHeightRef.current = initH;
     }    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bandMounted]);
 
@@ -519,7 +660,9 @@ const onOpenRef = useRef(onOpen);
     const m = mode.current;
 if (m === 'grid') {
       for (let i = 0; i < N; i++) {
-        const screenRect = cellToScreen(LAYOUT[i]);
+        // Snapped ONCE, then shared: drawCardAt's clip and drawVignette's
+        // clip must agree on the exact same pixels — see snapRect's comment.
+        const screenRect = snapRect(cellToScreen(LAYOUT[i]));
         drawCardAt(ctx, i, screenRect, zoom.current[i], darken.current[i]);
         drawVignette(ctx, screenRect);
         drawTitleBlock(ctx, screenRect, titleForSlot(i), titleA.current[i], CFG.TITLE_SIZE);
@@ -553,7 +696,7 @@ if (m === 'grid') {
 
 for (let i = 0; i < N; i++) {
         if (i === oi) continue;
-        const r = cellToScreen(LAYOUT[i]);
+        const r = snapRect(cellToScreen(LAYOUT[i]));
         // Two-phase fade: image stays while color grows (0→GRID_FADE_START),
         // then everything fades to nothing together, reaching zero at the
         // landing rather than at the asymptote — see EP_AT_LANDING.
@@ -598,7 +741,12 @@ for (let i = 0; i < N; i++) {
     // Scale context to physical pixels so all subsequent drawing uses logical CSS pixel coords.
     const dpr = window.devicePixelRatio || 1;
     const logW = window.innerWidth;
-    const logH = window.innerHeight;
+    // The box's own assigned (deliberately oversized) height, not
+    // window.innerHeight — clearing only up to the live viewport height
+    // would leave the buffer zone below it un-cleared, risking stale
+    // content there from a previous frame if anything is ever drawn that
+    // far down.
+    const logH = bandCanvasHeightRef.current || window.innerHeight;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, logW, logH);
     const oi = openIdx.current;
@@ -633,19 +781,22 @@ for (let i = 0; i < N; i++) {
       const absInShift = to.w * (1 - ep);
 
       // Outgoing card — slides partially out
+      const outerClip = snapRect({ x: to.x, y: 0, w: to.w, h: to.h });
       ctx.save();
-      ctx.beginPath(); ctx.rect(to.x, 0, to.w, to.h); ctx.clip();
+      ctx.beginPath(); ctx.rect(outerClip.x, outerClip.y, outerClip.w, outerClip.h); ctx.clip();
       const outX = nd > 0 ? -absOutShift : absOutShift;
-      drawCardAt(ctx, nf, { x: to.x + outX, y: 0, w: to.w, h: to.h }, 1, 0, s, BAND_ANCHOR_Y);
-      drawVignette(ctx, { x: to.x + outX, y: 0, w: to.w, h: to.h });
+      const outRect = snapRect({ x: to.x + outX, y: 0, w: to.w, h: to.h });
+      drawCardAt(ctx, nf, outRect, 1, 0, s, BAND_ANCHOR_Y);
+      drawVignette(ctx, outRect);
       ctx.restore();
 
       // Incoming card — slides in from opposite side, on top
       ctx.save();
-      ctx.beginPath(); ctx.rect(to.x, 0, to.w, to.h); ctx.clip();
+      ctx.beginPath(); ctx.rect(outerClip.x, outerClip.y, outerClip.w, outerClip.h); ctx.clip();
       const inX = nd > 0 ? absInShift : -absInShift;
-      drawCardAt(ctx, nt, { x: to.x + inX, y: 0, w: to.w, h: to.h }, 1, 0, s, BAND_ANCHOR_Y);
-      drawVignette(ctx, { x: to.x + inX, y: 0, w: to.w, h: to.h });
+      const inRect = snapRect({ x: to.x + inX, y: 0, w: to.w, h: to.h });
+      drawCardAt(ctx, nt, inRect, 1, 0, s, BAND_ANCHOR_Y);
+      drawVignette(ctx, inRect);
       ctx.restore();
 
       // Outgoing title — fades out + slides opposite to nav direction
@@ -681,9 +832,25 @@ for (let i = 0; i < N; i++) {
     // ── Open / close / fullview — single card growing/shrinking ────────
     const ep = easeIO(m === 'fullview' ? 1 : openProg.current);
     const from = fromRectRef.current;
+    const cardNum = THINK_GRID[oi];
+    const img = imgsRef.current[oi];
+    // See solveCardEndpoint's comment for why this replaced a per-frame
+    // re-fit against a lerped box (2026-09-14, kills the open/close shimmy).
+    const endA = solveCardEndpoint(from, img, cardNum, s, BAND_ANCHOR_Y);
+    const endB = solveCardEndpoint(to, img, cardNum, s, BAND_ANCHOR_Y);
+    const camScale = lerp(endA.scale, endB.scale, ep);
+    const camX = lerp(endA.tx, endB.tx, ep);
+    const camY = lerp(endA.ty, endB.ty, ep);
+    const maskLocal: Rect = {
+      x: lerp(endA.mask.x, endB.mask.x, ep), y: lerp(endA.mask.y, endB.mask.y, ep),
+      w: lerp(endA.mask.w, endB.mask.w, ep), h: lerp(endA.mask.h, endB.mask.h, ep),
+    };
+    // On-screen equivalent of the old lerped box — the vignette, the title
+    // clip and the frame tracer below all just want "what's the visible
+    // rectangle right now," so they still get exactly that.
     const cur: Rect = {
-      x: lerp(from.x, to.x, ep), y: lerp(from.y, to.y, ep),
-      w: lerp(from.w, to.w, ep), h: lerp(from.h, to.h, ep),
+      x: camX + maskLocal.x * camScale, y: camY + maskLocal.y * camScale,
+      w: maskLocal.w * camScale, h: maskLocal.h * camScale,
     };
     if (DEBUG.thinkBandTrace && traceRef.current.length < 40) {
       // Recorded HERE, at the draw call, not in tick(): this is the rect the
@@ -700,8 +867,34 @@ for (let i = 0; i < N; i++) {
         ``
       );
     }
-    drawCardAt(ctx, oi, cur, 1, 0, s, BAND_ANCHOR_Y);
-    drawVignette(ctx, cur);
+    // Snap in DEVICE space, not local space: maskLocal's own coordinates
+    // times a fractional camScale won't generally land on whole device
+    // pixels even if maskLocal itself were snapped first. Snapping cur (the
+    // already-computed device-space rect) and converting back through the
+    // same camX/camScale the transform below applies means the image's clip
+    // and the vignette's clip both resolve to the EXACT same device pixels —
+    // see snapRect's comment for why that's what kills the seam.
+    const snapCur = snapRect(cur);
+    const clipLocal: Rect = {
+      x: (snapCur.x - camX) / camScale, y: (snapCur.y - camY) / camScale,
+      w: snapCur.w / camScale, h: snapCur.h / camScale,
+    };
+    ctx.save();
+    ctx.translate(camX, camY);
+    ctx.scale(camScale, camScale);
+    ctx.beginPath();
+    ctx.rect(clipLocal.x, clipLocal.y, clipLocal.w, clipLocal.h);
+    ctx.clip();
+    if (img && img.complete && img.naturalWidth > 0) {
+      ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
+    } else {
+      // Fallback fill in the SAME local space, same clip — matches
+      // drawImageCover's own not-loaded-yet behaviour.
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(clipLocal.x, clipLocal.y, clipLocal.w, clipLocal.h);
+    }
+    ctx.restore();
+    drawVignette(ctx, snapCur);
     // Title — fixed at final position, clipped to current card shape.
     const isClosing = mode.current === 'closing';
     const rawTP = bandTitleProg.current;
@@ -710,6 +903,28 @@ for (let i = 0; i < N; i++) {
     const riseOffset = (1 - tp) * riseNative * s;
     drawBandTitle(ctx, cur, to, bandTitleForSlot(oi), tp, padL, riseOffset);
   }, [drawCardAt, col.marginVw]);
+
+  // Single source of truth for the band canvas's clip-path, shared by tick()
+  // (every frame) and scaleStage() (every resize). Both need to derive it
+  // from the SAME logH/logW read that drives the content those two callers
+  // are about to draw — see scaleStage()'s own comment for why splitting
+  // this into two independently-timed writers was the bug.
+  const applyBandClip = useCallback(() => {
+    const bandCanvas = bandCanvasRef.current;
+    if (!bandCanvas) return;
+    const logW = window.innerWidth;
+    // The box's OWN assigned height, not window.innerHeight — the box is
+    // deliberately oversized (see bandCanvasHeightRef's comment), so insetting
+    // against the live viewport height here would leave extra, un-clipped
+    // canvas showing past the band's real bottom edge.
+    const boxH = bandCanvasHeightRef.current || window.innerHeight;
+    const bandHpx = logW * (_bandH / NATIVE_W);
+    if (mode.current === 'fullview' || mode.current === 'nav') {
+      bandCanvas.style.clipPath = `inset(0px 0px ${Math.max(0, boxH - bandHpx)}px 0px)`;
+    } else {
+      bandCanvas.style.clipPath = 'none';
+    }
+  }, []);
 
   const updateHitLayer = useCallback(() => {
     const hit = hitRef.current;
@@ -912,11 +1127,28 @@ document.documentElement.style.overflowX = 'hidden';
       headerRef.current.style.height = '';
       headerRef.current.style.display = '';
     }
+    // The bookmark itself gets replaced here, not just read: it needs to be
+    // wherever ACTUALLY shows the card that's open right now, which after a
+    // nav is often a different card than the one that set the original
+    // bookmark in openCard(). See scrollAnchorForCell's own comment — this
+    // is what fixes the close-after-nav bug (worst on a big jump like
+    // first-to-last, where the original bookmark and the real cell can be
+    // an entire screen or more apart). Computed AFTER the heights above are
+    // restored: it depends on the document being back to its real, full
+    // height, same reasoning as the maxScroll-clamp note below.
+    bandDocYRef.current = scrollAnchorForCell(openIdx.current);
+    fromRectRef.current = computeCellRect(openIdx.current, bandDocYRef.current);
     // Band stays fixed through the close too. This restores the reader to the
     // bookmark so the cell is back at the on-screen position fromRect was
     // measured at, and the card travels home in the viewport space it left.
     window.scrollTo(0, bandDocYRef.current);
     mode.current = 'closing';
+    // Fresh 40 for the close. Without this the array is still full from the
+    // open (the push is gated on length < 40) and a close records nothing -
+    // which is exactly what happened the first time the trace was used.
+    // Entries are already prefixed with mode.current[0], so 'o' and 'c' rows
+    // are self-labelling.
+    traceRef.current = [];
     updateHitLayer();
     // Fire immediately so detail text starts fading out NOW, not after
     // the card finishes traveling back to its cell.
@@ -947,22 +1179,13 @@ document.documentElement.style.overflowX = 'hidden';
     // silently swallows scroll/click input meant for the detail-text
     // column underneath. During opening/closing the card can be
     // anywhere along its travel path, so keep the looser grid-bound clip.
-    const bandCanvas = bandCanvasRef.current;
-    if (bandCanvas) {
-      const logW = window.innerWidth;
-      const logH = window.innerHeight;
-      const bandHpx = logW * (_bandH / NATIVE_W);
-      if (m === 'fullview' || m === 'nav') {
-        bandCanvas.style.clipPath = `inset(0px 0px ${Math.max(0, logH - bandHpx)}px 0px)`;
-      } else {
-        // No clip while the card is travelling. The old grid-bound inset was
-        // built from bandDocY and gridDocBottom, both document coordinates,
-        // and is meaningless for a viewport-fixed canvas — the card travels
-        // entirely inside the viewport. The hit-box concern it also served
-        // cannot bite here because scroll is locked during opening and closing.
-        bandCanvas.style.clipPath = 'none';
-      }
-    }
+    // No clip while the card is travelling — the old grid-bound inset here
+    // was built from bandDocY and gridDocBottom, both document coordinates,
+    // and is meaningless for a viewport-fixed canvas — the card travels
+    // entirely inside the viewport. The hit-box concern it also served
+    // cannot bite here because scroll is locked during opening and closing.
+    // applyBandClip() itself decides 'none' vs. the fullview/nav inset.
+    applyBandClip();
 
     const sp = clamp(dt / (CFG.HOVER_SPEED * 0.45), 0, 1);
     let dirty = false;
@@ -1066,6 +1289,9 @@ if (Math.abs(openProg.current - target) < 0.006) {
 
     // ── Band title — independent timeline (runs in opening/fullview/closing) ──
     if (m === 'opening' || m === 'fullview') {
+      // Captured before the timeline below runs, so the repaint at the end of
+      // this block can ask whether the title ACTUALLY moved this frame.
+      const titleProgBefore = bandTitleProg.current;
       if (bandTitleStart.current === 0) {
         if (bandCanvasRef.current) {
           const logW = window.innerWidth;
@@ -1088,7 +1314,21 @@ if (Math.abs(openProg.current - target) < 0.006) {
         const elapsed = now - bandTitleStart.current;
         if (elapsed > 0) bandTitleProg.current = clamp(elapsed / 1000, 0, 1);
       }
-      renderBand();
+      // Was an unconditional renderBand(), which cost two full band repaints
+      // per frame during an OPEN (the block at 'opening || closing' above has
+      // already painted this frame) and one per frame FOREVER in fullview,
+      // where nothing changes at all. Measured 2026-09-13: every p in the
+      // frame trace appeared exactly twice during an open, and an idle open
+      // card logged a continuous run of draws at p=1.000 with dy=0.
+      //
+      // The only reason this call existed is that the title timeline updates
+      // AFTER that paint, so without a second paint the title would lag one
+      // frame. Gating on an actual change keeps that correctness and drops
+      // both wastes: during an open it fires only while the title is really
+      // animating, and in fullview it stops entirely once the title settles.
+      //
+      // Resize is unaffected - that path has its own renderBand() call.
+      if (bandTitleProg.current !== titleProgBefore) renderBand();
     } else if (m === 'closing') {
       bandTitleProg.current = clamp(bandTitleProg.current - dt / 300, 0, 1);
     }
@@ -1106,7 +1346,12 @@ if (navProg.current >= 0.5 && !navSwapped.current) {
         // open — without this, closing after a nav step shrinks back
         // into the ORIGINALLY opened card's cell, not the current
         // one (the intermittent wrong-slot-then-pop bug).
-        fromRectRef.current = computeCellRect(navToIdx.current);
+        // Previewed against the ORIGINAL bookmark, not
+        // scrollAnchorForCell() — this is just an intermediate value for
+        // whatever reads fromRectRef between now and an actual close (the
+        // debug HUD, mainly). closeCard() always recomputes it fresh
+        // against the correct anchor before it matters.
+        fromRectRef.current = computeCellRect(navToIdx.current, bandDocYRef.current);
         // Incoming title: delay matches WorkCarousel's HL_RIGHT_DELAY for right-nav; none for left
         bandTitleStart.current = now + (navDir.current > 0 ? 175 : 0);
         onOpenRef.current(navToIdx.current);
@@ -1187,6 +1432,10 @@ if (navProg.current >= 0.5 && !navSwapped.current) {
         `wrap.height: ${wrapRef.current?.style.height || '(unset)'}\n` +
         `stage.top: ${stageRef.current?.style.top || '(unset)'}\n` +
         `innerH: ${window.innerHeight}\n` +
+        `gridDocTop: ${gridDocTopRef.current.toFixed(1)}\n` +
+        `scaleRef(s): ${scaleRef.current.toFixed(4)}\n` +
+        `navFromIdx/navToIdx: ${navFromIdx.current}/${navToIdx.current}\n` +
+        `fromRect: x=${fromRectRef.current.x.toFixed(0)} y=${fromRectRef.current.y.toFixed(0)} w=${fromRectRef.current.w.toFixed(0)} h=${fromRectRef.current.h.toFixed(0)}\n` +
         (DEBUG.thinkBandTrace
           ? `--- opening trace ---\n` + (traceRef.current.length ? traceRef.current.join('\n') : '(none)')
           : '');
@@ -1229,7 +1478,11 @@ imgsRef.current = Array.from({ length: N }, (_, i) => {
       const isMobile = window.innerWidth < BREAKPOINTS.tablet;
       // Screen pixels in, native units out — the one conversion site.
       _bandH = (bandHeightPx(window.innerWidth) * NATIVE_W) / window.innerWidth;
-      const titleScale = window.innerWidth / BAND_HEADLINE.refW;
+      // Capped at the stage, mirroring `s` below: above 1440 the stage stops
+      // growing, so the band title must stop growing with it. Uncapped this ran
+      // to 62px at 1728 and 139px at 3840 while WorkCarousel's stayed flat at 52 —
+      // exactly the disagreement BAND_HEADLINE's own comment says must not exist.
+      const titleScale = Math.min(window.innerWidth, STAGE_MAX_PX) / BAND_HEADLINE.refW;
       const isTablet = !isMobile && window.innerWidth < BREAKPOINTS.laptop;
       // Already screen pixels here, so the DESKTOP reference size is scaled up
       // front — the mirror of WorkCarousel dividing by its stage scale. The two
@@ -1258,11 +1511,56 @@ imgsRef.current = Array.from({ length: N }, (_, i) => {
       // would leave it drawing at a stale width.
 if (bandCanvasRef.current && mode.current !== 'grid') {
         const dpr = window.devicePixelRatio || 1;
-        bandCanvasRef.current.style.width  = `${window.innerWidth}px`;
-        bandCanvasRef.current.style.height = `${window.innerHeight}px`;
-        bandCanvasRef.current.width  = window.innerWidth  * dpr;
-        bandCanvasRef.current.height = window.innerHeight * dpr;
-      }      updateHitLayer();
+        const canvas = bandCanvasRef.current;
+        const curW = window.innerWidth;
+        const neededH = window.innerHeight;
+        // 2026-09-14 — only touch canvas.width/height (which wipes the
+        // WHOLE backing store, not just the dimension that changed) when
+        // something has actually changed enough to need it. Width tracks
+        // exactly, since it doesn't fluctuate the way height does on iOS.
+        // Height only GROWS, and only past the oversized buffer set in the
+        // bandMounted effect — see BAND_CANVAS_H_BUFFER's comment for why
+        // that buffer exists: a toolbar collapsing mid-scroll (fast or
+        // slow) now fits inside the existing box, so most resize events
+        // during a scroll touch nothing here at all, wipe nothing, and
+        // have nothing to repaint. On iOS, touch-scrolling an open card
+        // collapses/expands Safari's toolbar, which changes
+        // window.innerHeight and fires 'resize' repeatedly through a
+        // gesture that contains no resize in any intentional sense — the
+        // same mechanism the nebula bug in SiteBackground came from; this
+        // is what stops nearly all of those events from mattering at all,
+        // rather than racing to repaint fast enough once one fires.
+        let changed = false;
+        if (curW !== bandCanvasWidthRef.current) {
+          canvas.style.width = `${curW}px`;
+          canvas.width = curW * dpr;
+          bandCanvasWidthRef.current = curW;
+          changed = true;
+        }
+        if (neededH > bandCanvasHeightRef.current) {
+          const newH = neededH + BAND_CANVAS_H_BUFFER;
+          canvas.style.height = `${newH}px`;
+          canvas.height = newH * dpr;
+          bandCanvasHeightRef.current = newH;
+          changed = true;
+        }
+        // Repainted SYNCHRONOUSLY, right here, not flagged for tick() to
+        // pick up on the next frame: deferring even one frame leaves the
+        // canvas blank (freshly wiped, nothing drawn yet) for however long
+        // it takes the browser to composite before that next rAF fires.
+        // Calling applyBandClip() in the same breath, from the same resize
+        // that triggered it, also removes the earlier clip-vs-content race
+        // (a stale clip inset from an OLDER resize disagreeing with THIS
+        // resize's freshly-drawn content) — which is why an earlier
+        // attempt to repaint straight from this listener still flickered:
+        // it repainted the content but left the clip to update on its own
+        // schedule in tick().
+        if (changed) {
+          applyBandClip();
+          renderBand();
+        }
+      }
+      updateHitLayer();
     };
     window.addEventListener('resize', scaleStage);
     scaleStage();

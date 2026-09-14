@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import Lottie from 'lottie-react';
-import { useColumn, useType, COLORS, SPACE, useSpace, contentWidth } from './SiteTokens';
+import { useColumn, useType, useBreakpoint, COLORS, SPACE, useSpace, contentWidth, openingPx } from './SiteTokens';
 
 
 // ── Tunable constants ────────────────────────────────────────────────────
@@ -96,14 +96,20 @@ const ANCHOR_X_PCT = (CONFIG.ANCHOR_X / CONFIG.NATIVE_W) * 100;
 const BURST_X_PCT = (CONFIG.BURST_X / CONFIG.NATIVE_W) * 100;
 const BURST_Y_PCT = (CONFIG.BURST_Y / CONFIG.NATIVE_H) * 100;
 
+// Reference viewport width per breakpoint - the same 1440/768/390 points
+// COLUMN_TIERS uses elsewhere. Used below to freeze the burst/particle
+// sizing at one value per breakpoint instead of letting it float
+// continuously with the live window width.
+const BURST_REFERENCE_W = { desktop: 1440, tablet: 768, mobile: 390 } as const;
+
 function buildGradient(falloffPct: number): string {
   return `radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 8%, rgba(255,255,255,0) ${falloffPct}%)`;
 }
 
 interface Particle {
-  x: number;            // vw, relative to burst origin
+  x: number;            // px, relative to burst origin (fixed per breakpoint - see pxToPxBurst)
   y: number;
-  vx: number;            // vw/sec
+  vx: number;            // px/sec
   vy: number;
   drag: number;          // fraction/sec, unitless — not scaled by pxToVw
   birthTime: number;     // performance.now() ms
@@ -124,6 +130,7 @@ export default function ThinkOpenAnimation() {
 
 const col  = useColumn();
 const type = useType();
+const bp   = useBreakpoint();
 
 const navClearance = useSpace()(SPACE.layout.thinkNavClearance);
 
@@ -132,14 +139,45 @@ const navClearance = useSpace()(SPACE.layout.thinkNavClearance);
   // → lottieScale = OPENING.sizeVw * NATIVE_W / (120 * col.vw)
   const lottieScale = (type.OPENING.sizeVw * CONFIG.NATIVE_W) / (120 * col.vw);
   // pxToVw: 1 native px → OPENING.sizeVw / 120 vw (simplification of the above)
-  const pxToVw = type.OPENING.sizeVw / 120;
+  //
+  // STILL UNCAPPED, and after this edit it is the only uncapped thing left in
+  // this file. Its remaining consumers are the burst flash and the particle
+  // system (sizes, scatter radius, speeds, glow), which therefore keep growing
+  // above 1440 while the artwork they burst from does not. Left that way
+  // DELIBERATELY - see pxToPx below. Porting the burst is a separate pass,
+  // because it changes something visible that deserves its own look.
+  // pxToVw was uncapped vw - it grew/shrank continuously with the live
+  // window width at EVERY width, unlike the Lottie artwork itself (frozen
+  // above 1440 via openingPx()). Mark, after the skills-sphere fix: "let's
+  // fix those [the burst] at their current sizes under each breakpoint."
+  // Pinned to a fixed px-per-native-unit multiplier below, evaluated once
+  // at each breakpoint's OWN reference viewport width rather than derived
+  // from the live window on every render.
+  const pxToPxBurst = (type.OPENING.sizeVw / 120) * (BURST_REFERENCE_W[bp] / 100);
 
   // Vertical placement, derived directly from the artwork's real bounds —
-  // reuses the same pxToVw conversion the burst/particle system already
-  // uses, rather than a separate formula.
+  // NO LONGER the same conversion the burst/particle system uses: that one
+  // (pxToVw) is still uncapped vw. These are capped screen px.
+  // STAGE-CAPPED SCREEN PX, not vw. The wrapper's WIDTH is contentWidth(col) =
+  // stagePx(...), which stops growing at STAGE_MAX_PX, and the Lottie inside is
+  // sized as a PERCENTAGE of that wrapper - so the artwork already froze at
+  // 1440. These two verticals did not, and that mismatch IS the bug: above 1440
+  // the box kept getting taller while the artwork stayed the same size, and the
+  // negative top offset kept pulling that frozen artwork further up out of it.
+  // Two symptoms, one cause - dead space below the headline, headline too high.
+  //
+  // The width was migrated to the stage and the height was not. They used to be
+  // the same number in the same unit, so nothing marked the moment they split.
+  //
+  // openingPx() is the same stage-capped resolver the two Welcome heroes and
+  // the Let's Talk headline already read, so all four stop growing together.
+  // No SSR fallback needed here (unlike the Talk headline): this component
+  // returns null until its Lottie fetch resolves, so it never renders on the
+  // server and openingPx() is never called without a window.
+  const pxToPx = openingPx() / 120;   // 1 native px -> screen px
   const contentHeightNative = CONFIG.CONTENT_BOTTOM_Y - CONFIG.CONTENT_TOP_Y;
-  const renderedContentHeightVw = contentHeightNative * pxToVw;
-  const artworkTopOffsetVw = CONFIG.CONTENT_TOP_Y * pxToVw;
+  const renderedContentHeightPx = contentHeightNative * pxToPx;
+  const artworkTopOffsetPx = CONFIG.CONTENT_TOP_Y * pxToPx;
 
   useEffect(() => {
     let cancelled = false;
@@ -161,20 +199,20 @@ const navClearance = useSpace()(SPACE.layout.thinkNavClearance);
   // rest of this project's animations (transition:none -> rAF -> real
   // transition), applied to both layers together. ──────────────────────
   function fireFlash() {
-    const outerW = CONFIG.FLASH_OUTER_SIZE * pxToVw;
-    const innerW = CONFIG.FLASH_INNER_SIZE * pxToVw;
+    const outerPx = CONFIG.FLASH_OUTER_SIZE * pxToPxBurst;
+    const innerPx = CONFIG.FLASH_INNER_SIZE * pxToPxBurst;
 
     const layers: [HTMLDivElement | null, number, number][] = [
-      [flashOuterRef.current, outerW, CONFIG.FLASH_OUTER_FALLOFF],
-      [flashInnerRef.current, innerW, CONFIG.FLASH_INNER_FALLOFF],
+      [flashOuterRef.current, outerPx, CONFIG.FLASH_OUTER_FALLOFF],
+      [flashInnerRef.current, innerPx, CONFIG.FLASH_INNER_FALLOFF],
     ];
 
-    layers.forEach(([el, sizeVw, falloff]) => {
+    layers.forEach(([el, sizePx, falloff]) => {
       if (!el) return;
       el.style.background = buildGradient(falloff);
       el.style.transition = 'none';
-      el.style.width = `${sizeVw}vw`;
-      el.style.height = `${sizeVw}vw`;
+      el.style.width = `${sizePx}px`;
+      el.style.height = `${sizePx}px`;
       el.style.opacity = '0';
       el.style.transform = 'translate(-50%, -50%) scale(0.2)';
     });
@@ -200,29 +238,29 @@ const navClearance = useSpace()(SPACE.layout.thinkNavClearance);
   // synchronize (every particle re-targeting on the same shared tick). ──
   function spawnParticles() {
     const now = performance.now();
-    const scatterRadiusVw = CONFIG.PARTICLE_SCATTER_RADIUS * pxToVw;
-    const minSpeedVw = CONFIG.PARTICLE_MIN_SPEED * pxToVw;
-    const maxSpeedVw = CONFIG.PARTICLE_MAX_SPEED * pxToVw;
-    const minSizeVw = CONFIG.PARTICLE_MIN_SIZE * pxToVw;
-    const maxSizeVw = CONFIG.PARTICLE_MAX_SIZE * pxToVw;
-    const glowVw = CONFIG.PARTICLE_GLOW * pxToVw;
+    const scatterRadiusPx = CONFIG.PARTICLE_SCATTER_RADIUS * pxToPxBurst;
+    const minSpeedPx = CONFIG.PARTICLE_MIN_SPEED * pxToPxBurst;
+    const maxSpeedPx = CONFIG.PARTICLE_MAX_SPEED * pxToPxBurst;
+    const minSizePx = CONFIG.PARTICLE_MIN_SIZE * pxToPxBurst;
+    const maxSizePx = CONFIG.PARTICLE_MAX_SIZE * pxToPxBurst;
+    const glowPx = CONFIG.PARTICLE_GLOW * pxToPxBurst;
 
     particlesRef.current = Array.from({ length: CONFIG.PARTICLE_COUNT }, (_, i) => {
       const scatterAngle = Math.random() * Math.PI * 2;
-      const scatterDist = Math.random() * scatterRadiusVw;
+      const scatterDist = Math.random() * scatterRadiusPx;
       const flightAngle = Math.random() * Math.PI * 2;
-      const speed = minSpeedVw + Math.random() * Math.max(0, maxSpeedVw - minSpeedVw);
+      const speed = minSpeedPx + Math.random() * Math.max(0, maxSpeedPx - minSpeedPx);
       const drag = CONFIG.PARTICLE_MIN_DRAG + Math.random() * (CONFIG.PARTICLE_MAX_DRAG - CONFIG.PARTICLE_MIN_DRAG);
-      const size = minSizeVw + Math.random() * Math.max(0, maxSizeVw - minSizeVw);
+      const size = minSizePx + Math.random() * Math.max(0, maxSizePx - minSizePx);
       const lifespan = CONFIG.PARTICLE_MIN_LIFESPAN + Math.random() * (CONFIG.PARTICLE_MAX_LIFESPAN - CONFIG.PARTICLE_MIN_LIFESPAN);
       const birthTime = now + Math.random() * CONFIG.PARTICLE_BIRTH_STAGGER;
 
       const el = particleElRefs.current[i];
       if (el) {
-        el.style.width = `${size}vw`;
-        el.style.height = `${size}vw`;
-        el.style.boxShadow = glowVw > 0
-          ? `0 0 ${glowVw}vw ${Math.max(0.05, glowVw / 3)}vw rgba(255,255,255,0.8)`
+        el.style.width = `${size}px`;
+        el.style.height = `${size}px`;
+        el.style.boxShadow = glowPx > 0
+          ? `0 0 ${glowPx}px ${Math.max(0.05, glowPx / 3)}px rgba(255,255,255,0.8)`
           : 'none';
         el.style.opacity = '0';
       }
@@ -281,7 +319,7 @@ const navClearance = useSpace()(SPACE.layout.thinkNavClearance);
       }
 
       p.el.style.opacity = String(Math.max(0, opacity));
-      p.el.style.transform = `translate(calc(-50% + ${p.x}vw), calc(-50% + ${p.y}vw)) scale(${Math.max(0, scale)})`;
+      p.el.style.transform = `translate(calc(-50% + ${p.x}px), calc(-50% + ${p.y}px)) scale(${Math.max(0, scale)})`;
     });
 
     if (anyAlive) {
@@ -321,7 +359,7 @@ const navClearance = useSpace()(SPACE.layout.thinkNavClearance);
         marginRight: 'auto',
         // Height matches the artwork's own real rendered size — not the
         // full comp — so there's no reserved dead space to correct for.
-        height: `${renderedContentHeightVw}vw`,
+        height: `${renderedContentHeightPx}px`,
         overflow: 'visible',
       }}
     >
@@ -332,7 +370,7 @@ const navClearance = useSpace()(SPACE.layout.thinkNavClearance);
           // Pulls the full comp up so the artwork's real top edge
           // (CONTENT_TOP_Y) lands exactly at this wrapper's own y=0 —
           // direct, no percentage-anchor math.
-          top: `${-artworkTopOffsetVw}vw`,
+          top: `${-artworkTopOffsetPx}px`,
           width: `${lottieScale * 100}%`,
           aspectRatio: `${CONFIG.NATIVE_W} / ${CONFIG.NATIVE_H}`,
           transform: `translateX(-${ANCHOR_X_PCT}%)`,

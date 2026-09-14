@@ -37,14 +37,22 @@ const ICONS = {
 }
 
 export default function Footer() {
-const [activePage, setActivePage] = useState("welcome")
-    const [visible, setVisible] = useState(false)
+    // pathname FIRST so it can seed activePage. This was a hardcoded "welcome",
+    // which meant the rule below painted Welcome's cyan on frame 1 of EVERY page
+    // and then cross-faded to the correct colour over 0.4s. usePathname() is
+    // correct on the server and on the first client render, so seeding from it
+    // means the rule is never wrong for even one frame - and server and client
+    // agree, so there is no hydration mismatch either.
     const pathname = usePathname()
+    const [activePage, setActivePage] = useState(() => getActivePage(pathname))
+    const [visible, setVisible] = useState(false)
     const type = useType()
     const shtookyMode = useShtookyMode()
 
     useEffect(() => {
-        setActivePage(getActivePage())
+        // Pass the pathname rather than re-reading window.location: this effect
+        // is keyed on pathname, so pathname is the thing it is reacting to.
+        setActivePage(getActivePage(pathname))
     }, [pathname])
 
     useEffect(() => {

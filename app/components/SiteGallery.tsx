@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { COLORS } from './SiteTokens'
+import { GALLERY_MANIFEST } from '../data/GalleryManifest'
 import type { GalleryOffset, GalleryVideoLink, GalleryData } from './SiteCaseMarkdown'
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
@@ -65,10 +66,28 @@ function posterCandidates(video: GalleryVideoLink | undefined, folderSrc: string
 }
 
 export default function Gallery({ path, gallery }: Props) {
-  const [images, setImages] = useState<string[] | null>(null)
+  // SEEDED FROM THE BAKED MANIFEST, not null. This used to start null and stay
+  // null until /api/gallery/<path> resolved, and the guard below returns null
+  // while images is null - so the gallery contributed ZERO HEIGHT to the
+  // document for the whole of that round trip. Opening a card was: fetch the
+  // markdown, parse it, mount this, fetch the file list, and only then did the
+  // page reach its real height. Until that landed there was nothing to scroll
+  // to, which is what "I can't scroll for two seconds" was. Unaffected by image
+  // weight - it happened just as much with small images.
+  //
+  // The list is a directory listing that cannot change between deploys, so it is
+  // generated into app/data/GalleryManifest.ts at dev/build time instead. A
+  // baked path now paints its reserved aspect-ratio boxes on the FIRST render.
+  const [images, setImages] = useState<string[] | null>(() => GALLERY_MANIFEST[path] ?? null)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
 
   useEffect(() => {
+    // Baked path: nothing to fetch, and no state change on mount either since
+    // useState already seeded it. The fetch survives as the fallback for a
+    // folder added without regenerating the manifest, so adding images and
+    // forgetting the script degrades to the old behaviour rather than breaking.
+    const baked = GALLERY_MANIFEST[path]
+    if (baked) { setImages(baked); return }
     let cancelled = false
     fetch(`/api/gallery${path}`)
       .then(r => r.json())

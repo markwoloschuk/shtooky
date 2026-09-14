@@ -29,6 +29,9 @@ export default function WhoIAmBody({ md }: { md: string }) {
     const space = useSpace()
     const navClearance = space(SPACE.layout.whoNavClearance)
     const sphereBoxHeight = space(SPACE.layout.whoSphereBoxHeight)
+    const bottomPad = space(SPACE.layout.whoBottomPad)
+    const sphereSpacerTop = space(SPACE.layout.whoSphereSpacerTop)
+    const vennMargin = space(SPACE.layout.whoVennMargin)
 
     useEffect(() => {
         // Re-arm the whole sequence on every VISIT to this page.
@@ -48,15 +51,15 @@ export default function WhoIAmBody({ md }: { md: string }) {
         <div
             style={{
                 paddingTop: navClearance,
-                paddingBottom: "15vh",
+                paddingBottom: bottomPad,
             }}
         >
             {/* Sphere and Venn are rendered as [slot] items inside the content
                 column below — the CONTENT declares where they sit in the
                 sequence, this file still declares what they are and how they
                 are framed. */}
-            {/* ── 2vh spacer ── */}
-            <div style={{ height: "2vh" }} />
+            {/* ── spacer above the content column ── */}
+            <div style={{ height: sphereSpacerTop }} />
 
             {/* ── content column ── */}
             <div
@@ -108,7 +111,7 @@ export default function WhoIAmBody({ md }: { md: string }) {
                             // On mobile bodyColPct is 100, so this maxWidth is a
                             // no-op there and the size comes entirely from
                             // VENN_SCALE_TIERS.mobile.
-                            <div style={{ marginTop: "4vh", marginBottom: "4vh", maxWidth: bodyMaxWidth(col) }}>
+                            <div style={{ marginTop: vennMargin, marginBottom: vennMargin, maxWidth: bodyMaxWidth(col) }}>
                                 <VennDiagram scale={VENN_SCALE_TIERS[bp]} xOffset={0} triggerOnScroll={true} />
                             </div>
                         ),

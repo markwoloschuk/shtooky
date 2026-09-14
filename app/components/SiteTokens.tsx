@@ -444,7 +444,7 @@ const TYPE_TIERS = {
         CASE_BODY: { sizePx: 16, weight: 300, tracking: 0.01, lineHeight: 1.72 }, // mirrors BODY
         CAPTION: { sizePx: 13, weight: 300, tracking: 0.08, lineHeight: 1.4 },
         NAV_NAME: { sizePx: 30, weight: 700, tracking: 0, lineHeight: 1.0 },
-        PULLQUOTE: { sizePx: 28, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
+        PULLQUOTE: { sizePx: 26, weight: 700, tracking: 0, lineHeight: 1.2 }, // interpolated placeholder — needs visual tuning
         ABOUT_PULLQUOTE: { sizePx: 28, weight: 700, tracking: -0.025, lineHeight: 1.05 }, // matches the old clamp's 28px floor exactly
         SUBTITLE: { sizePx: 20, weight: 400, tracking: 0, lineHeight: 1.35 }, // interpolated placeholder — needs visual tuning
         JOB_LABEL: { sizePx: 10, weight: 700, tracking: 0.12, lineHeight: 1.4 },
@@ -506,6 +506,17 @@ export const SPACE = {
         // container WIDTH, so a vh box grows while the sphere doesn't).
         whoSphereBoxHeight: { desktop: 360, tablet: 260, mobile: 180 },
 
+        // Who I Am — the three remaining vh values on the page (bottom
+        // padding, the spacer above the content column, and the gap around
+        // the Venn diagram), converted 2026-09-14 for the same reason
+        // whoSphereBoxHeight was: these shifted the sphere/copy vertically
+        // on resize (including iOS's toolbar-driven resize on scroll) even
+        // though whoSphereBoxHeight itself was already fixed. Derived from
+        // each tier's referenceH as a starting guess — judge by eye.
+        whoBottomPad:       { desktop: 135, tablet: 154, mobile: 127 },
+        whoSphereSpacerTop: { desktop:  18, tablet:  20, mobile:  17 },
+        whoVennMargin:      { desktop:  36, tablet:  41, mobile:  34 },
+
         // How I Think — gap from the opening animation down to the blurb.
         thinkBlurbGap:      { desktop:  32, tablet:  24, mobile:  16 },
 
@@ -543,6 +554,20 @@ export const SPACE = {
         // mobile by WelcomeHero2Line; each file used to carry its own copy
         // of this number (5 and 35), so the 7x difference was invisible.
         welcomeHeroTaglineGap: { desktop: 5, tablet: 35, mobile: 18 },
+
+        // Welcome — empty space reserved above the hero while it plays,
+        // before the page collapses down to TOP_SPACER_AFTER_PX (page.tsx).
+        // Was a raw "35vh" in page.tsx — same iOS toolbar problem as
+        // whoBottomPad etc.: vh resolves against the toolbar-COLLAPSED
+        // viewport height, not whatever is actually visible, so on load
+        // (toolbar expanded) the reserved space eats more of the real
+        // screen than 35%, pushing the hero lower in the frame than
+        // intended. Derived from 35% of each tier's referenceH, same
+        // method as TOP_SPACER_AFTER_PX below it.
+        //   desktop  35% of 900  = 315
+        //   tablet   35% of 1024 = 358
+        //   mobile   35% of 844  = 295
+        welcomeHeroTopSpacer: { desktop: 315, tablet: 358, mobile: 192 }, // mobile: 150 sat ~5% too high on device; +42 (5% of the 844 reference) to push it back down, TBD by eye on device
     },
 
     text: {
@@ -671,10 +696,35 @@ export const MOBILE_BAND_HEIGHT_SCALE = 1.65
 // drifts across its own range and steps at the breakpoint. A 2560-wide desktop
 // gets the same 305 as a 1280 one — which is the point, since the old ramp gave
 // it 853 and ate the screen.
+// RE-TUNED 2026-09-13, and the round trip is the useful part of the record.
+//
+// These were briefly set to the Work-matched values in the `was` column above
+// (480 / 256 / 215) to test whether the 08-29 reduction had gone too far. The
+// answer differed by tier, which is exactly the argument for tiers:
+//
+//   desktop  480 was TOO TALL - 53% of a 1440x900 screen, which is the very
+//            figure the 08-29 note cites as the reason for reducing it. Walked
+//            back to 360 (40%). Still well above the old 305, because band
+//            height turned out to drive the open/close shimmy: the card is
+//            STRETCHED from its cell's aspect (0.76-1.52) to the band's, and a
+//            shallower band means less stretch and less re-cropping mid-flight.
+//            305 gives aspect 4.72; 360 gives 4.00; 480 gives 3.00. The
+//            improvement is gradual, so this is a judged middle, not a solve.
+//   tablet   256 KEPT. 217 had been over-reduced.
+//   mobile   215 KEPT. 165 had been over-reduced.
+//
+// NOT restored: the old MECHANISM. These stay FLAT SCREEN PIXELS per tier. The
+// 08-29 finding still stands - 480 in NATIVE units scaled by stage width made
+// band height a function of viewport WIDTH judged against viewport HEIGHT, and
+// reached 853px at 2560.
+//
+// DEFERRED: matching Work's band again. Work is at CH = 480 native and reads
+// fine as it is; Think does not. Mark's call, 2026-09-13 - revisit once Think
+// is settled. See claude/todo_site_wide for the units mismatch behind it.
 export const BAND_HEIGHT_TIERS = {
-    desktop: 305,   // >= BREAKPOINTS.laptop   — measured at 1440
-    tablet:  217,   // BREAKPOINTS.tablet..laptop — measured at 768
-    mobile:  165,   // < BREAKPOINTS.tablet    — measured at 390
+    desktop: 360,   // >= BREAKPOINTS.laptop   — measured at 1440
+    tablet:  256,   // BREAKPOINTS.tablet..laptop — measured at 768
+    mobile:  215,   // < BREAKPOINTS.tablet    — measured at 390
 }
 
 // Vertical anchor for the BAND image only — 0 top, 0.5 centre, 1 bottom.
@@ -701,6 +751,18 @@ export const BAND_HEIGHT_TIERS = {
 // every one of the thirteen. If the middle also fails on some, the next step is
 // an OPTIONAL per-card anchorY on the manifest entry defaulting to this token,
 // so the exceptions carry numbers and the rest do not.
+// TRIED 0 AGAIN, 2026-09-14 — REVERTED SAME DAY. The theory was right for one
+// card and wrong in general: anchoring top makes the image's top edge match
+// the box's top edge, which only helps when the top edge is the one that's
+// actually near-stationary for that card's own from/to geometry. For a
+// bottom-row card travelling a long way UP to reach the band, the top edge is
+// the one doing most of the moving and the BOTTOM edge is the stationary one
+// — so a single global top-anchor made the bottom-right card's shimmy worse,
+// not better, while doing nothing for the "edges arrive at different times"
+// complaint (that's the box's own shape change, not the image anchor at all).
+// Confirms: no single constant here can be right for every grid position.
+// Any real fix needs either a per-card/per-position anchor, or to attack the
+// box's shape-change timing directly rather than the anchor.
 export const BAND_ANCHOR_Y = 0.5
 
 // ─── BAND OPEN — when the card counts as "landed" ────────────────────────────
@@ -1219,13 +1281,24 @@ export const FOOTER = {
 
 // ─── UTILITIES ───────────────────────────────────────────────────────────────
 
-export function getActivePage(): string {
-    if (typeof window === "undefined") return "welcome"
-    const path = window.location.pathname
-    if (path.startsWith("/work")) return "work"
-    if (path.startsWith("/who-i-am")) return "about"
-    if (path.startsWith("/how-i-think")) return "thinking"
-    if (path.startsWith("/lets-talk")) return "contact"
+export function getActivePage(path?: string): string {
+    // OPTIONAL PATH, added because this could only ever be asked about the route
+    // the BROWSER happens to be on, never about a route it is handed. That forced
+    // every caller to resolve the page in an effect AFTER first paint, and every
+    // one of them rendered the "welcome" fallback for that first frame. In the
+    // footer that frame was visible: the rule painted Welcome's cyan and then
+    // cross-faded to the real page colour over its own 0.4s background
+    // transition, on a reload of any page.
+    //
+    // The parameter is optional, so no existing call site changes. Callers that
+    // have a pathname (usePathname() is correct on the server AND on frame 1)
+    // should pass it; callers that do not still get the window read.
+    const p = path ?? (typeof window === "undefined" ? null : window.location.pathname)
+    if (p === null) return "welcome"
+    if (p.startsWith("/work")) return "work"
+    if (p.startsWith("/who-i-am")) return "about"
+    if (p.startsWith("/how-i-think")) return "thinking"
+    if (p.startsWith("/lets-talk")) return "contact"
     return "welcome"
 }
 

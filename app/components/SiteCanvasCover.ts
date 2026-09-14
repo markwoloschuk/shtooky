@@ -35,7 +35,15 @@ export interface CoverOptions {
    * box stays the full band width, so the centre is not the box's centre.
    */
   centerX?: number
-  /** Per-item crop nudge, in the context's units. */
+  /**
+   * Per-item crop nudge, in the context's units.
+   *
+   * offsetY is CLAMPED so the image can never be nudged past its own cover -
+   * see the note at the clamp below. offsetX is deliberately NOT clamped:
+   * Work's carousel slides its content horizontally via centerX against a fit
+   * box that stays the full band width, so a horizontal clamp would fight the
+   * slide rather than protect it.
+   */
   offsetX?: number
   offsetY?: number
   /** Per-item zoom, percent. 100 = plain cover fit. */
@@ -71,7 +79,34 @@ export function drawCover(
 
   const cx = centerX ?? box.x + box.w / 2
   const x = cx - dw / 2 + offsetX
-  const y = box.y + (box.h - dh) * anchorY + offsetY
+  let y = box.y + (box.h - dh) * anchorY + offsetY
+
+  // COVER GUARANTEE. An offsetY larger than the available vertical overflow
+  // slides the image off its own box and exposes whatever is behind it, which
+  // is a contradiction in a function called drawCover. Clamping here rather
+  // than at each call site because every caller wants the same thing and none
+  // of them can check it without redoing the fit maths.
+  //
+  // Found 2026-09-13 in Work's mobile carousel. The per-card offsetV values in
+  // WorkManifest are authored in native px against the DESKTOP band (h = CH,
+  // 480), where a 16:9 image overflows by ~330px and so has ~165px of slack
+  // each way. Mobile multiplies the band height by MOBILE_BAND_HEIGHT_SCALE
+  // (h ~792) while the image width, and therefore its drawn height, is
+  // unchanged - so the overflow collapses to ~18px and the slack to ~9px. The
+  // authored 140 and 114 then hung ~131px and ~105px of empty box above their
+  // slices. The offsets were being obeyed exactly, into a box with no room.
+  //
+  // Self-gating on purpose: no tier flag, no per-breakpoint numbers, and a
+  // no-op anywhere the offset already fits - which is every desktop case today.
+  //
+  // NOTE this makes the mobile crop CORRECT (no gap) but not the framing that
+  // was authored - a clamped 140 is just 'as far down as it can go'. Expressing
+  // offsetV as a fraction of available slack would preserve the intent at every
+  // band height; that is a separate change and it needs the manifest values
+  // re-expressed and re-judged.
+  if (dh >= box.h) {
+    y = Math.min(box.y, Math.max(box.y + box.h - dh, y))
+  }
 
   ctx.drawImage(img, x, y, dw, dh)
 }

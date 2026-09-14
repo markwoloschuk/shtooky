@@ -100,6 +100,31 @@ const CFG = {
     NB_LIFEMAX: 14,
     NB_FADEDUR: 4,
     NB_FADEVAR: 0.4,
+    // SUSPECTED AND EXONERATED, 2026-09-13. Set to 0 as a measurement while
+    // chasing nebulas that went haywire during an iOS rubber-band at the top
+    // of the page. It made no difference, which is the useful part: the give-
+    // away was that the fault persisted while the band was merely HELD open,
+    // and a held stretch has almost no velocity. A velocity term cannot drive
+    // a fault that survives zero velocity.
+    //
+    // The actual cause was handleResize() calling initNebula(), which replaced
+    // the whole particle field on every toolbar-driven innerHeight change. Now
+    // fixed there by rescaling instead. Restored to 1.0 and judged good.
+    //
+    // Two things about this term remain true and are recorded, NOT as defects
+    // - nothing visible has been attributed to either - but so the next person
+    // does not rediscover them from scratch:
+    //   1. It integrates VELOCITY while the parallax in drawParticles is a pure
+    //      function of POSITION. Parallax is reversible; this is not, so a
+    //      scroll down and back up leaves the field slightly displaced.
+    //   2. Its filter, Math.min(dt * 8, 1) in the render loop, reaches 1.0 at
+    //      dt >= 0.125s, which is no smoothing at all - so it damps least when
+    //      frames drop, which is when scrolling is fastest. A frame-rate-
+    //      independent form would be 1 - Math.exp(-dt * 8).
+    //
+    // Repro worth keeping for anything in this file: rubber-band at the TOP on
+    // iOS. The bottom stays clean because the toolbar is already collapsed, so
+    // innerHeight never changes there. Binary and repeatable.
     NB_SCROLLINF: 1.0,
     NB_DEPTH: 0.7,
 
@@ -1111,7 +1136,37 @@ s.pageColor = `#${pr.toString(16).padStart(2,'0')}${pg.toString(16).padStart(2,'
             if (LAYERS.grain) regenGrain()
             if (LAYERS.gridA) regenGrid("a")
             if (LAYERS.gridB) regenGrid("b")
-            if (LAYERS.nebula) initNebula()
+            // RESCALE, do not re-init. This was initNebula(), which threw away
+            // all NB_COUNT particles and built new ones at random positions -
+            // and because initNebula() calls spawnNebula(false), those arrive
+            // with age = Math.random() * particleFade, i.e. already partway
+            // through their fade-in and therefore VISIBLE ON THE FIRST FRAME.
+            // A natural respawn passes true and starts at age 0, so it fades up
+            // from nothing; only this path pops.
+            //
+            // Why that mattered: on iOS, overscrolling at the TOP animates the
+            // Safari toolbar, so window.innerHeight changes repeatedly for the
+            // whole stretch AND the whole release, firing resize each time and
+            // swapping the entire nebula field over and over. Overscroll at the
+            // bottom leaves the toolbar collapsed, innerHeight never moves, and
+            // the field is untouched - which is exactly the asymmetry reported.
+            //
+            // This mirrors what the bokeh leaders above already do. They were
+            // always rescaled and preserved; nebula simply never got the same
+            // treatment. Preserving the particles keeps age, colour, opacity and
+            // pulse phase, so a resize moves the field instead of replacing it.
+            if (LAYERS.nebula) {
+                if (s.nebulaParticles.length > 0 && oldVW > 0 && oldVH > 0) {
+                    s.nebulaParticles.forEach((p: NebulaParticle) => {
+                        p.x = (p.x / oldVW) * s.VW
+                        p.y = (p.y / oldVH) * s.VH
+                        // size is spawned as a fraction of VW, so it tracks width
+                        p.size = (p.size / oldVW) * s.VW
+                    })
+                } else {
+                    initNebula()
+                }
+            }
             if (LAYERS.gridA) initGridAShimmer()
             if (LAYERS.vignette) updateVignette()
         }

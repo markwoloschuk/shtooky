@@ -22,6 +22,17 @@ const CFG = {
     CAR_DUR: 2100,
     REACH_START: 80,
     REACH_END: 50,
+    // EDGE_FADE_FRAMES: the bottom-entrance mask edge is a fixed pixel width
+    // (REACH_*), but the scroll itself is eased (fast at the start, slowing
+    // to a stop) — so early in the cycle a word blows through that fixed
+    // width quickly and the entrance reads as an abrupt cut, even though the
+    // top exit (helped by the slow, deliberate crossfade to the final word)
+    // feels soft. This pads the bottom edge, per frame, by however far the
+    // track will travel in this many frames at its CURRENT speed — wide
+    // when it's moving fast (early), naturally shrinking to ~0 as it
+    // decelerates (late), rather than a fixed width that only feels right
+    // at one speed.
+    EDGE_FADE_FRAMES: 5,
     // SHIFT_DUR: 2000,  ← remove
     COLOR_SETTLE_DELAY: 80,   // ms after crossfade fully completes before color starts moving
     COLOR_SETTLE_DUR: 1200,    // ms for the color-to-white transition itself
@@ -534,7 +545,16 @@ export default function HeroAnimation({
                 slotTrack.style.transform = `translateY(${trackY.toFixed(3)}px)`
                 finalEl.style.top = (trackY + nCar * lineH).toFixed(3) + "px"
 
-                const reach = reachStart + (reachEnd - reachStart) * ce
+                // Instantaneous scroll speed from the easeOutQuart derivative
+                // (d/dcp[1-(1-cp)^4] = 4(1-cp)^3), converted to px/ms via the
+                // chain rule (d cp/dt = 1/CAR_DUR) and total travel distance.
+                // Zero once cp reaches 1 (track has stopped).
+                const speedPxPerMs =
+                    cp < 1
+                        ? (trackDist * 4 * Math.pow(1 - cp, 3)) / CFG.CAR_DUR
+                        : 0
+                const edgeFadePad = speedPxPerMs * (1000 / 60) * CFG.EDGE_FADE_FRAMES
+                const reach = reachStart + (reachEnd - reachStart) * ce + edgeFadePad
                 setMask(outerH, lineH, padding, reach)
 
 const fadeT = Math.max(0, (cp - 0.5) / 0.5)

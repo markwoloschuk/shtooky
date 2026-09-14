@@ -427,21 +427,59 @@ export default function SkillsSphere() {
         const dpr = window.devicePixelRatio || 1
 
         const REFERENCE_W = 800
+        // SCALE used to be `W / REFERENCE_W` - continuously re-derived from
+        // the container's live pixel width on every resize. But this box is
+        // only fixed in HEIGHT (SPACE.layout.whoSphereBoxHeight); its WIDTH
+        // is a percentage of the page's fluid stage (76%/100% of
+        // contentWidth()), which itself tracks the viewport up to the 1440
+        // stage cap (see stagePx() in SiteTokens.tsx). Net effect: resizing
+        // the browser window continuously grew/shrank the sphere, its
+        // orbit, and its label text, even without crossing a breakpoint.
+        // Mark: "i think i basically want it to just sit at the one size
+        // for each breakpoint. sphere height width and text size." Fixed by
+        // pinning SCALE to one of three constants instead of a live
+        // measurement - each is this component's own box width measured at
+        // its breakpoint's REFERENCE viewport (COLUMN_TIERS' 1440/768/390),
+        // divided by REFERENCE_W: desktop 1083px, tablet 753px, mobile
+        // 390px.
+        const SCALE_TIERS = {
+            desktop: 1083 / REFERENCE_W,
+            tablet: 753 / REFERENCE_W,
+            mobile: 390 / REFERENCE_W,
+        } as const
         let SCALE = 1
         let RADIUS = SPHERE_RADIUS_DESKTOP
 
         function resize() {
             W = container!.clientWidth
             H = container!.clientHeight
-            SCALE = W / REFERENCE_W
             // Resolved here, inside the ResizeObserver callback, so it
             // re-resolves on every real box change rather than being read
             // once at mount and frozen.
             const bpNow = getBreakpoint()
+            SCALE = SCALE_TIERS[bpNow]
             RADIUS =
                 bpNow === "mobile" ? SPHERE_RADIUS_MOBILE :
                 bpNow === "tablet" ? SPHERE_RADIUS_TABLET :
                 SPHERE_RADIUS_DESKTOP
+
+            // RADIUS above is driven by container WIDTH only (see the note
+            // on SPHERE_RADIUS_* up top) — it was never checked against the
+            // box's actual HEIGHT. A wide-but-short box (desktop's slot is
+            // ~1080x360) lets the widest swing of an orbiting node - the
+            // "breathe" pulse at its peak, at the vertical pole of the
+            // rotation - land outside the box on some frames, worse on some
+            // page loads than others depending on the randomized per-node
+            // orbit phase. Cap RADIUS so that worst case, plus a cushion for
+            // the label text's own height, still fits inside H.
+            const worstBreathe = 1 + CFG.breatheAmt
+            const labelHalfH = (CFG.textSizeW * SCALE) * 0.75
+            const maxVerticalReach = H / 2 - labelHalfH
+            const nominalVerticalReach = RADIUS * SCALE * worstBreathe * CFG.scaleY
+            if (maxVerticalReach > 0 && nominalVerticalReach > maxVerticalReach) {
+                RADIUS *= maxVerticalReach / nominalVerticalReach
+            }
+
             canvas!.width = Math.round(W * dpr)
             canvas!.height = Math.round(H * dpr)
             canvas!.style.width = W + "px"

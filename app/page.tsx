@@ -15,19 +15,53 @@ import { useColumn, useType, bodyMaxWidth, useBreakpoint, SPACE, useSpace, conte
 //   2. any pointer / touch / wheel / scroll / key
 // Then: fade the hero, collapse the space it held together with the
 // oversized top spacer, then start the "interesting" sequence.
-const HERO_IDLE_MS = 3000
+// The page does not scroll during the handoff. Five phases:
+//   1  0 - ~3.55s        hero plays        LOCKED, gestures swallowed
+//   2  + HERO_HOLD_MS    hero holds        LOCKED, gestures swallowed
+//   3  armed             hero waits        LOCKED, gestures DISMISS
+//   4  dismissed         fade + collapse   LOCKED
+//   5  contentStart      content in        unlocked
+//
+// What changes when the hold expires is not the lock - it is what a
+// gesture MEANS. Unlocking at phase 3 and re-locking at phase 4 loses a
+// race: the dismiss listener fires on the wheel event, but the re-lock
+// only lands a tick later, so the page drifts 50-100px before the
+// collapse - exactly the unpredictable geometry the lock exists to stop.
+const HERO_HOLD_MS = 3000
+// If nobody moves at all, advance anyway. This is the whole reason the
+// original timeout existed: a visitor who never scrolls must still reach
+// the rest of the site. Total to auto-advance: 3550 + 3000 + 5500 ~= 12s.
+const HERO_BACKSTOP_MS = 5500
 const HERO_FADE_MS = 700
 const HERO_COLLAPSE_MS = 600
-// 35vh was composed for a page whose only content was the hero. Once the
-// hero is gone it is pure dead space, so it collapses with it.
-const TOP_SPACER = "35vh"
-const TOP_SPACER_AFTER = "12vh"
+// Reserved empty space above the hero while it plays. Was a raw "35vh" —
+// converted 2026-09-14 to SPACE.layout.welcomeHeroTopSpacer (see SiteTokens.tsx
+// for why: iOS's toolbar-collapsed-vs-visible viewport mismatch was pushing
+// the hero lower in the frame than intended, worst right on page load).
+// What TOP_SPACER becomes once the hero is gone - i.e. how far down the page the
+// "interesting" block ends up sitting. Absolute px rather than vh, per the
+// move away from viewport units for vertical position. These are the values
+// a 12vh would have produced at each tier's referenceH, EXCEPT desktop -
+// the one tier Mark asked to push lower.
+//   desktop  12vh of 900  = 108  ->  165   <- the only visual change
+//   tablet   12vh of 1024 = 123  ->  123
+//   mobile   12vh of 844  = 101  ->  101
+const TOP_SPACER_AFTER_PX = {
+    desktop: 165,
+    tablet: 123,
+    mobile: 101,
+}
+// The second body paragraph waits this long after the first before it starts
+// fading in. ScrollFade’s fadeDuration is 1000ms, so at 600 they overlap
+// rather than queue - succession without a dead beat in the middle.
+const PARA_STAGGER_MS = 600
 
 export default function Page() {
     const col = useColumn()
     const type = useType()
     const space = useSpace()
-    const isMobile = useBreakpoint() === "mobile"
+    const breakpoint = useBreakpoint()
+    const isMobile = breakpoint === "mobile"
 
     // The gaps around the logo grid, and above the CTA links, now read the
     // same tokens as the pull-quote gaps and the Let's Talk button row —
@@ -49,6 +83,7 @@ export default function Page() {
     const [interestingComplete, setInterestingComplete] = useState(false)
     const [gridComplete, setGridComplete] = useState(false)
     const [heroDone, setHeroDone] = useState(false)
+    const [armed, setArmed] = useState(false)
     const [dismissed, setDismissed] = useState(false)
     const [contentStart, setContentStart] = useState(false)
 
@@ -66,15 +101,24 @@ useEffect(() => {
     window.scrollTo(0, 0)
 }, [])
 
-    // Hold, then hand over. Listeners are document-level on purpose: a
-    // scroll has no location, so "near the hero" cannot be scoped for the
-    // one trigger most likely to fire. Nothing is armed until the hero
-    // reports it has finished, so an early scroll cannot cut it short.
+    // ── Phase 2 -> 3. Hero has finished; hold, then arm. ──────────────
     useEffect(() => {
-        if (!heroDone || dismissed) return
+        if (!heroDone) return
+        const t = setTimeout(() => setArmed(true), HERO_HOLD_MS)
+        return () => clearTimeout(t)
+    }, [heroDone])
+
+    // ── Phase 3. Armed: a gesture now means "go". ─────────────────────
+    // Document-level on purpose - a wheel or a key has no location, so
+    // "near the hero" cannot be scoped for the triggers most likely to
+    // fire. "scroll" is deliberately NOT in this list: the page is locked,
+    // so no scroll event can ever be produced. The gestures are what we
+    // read instead. These are passive; the lock below does the preventing.
+    useEffect(() => {
+        if (!armed || dismissed) return
         const dismiss = () => setDismissed(true)
-        const timer = setTimeout(dismiss, HERO_IDLE_MS)
-        const events = ["pointerdown", "touchstart", "wheel", "scroll", "keydown"]
+        const timer = setTimeout(dismiss, HERO_BACKSTOP_MS)
+        const events = ["pointerdown", "touchmove", "wheel", "keydown"]
         events.forEach((e) =>
             window.addEventListener(e, dismiss, { passive: true, once: true })
         )
@@ -82,7 +126,32 @@ useEffect(() => {
             clearTimeout(timer)
             events.forEach((e) => window.removeEventListener(e, dismiss))
         }
-    }, [heroDone, dismissed])
+    }, [armed, dismissed])
+
+    // ── The lock. Held from mount until the content has settled. ──────
+    // preventDefault rather than overflow:hidden on the body. Overflow-
+    // hidden removes the scrollbar, which shifts the whole layout ~15px
+    // sideways on any platform without overlay scrollbars - invisible on a
+    // Mac, ugly on Windows. This is layout-neutral, and it leaves the
+    // events themselves intact so phase 3 can still read them.
+    useEffect(() => {
+        if (contentStart) return
+        const stop = (e: Event) => e.preventDefault()
+        const KEYS = new Set([
+            "ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ",
+        ])
+        const stopKey = (e: KeyboardEvent) => {
+            if (KEYS.has(e.key)) e.preventDefault()
+        }
+        window.addEventListener("wheel", stop, { passive: false })
+        window.addEventListener("touchmove", stop, { passive: false })
+        window.addEventListener("keydown", stopKey, { passive: false })
+        return () => {
+            window.removeEventListener("wheel", stop)
+            window.removeEventListener("touchmove", stop)
+            window.removeEventListener("keydown", stopKey)
+        }
+    }, [contentStart])
 
     // Fade, then collapse, then start the sequence. One owner of this
     // timing — EverythingIsInteresting's own autoDelay is now 0.
@@ -99,8 +168,21 @@ useEffect(() => {
         <div style={{ position: "relative", width: "100%" }}>
             <div
                 style={{
-                    height: dismissed ? TOP_SPACER_AFTER : TOP_SPACER,
-                    transition: `height ${HERO_COLLAPSE_MS}ms ease ${HERO_FADE_MS}ms`,
+                    height: dismissed
+                        ? `${TOP_SPACER_AFTER_PX[breakpoint]}px`
+                        : `${space(SPACE.layout.welcomeHeroTopSpacer)}px`,
+                    // Only animate the deliberate dismiss-collapse. Before
+                    // dismissal this height is breakpoint-derived (mobile vs
+                    // desktop), and useBreakpoint() always renders "desktop"
+                    // first (the SSR-safe default) before correcting to the
+                    // real tier a moment after mount. An unconditional
+                    // transition here animates THAT correction too - a
+                    // visible "woosh" from the wrong tier's spacing to the
+                    // right one, on every load, worst on mobile where the
+                    // two values differ most.
+                    transition: dismissed
+                        ? `height ${HERO_COLLAPSE_MS}ms ease ${HERO_FADE_MS}ms`
+                        : "none",
                 }}
             />
             <div style={{ width: contentWidth(col), marginLeft: "auto", marginRight: "auto" }}>
@@ -140,7 +222,12 @@ useEffect(() => {
                     </p>
                 </ScrollFade>
                 <div style={{ height: "3vh" }} />
-                <ScrollFade enabled={interestingComplete} fadeOutStart={80} fadeOutEnd={-20}>
+                <ScrollFade
+                    enabled={interestingComplete}
+                    mountDelay={PARA_STAGGER_MS}
+                    fadeOutStart={80}
+                    fadeOutEnd={-20}
+                >
                     <p style={bodyStyle}>
                         Doing that means speaking fluent executive, marketer and engineer – I aim to be the gear that connects them all together in turning out business goals.
                     </p>

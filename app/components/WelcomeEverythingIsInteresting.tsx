@@ -280,7 +280,13 @@ useEffect(() => {
                 position: "relative",
                 width: "100%",
                 height: lineH,
-                minHeight: 64,
+                // WAS minHeight: 64 - a floor from when this component read
+                // the desktop-only TYPE export, so the mobile tier never
+                // computed its own lineH. Now that it does, lineH is ~35px at
+                // 390 and the 64 floor nearly doubled the box. The word is
+                // drawn centred in that box, so the surplus split evenly above
+                // and below it. Desktop (75) and tablet (66) were always above
+                // the floor, so removing it is a mobile-only change.
                 cursor: "default",
                 pointerEvents: "auto",
                 overflow: "visible",

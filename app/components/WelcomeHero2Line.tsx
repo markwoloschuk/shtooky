@@ -277,6 +277,7 @@ export default function HeroAnimationTwoLine({
                 position: absolute;
                 left: 0;
                 top: 0;
+                z-index: 2;
                 font-family: ${FONT_DISPLAY};
                 font-weight: ${getType().OPENING.weight};
                 letter-spacing: ${getType().OPENING.tracking}em;
@@ -290,6 +291,7 @@ export default function HeroAnimationTwoLine({
                 position: absolute;
                 left: 0;
                 top: 0;
+                z-index: 1;
                 font-family: ${FONT_DISPLAY};
                 font-weight: ${getType().OPENING.weight};
                 letter-spacing: ${getType().OPENING.tracking}em;
