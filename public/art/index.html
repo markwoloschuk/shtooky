@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kehai — stalk study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: dark;
+    --night:#070A0C;
+    --panel:#0E1316;
+    --rule:#1D262A;
+    --ink:#B9C3C1;
+    --mute:#6A787C;
+    --jade:#8FB0A6;
+    box-sizing:border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *,*::before,*::after{box-sizing:inherit}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--night);
+    color:var(--ink);
+    font-family:Archivo,"Helvetica Neue",Arial,sans-serif;
+    font-size:13px;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  #app{display:flex;height:100%;width:100%}
+  #stage{flex:1;position:relative;min-width:0}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+
+  #readout{
+    position:absolute;left:16px;top:16px;
+    font-variant-numeric:tabular-nums;
+    line-height:1.55;pointer-events:none;
+  }
+  #readout b{font-weight:500;color:#E6EDEA;font-size:22px;letter-spacing:-0.01em}
+  #readout span{color:var(--mute)}
+  #hint{
+    position:absolute;left:16px;bottom:14px;color:var(--mute);
+    max-width:32ch;line-height:1.5;pointer-events:none;
+  }
+
+  #panel{
+    width:318px;flex:none;background:var(--panel);
+    border-left:1px solid var(--rule);
+    overflow-y:auto;padding:18px 18px 40px;
+  }
+  #panel h1{
+    font-size:14px;font-weight:600;margin:0 0 2px;letter-spacing:-0.01em;color:#E6EDEA;
+  }
+  #panel p.sub{margin:0 0 18px;color:var(--mute);line-height:1.5}
+
+  fieldset{border:0;border-top:1px solid var(--rule);margin:0 0 4px;padding:14px 0 6px}
+  legend{padding:0 8px 0 0;color:var(--jade);font-weight:500;font-size:12px}
+
+  .ctl{display:grid;grid-template-columns:1fr auto;gap:2px 8px;margin-bottom:11px}
+  .ctl label{color:var(--ink)}
+  .ctl output{color:var(--mute);font-variant-numeric:tabular-nums}
+  .ctl input[type=range]{grid-column:1/-1;width:100%;margin:2px 0 0;accent-color:var(--jade);height:18px}
+  .ctl input[type=range]:focus-visible{outline:2px solid var(--jade);outline-offset:3px}
+
+  .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;gap:10px}
+  .row input[type=color]{
+    width:44px;height:24px;padding:0;border:1px solid var(--rule);
+    background:none;border-radius:3px;cursor:pointer;
+  }
+  .seg{display:flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+  .seg button{
+    background:none;border:0;color:var(--mute);font:inherit;
+    padding:4px 10px;cursor:pointer;
+  }
+  .seg button[aria-pressed=true]{background:var(--jade);color:#0A1013;font-weight:500}
+  .seg button:focus-visible{outline:2px solid var(--jade);outline-offset:-2px}
+
+  .acts{display:flex;gap:8px;margin-top:16px}
+  .acts button{
+    flex:1;background:none;border:1px solid var(--rule);color:var(--ink);
+    font:inherit;padding:7px 4px;border-radius:3px;cursor:pointer;
+  }
+  .acts button:hover{border-color:var(--jade);color:#E6EDEA}
+  .acts button:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
+
+  #sheet{display:none}
+
+  @media (max-width:760px), (pointer:coarse){
+    body{overflow:hidden}
+    #app{display:block;height:100%}
+    #stage{position:fixed;inset:0;height:100%}
+    #hint{display:none}
+    #readout{left:14px;top:calc(14px + env(safe-area-inset-top,0px))}
+    #readout b{font-size:19px}
+
+    #panel{
+      position:fixed;left:0;right:0;bottom:0;width:100%;
+      max-height:62vh;border-left:0;border-top:1px solid var(--rule);
+      border-radius:14px 14px 0 0;
+      padding:0 16px calc(28px + env(safe-area-inset-bottom,0px));
+      transition:transform .22s ease;
+      box-shadow:0 -18px 40px rgba(0,0,0,.55);
+      overscroll-behavior:contain;
+    }
+    body.sheet-closed #panel{transform:translateY(calc(100% - 96px))}
+    #panel h1, #panel p.sub{display:none}
+
+    #sheet{
+      display:block;position:sticky;top:0;z-index:2;
+      background:var(--panel);padding-top:8px;
+      margin:0 -16px;padding-left:16px;padding-right:16px;
+    }
+    #grip{
+      display:flex;align-items:center;gap:10px;width:100%;
+      background:none;border:0;color:var(--ink);font:inherit;font-weight:500;
+      padding:4px 0 10px;cursor:pointer;
+    }
+    #grip span{
+      width:34px;height:4px;border-radius:2px;background:var(--rule);
+      display:block;margin:0 auto 0 0;
+    }
+    #tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:10px;
+      border-bottom:1px solid var(--rule);scrollbar-width:none}
+    #tabs::-webkit-scrollbar{display:none}
+    #tabs button{
+      flex:none;background:none;border:1px solid var(--rule);border-radius:999px;
+      color:var(--mute);font:inherit;padding:7px 15px;cursor:pointer;
+    }
+    #tabs button[aria-pressed=true]{background:var(--jade);color:#0A1013;border-color:var(--jade);font-weight:500}
+
+    fieldset{border-top:0;padding-top:16px}
+    legend{display:none}
+    fieldset[hidden]{display:none}
+
+    /* touch-sized controls */
+    .ctl{margin-bottom:18px}
+    .ctl input[type=range]{height:34px}
+    .row{margin-bottom:18px;min-height:34px}
+    .row input[type=color]{width:56px;height:32px}
+    .seg button{padding:8px 16px}
+    .acts button{padding:12px 4px}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="readout">
+      <b id="rAngle">0.0°</b> <span>tip from vertical</span><br>
+      <span id="rDrive">light at 0%</span><br>
+      <span id="rDisp">tip moved 0.0″</span>
+    </div>
+    <div id="hint">Drag the stalk to push it by hand. That is the other half of the input — wind and a passing child are the same signal.</div>
+  </div>
+
+  <div id="panel">
+    <div id="sheet">
+      <button id="grip" aria-expanded="true"><span></span>Controls</button>
+      <div id="tabs">
+        <button data-tab="form" aria-pressed="true">Form</button><button data-tab="bend" aria-pressed="false">Bend</button><button data-tab="wind" aria-pressed="false">Wind</button><button data-tab="light" aria-pressed="false">Light</button><button data-tab="scene" aria-pressed="false">Scene</button>
+      </div>
+    </div>
+    <h1>Kehai — stalk study</h1>
+    <p class="sub">One stalk, side view, figures at true scale. Stiffness and wind are relative, not calibrated to a real rod yet.</p>
+
+    <fieldset data-group="form">
+      <legend>Form</legend>
+      <div class="ctl"><label for="height">Height</label><output id="oHeight"></output>
+        <input type="range" id="height" min="12" max="64" step="1" value="36"></div>
+      <div class="ctl"><label for="thick">Rod thickness</label><output id="oThick"></output>
+        <input type="range" id="thick" min="0.08" max="0.6" step="0.01" value="0.22"></div>
+      <div class="ctl"><label for="taper">Taper toward tip</label><output id="oTaper"></output>
+        <input type="range" id="taper" min="0" max="0.8" step="0.01" value="0.45"></div>
+      <div class="row"><span>Rod colour</span><input type="color" id="poleCol" value="#3C4A44"></div>
+    </fieldset>
+
+    <fieldset data-group="bend">
+      <legend>Bend</legend>
+      <div class="ctl"><label for="stiff">Stiffness</label><output id="oStiff"></output>
+        <input type="range" id="stiff" min="0" max="100" step="1" value="46"></div>
+      <div class="ctl"><label for="damp">Damping</label><output id="oDamp"></output>
+        <input type="range" id="damp" min="0.02" max="1" step="0.01" value="0.28"></div>
+    </fieldset>
+
+    <fieldset data-group="wind">
+      <legend>Wind</legend>
+      <div class="ctl"><label for="wind">Speed</label><output id="oWind"></output>
+        <input type="range" id="wind" min="0" max="100" step="1" value="52"></div>
+      <div class="ctl"><label for="gust">Gustiness</label><output id="oGust"></output>
+        <input type="range" id="gust" min="0" max="1" step="0.01" value="0.85"></div>
+      <div class="ctl"><label for="grate">Gust rate</label><output id="oGrate"></output>
+        <input type="range" id="grate" min="0.05" max="1.5" step="0.01" value="0.3"></div>
+      <div class="row"><span>Blowing</span>
+        <span class="seg"><button id="dirL" aria-pressed="false">Left</button><button id="dirR" aria-pressed="true">Right</button></span>
+      </div>
+    </fieldset>
+
+    <fieldset data-group="light">
+      <legend>Light</legend>
+      <div class="ctl"><label for="fullScale">Full-scale deflection</label><output id="oFull"></output>
+        <input type="range" id="fullScale" min="5" max="90" step="1" value="38"></div>
+      <div class="ctl"><label for="gamma">Response curve</label><output id="oGamma"></output>
+        <input type="range" id="gamma" min="0.3" max="3" step="0.05" value="1"></div>
+      <div class="row"><span>Colour at rest</span><input type="color" id="colRest" value="#FF9A3C"></div>
+      <div class="ctl"><label for="brRest">Brightness at rest</label><output id="oBrRest"></output>
+        <input type="range" id="brRest" min="0" max="1" step="0.01" value="0.22"></div>
+      <div class="row"><span>Colour at full bend</span><input type="color" id="colMax" value="#8BF0FF"></div>
+      <div class="ctl"><label for="brMax">Brightness at full bend</label><output id="oBrMax"></output>
+        <input type="range" id="brMax" min="0" max="1" step="0.01" value="1"></div>
+      <div class="row"><span>Blend path</span>
+        <span class="seg"><button id="bOk" aria-pressed="true">Hue arc</button><button id="bRgb" aria-pressed="false">Straight</button></span>
+      </div>
+      <div class="row"><span>Hue takes the</span>
+        <span class="seg"><button id="hShort" aria-pressed="true">Short way</button><button id="hLong" aria-pressed="false">Long way</button></span>
+      </div>
+      <div class="ctl"><label for="midChroma">Chroma through the middle</label><output id="oMidC"></output>
+        <input type="range" id="midChroma" min="0" max="0.6" step="0.01" value="0.18"></div>
+      <canvas id="ramp" height="18" style="width:100%;height:18px;display:block;margin:0 0 12px;border:1px solid var(--rule);border-radius:3px"></canvas>
+      <div class="ctl"><label for="diff">Diffuser size</label><output id="oDiff"></output>
+        <input type="range" id="diff" min="0.3" max="3" step="0.05" value="1.1"></div>
+      <div class="ctl"><label for="bloom">Bloom</label><output id="oBloom"></output>
+        <input type="range" id="bloom" min="0" max="3" step="0.05" value="1.3"></div>
+    </fieldset>
+
+    <fieldset data-group="scene">
+      <legend>Scene</legend>
+      <div class="ctl"><label for="ambient">Ambient light</label><output id="oAmb"></output>
+        <input type="range" id="ambient" min="0" max="1" step="0.01" value="0.12"></div>
+      <div class="ctl"><label for="figH">Adult height</label><output id="oFigH"></output>
+        <input type="range" id="figH" min="58" max="76" step="1" value="68"></div>
+      <div class="row"><span>Figures for scale</span>
+        <span class="seg"><button id="figOn" aria-pressed="true">Show</button><button id="figOff" aria-pressed="false">Hide</button></span>
+      </div>
+      <div class="row"><span>Second stalk</span>
+        <span class="seg"><button id="twoOff" aria-pressed="true">Off</button><button id="twoOn" aria-pressed="false">On</button></span>
+      </div>
+      <div class="ctl"><label for="spacing">Spacing</label><output id="oSpace"></output>
+        <input type="range" id="spacing" min="2" max="36" step="1" value="10"></div>
+      <div class="acts">
+        <button id="pause">Pause</button>
+        <button id="copy">Copy settings</button>
+      </div>
+    </fieldset>
+  </div>
+</div>
+
+<script>
+/* ---------- physics ---------- */
+const G = 10, RHO = 0.002, N = 18;
+
+function makeStalk(seed){
+  return {theta:new Float64Array(N), omega:new Float64Array(N), seed:seed||0,
+          grabIndex:-1, grabX:0, grabY:0};
+}
+function nodes(s, height){
+  const L = height/N, out = new Float64Array((N+1)*2);
+  let a=0,x=0,y=0;
+  for(let i=0;i<N;i++){
+    a += s.theta[i];
+    x += L*Math.sin(a); y += L*Math.cos(a);
+    out[(i+1)*2]=x; out[(i+1)*2+1]=y;
+  }
+  return out;
+}
+function tipAngle(s){let a=0;for(let i=0;i<N;i++)a+=s.theta[i];return a;}
+/* Returns 0..1, peaked: mostly near zero with occasional puffs, so the
+   rod gets real lulls to spring back through instead of being held over. */
+function gust(t,seed,freq){
+  const p=seed*7.13;
+  const n=0.55*Math.sin(t*freq*1.00+p)+0.30*Math.sin(t*freq*2.37+p*1.7)+0.15*Math.sin(t*freq*4.61+p*2.9);
+  const u=Math.min(1,Math.max(0,0.5*(1+n)));
+  return u*u*u;
+}
+function step(s,p,t,dt){
+  const L=p.height/N, m=RHO*L, pos=nodes(s,p.height);
+  // Gustiness sets how much of the wind arrives as puffs rather than as a
+  // steady press. At 100% the air goes still between them.
+  const puff=gust(t,s.seed,p.gustFreq);
+  const q=p.wind*(1-p.gustiness+p.gustiness*puff);
+  const windX=q*L*p.windDir;
+  const fx=new Float64Array(N),fy=new Float64Array(N),mx=new Float64Array(N),my=new Float64Array(N);
+  let a=0;
+  for(let j=0;j<N;j++){
+    a+=s.theta[j];
+    mx[j]=(pos[j*2]+pos[(j+1)*2])*0.5;
+    my[j]=(pos[j*2+1]+pos[(j+1)*2+1])*0.5;
+    fx[j]=windX*Math.max(0.12,Math.abs(Math.cos(a)));
+    fy[j]=-m*G;
+  }
+  if(s.grabIndex>0){
+    const gi=s.grabIndex,k=4.0;
+    fx[gi-1]+=(s.grabX-pos[gi*2])*k;
+    fy[gi-1]+=(s.grabY-pos[gi*2+1])*k;
+  }
+  for(let i=0;i<N;i++){
+    const jx=pos[i*2],jy=pos[i*2+1];
+    let tau=0,I=0;
+    for(let j=i;j<N;j++){
+      const rx=mx[j]-jx, ry=my[j]-jy;
+      tau += ry*fx[j] - rx*fy[j];
+      I += m*(rx*rx+ry*ry);
+    }
+    I=Math.max(I,1e-6);
+    const shape=1-p.taper*(i/(N-1));
+    const k=(p.stiffness*shape*shape)/L;
+    const c=2*p.damping*Math.sqrt(k*I);
+    const denom=1+(dt*c)/I+(dt*dt*k)/I;
+    s.omega[i]=(s.omega[i]+(dt*(tau-k*s.theta[i]))/I)/denom;
+    s.theta[i]+=s.omega[i]*dt;
+    const lim=0.14;
+    if(s.theta[i]>lim){s.theta[i]=lim; if(s.omega[i]>0)s.omega[i]=0;}
+    if(s.theta[i]<-lim){s.theta[i]=-lim; if(s.omega[i]<0)s.omega[i]=0;}
+  }
+}
+
+/* ---------- controls ---------- */
+const $=id=>document.getElementById(id);
+const P={windDir:1, figures:true, two:false, paused:false, blendMode:'ok', longWay:false};
+
+const sliders={
+  height:{el:$('height'),out:$('oHeight'),fmt:v=>v.toFixed(0)+'″'},
+  thick:{el:$('thick'),out:$('oThick'),fmt:v=>v.toFixed(2)+'″'},
+  taper:{el:$('taper'),out:$('oTaper'),fmt:v=>Math.round(v*100)+'%'},
+  stiff:{el:$('stiff'),out:$('oStiff'),fmt:v=>v.toFixed(0)},
+  damp:{el:$('damp'),out:$('oDamp'),fmt:v=>v.toFixed(2)},
+  wind:{el:$('wind'),out:$('oWind'),fmt:v=>v.toFixed(0)},
+  gust:{el:$('gust'),out:$('oGust'),fmt:v=>Math.round(v*100)+'%'},
+  grate:{el:$('grate'),out:$('oGrate'),fmt:v=>v.toFixed(2)+' Hz'},
+  fullScale:{el:$('fullScale'),out:$('oFull'),fmt:v=>v.toFixed(0)+'°'},
+  gamma:{el:$('gamma'),out:$('oGamma'),fmt:v=>v<0.95?'fast start':v>1.05?'slow start':'linear'},
+  brRest:{el:$('brRest'),out:$('oBrRest'),fmt:v=>Math.round(v*100)+'%'},
+  brMax:{el:$('brMax'),out:$('oBrMax'),fmt:v=>Math.round(v*100)+'%'},
+  diff:{el:$('diff'),out:$('oDiff'),fmt:v=>v.toFixed(2)+'″'},
+  bloom:{el:$('bloom'),out:$('oBloom'),fmt:v=>v.toFixed(2)},
+  figH:{el:$('figH'),out:$('oFigH'),fmt:v=>Math.floor(v/12)+String.fromCharCode(8242)+Math.round(v%12)+String.fromCharCode(8243)},
+  midChroma:{el:$('midChroma'),out:$('oMidC'),fmt:v=>Math.round(v*100)+'%'},
+  ambient:{el:$('ambient'),out:$('oAmb'),fmt:v=>Math.round(v*100)+'%'},
+  spacing:{el:$('spacing'),out:$('oSpace'),fmt:v=>v.toFixed(0)+'″'},
+};
+const V={};
+function sync(){
+  for(const k in sliders){
+    V[k]=parseFloat(sliders[k].el.value);
+    sliders[k].out.textContent=sliders[k].fmt(V[k]);
+  }
+}
+for(const k in sliders) sliders[k].el.addEventListener('input',sync);
+sync();
+
+function seg(aId,bId,onA,onB){
+  const a=$(aId),b=$(bId);
+  a.addEventListener('click',()=>{a.setAttribute('aria-pressed','true');b.setAttribute('aria-pressed','false');onA();});
+  b.addEventListener('click',()=>{b.setAttribute('aria-pressed','true');a.setAttribute('aria-pressed','false');onB();});
+}
+seg('dirL','dirR',()=>P.windDir=-1,()=>P.windDir=1);
+seg('bOk','bRgb',()=>P.blendMode='ok',()=>P.blendMode='rgb');
+seg('hShort','hLong',()=>P.longWay=false,()=>P.longWay=true);
+seg('figOn','figOff',()=>P.figures=true,()=>P.figures=false);
+seg('twoOff','twoOn',()=>P.two=false,()=>P.two=true);
+$('pause').addEventListener('click',e=>{P.paused=!P.paused;e.target.textContent=P.paused?'Play':'Pause';});
+$('copy').addEventListener('click',e=>{
+  const o={...V,windDir:P.windDir,colourRest:$('colRest').value,colourMax:$('colMax').value,rod:$('poleCol').value};
+  navigator.clipboard.writeText(JSON.stringify(o,null,2)).then(()=>{
+    e.target.textContent='Copied'; setTimeout(()=>e.target.textContent='Copy settings',1200);
+  }).catch(()=>{e.target.textContent='Copy blocked';setTimeout(()=>e.target.textContent='Copy settings',1200);});
+});
+
+/* stiffness slider 0–100 maps log to the usable EI band */
+const EI = v => 800*Math.pow(50, v/100);
+/* wind slider is squared, since drag goes as speed squared */
+const Q  = v => 0.5*Math.pow(v/100, 2);
+
+function params(){
+  return {height:V.height, stiffness:EI(V.stiff), taper:V.taper, damping:V.damp,
+          wind:Q(V.wind), gustiness:V.gust, gustFreq:V.grate, windDir:P.windDir};
+}
+
+/* ---------- small-screen sheet ---------- */
+const small=window.matchMedia('(max-width:760px), (pointer:coarse)');
+const groups=[...document.querySelectorAll('fieldset[data-group]')];
+const tabBtns=[...document.querySelectorAll('#tabs button')];
+let activeTab='form';
+
+function applyTabs(){
+  const on=small.matches;
+  for(const g of groups) g.hidden = on && g.dataset.group!==activeTab;
+  for(const b of tabBtns) b.setAttribute('aria-pressed', String(b.dataset.tab===activeTab));
+}
+for(const b of tabBtns) b.addEventListener('click',()=>{
+  activeTab=b.dataset.tab;
+  document.body.classList.remove('sheet-closed');
+  $('grip').setAttribute('aria-expanded','true');
+  applyTabs();
+  $('panel').scrollTop=0;
+});
+$('grip').addEventListener('click',()=>{
+  const closed=document.body.classList.toggle('sheet-closed');
+  $('grip').setAttribute('aria-expanded', String(!closed));
+});
+small.addEventListener('change',applyTabs);
+applyTabs();
+if(small.matches) document.body.classList.add('sheet-closed');
+
+/* ---------- scene ---------- */
+const cv=$('c'), ctx=cv.getContext('2d');
+const A=makeStalk(1), B=makeStalk(4);
+let ppi=4, originX=0, groundY=0, dpr=1;
+
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  const r=cv.getBoundingClientRect();
+  cv.width=Math.max(1,Math.round(r.width*dpr));
+  cv.height=Math.max(1,Math.round(r.height*dpr));
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+new ResizeObserver(resize).observe(cv);
+resize();
+
+function layout(){
+  const r=cv.getBoundingClientRect();
+  const viewH=Math.max(V.figH*1.12, V.height*1.35);
+  // Also fit horizontally, or on a tall narrow panel the figures crop off.
+  const viewW=Math.max(78, V.spacing+56, V.height*1.6);
+  // On a phone the sheet covers the lower part of the canvas, so compose
+  // into what is actually visible rather than the full height.
+  let usable=r.height;
+  if(small.matches){
+    const closed=document.body.classList.contains('sheet-closed');
+    usable = r.height - (closed ? 96 : Math.min(r.height*0.62, $('panel').offsetHeight));
+  }
+  groundY=usable*0.92;
+  ppi=Math.min(usable/viewH, r.width/viewW);
+  originX=r.width*0.45;
+}
+
+function hex(h){
+  return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+}
+const mix=(a,b,t)=>[a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+
+/* ---------- colour ---------- */
+/* A straight RGB lerp cuts through the middle of the colour solid, where
+   chroma collapses — cyan to magenta goes via dishwater lavender. Mixing in
+   OKLCh walks the hue circle at held chroma instead. */
+const f2l=c=>c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);
+const l2f=c=>c<=0.0031308?12.92*c:1.055*Math.pow(c,1/2.4)-0.055;
+
+function rgb2lab(rgb){
+  const r=f2l(rgb[0]/255), g=f2l(rgb[1]/255), b=f2l(rgb[2]/255);
+  const l=Math.cbrt(0.4122214708*r+0.5363325363*g+0.0514459929*b);
+  const m=Math.cbrt(0.2119034982*r+0.6806995451*g+0.1073969566*b);
+  const s=Math.cbrt(0.0883024619*r+0.2817188376*g+0.6299787005*b);
+  return [0.2104542553*l+0.7936177850*m-0.0040720468*s,
+          1.9779984951*l-2.4285922050*m+0.4505937099*s,
+          0.0259040371*l+0.7827717662*m-0.8086757660*s];
+}
+function lab2rgb(L){
+  const l_=L[0]+0.3963377774*L[1]+0.2158037573*L[2];
+  const m_=L[0]-0.1055613458*L[1]-0.0638541728*L[2];
+  const s_=L[0]-0.0894841775*L[1]-1.2914855480*L[2];
+  const l=l_*l_*l_, m=m_*m_*m_, s=s_*s_*s_;
+  return [l2f(4.0767416621*l-3.3077115913*m+0.2309699292*s)*255,
+          l2f(-1.2684380046*l+2.6097574011*m-0.3413193965*s)*255,
+          l2f(-0.0041960863*l-0.7034186147*m+1.7076147010*s)*255];
+}
+const inGamut=c=>c.every(v=>v>=-0.6&&v<=255.6);
+
+function lch(rgb){
+  const [L,a,b]=rgb2lab(rgb);
+  return [L, Math.hypot(a,b), Math.atan2(b,a)];
+}
+function fromLch(L,C,h){
+  let lo=0, hi=1, out=lab2rgb([L,Math.cos(h)*C,Math.sin(h)*C]);
+  if(inGamut(out)) return out;
+  // Pull chroma in until it fits, rather than clipping channels and
+  // shifting the hue.
+  for(let i=0;i<12;i++){
+    const t=(lo+hi)/2, c=C*t;
+    if(inGamut(lab2rgb([L,Math.cos(h)*c,Math.sin(h)*c]))) lo=t; else hi=t;
+  }
+  const c=C*lo;
+  return lab2rgb([L,Math.cos(h)*c,Math.sin(h)*c]).map(v=>Math.min(255,Math.max(0,v)));
+}
+
+function blend(c1,c2,t){
+  if(P.blendMode==='rgb') return mix(c1,c2,t);
+  const A=lch(c1), B=lch(c2);
+  let dh=B[2]-A[2];
+  while(dh>Math.PI) dh-=2*Math.PI;
+  while(dh<-Math.PI) dh+=2*Math.PI;
+  if(P.longWay) dh += (dh>=0 ? -2*Math.PI : 2*Math.PI);
+  const L=A[0]+(B[0]-A[0])*t;
+  // Lift chroma through the middle so the crossover stays vivid.
+  const C=(A[1]+(B[1]-A[1])*t)*(1+V.midChroma*Math.sin(Math.PI*t));
+  return fromLch(L, C, A[2]+dh*t);
+}
+const rgba=(c,a)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+
+/* Silhouette supplied as artwork. Tight bbox measured from the path,
+   since the source artboard is much larger than the figure itself. */
+const FIG_D = "M508.5,297.4s2.1-14.8,2.8-20.9c1-8.1-1.2-41.3-1.2-46.7s-2.5-11.4-2.5-14.3v-30.8c0-3.5-.6-14.3-2.1-16.2-1.5-1.9-.6-7.9-.6-7.9,0,0,1.4-4.4-.2-9.2,1.6-3.8-8.9-27-13.3-31.4-4.4-4.4-20-7.3-20-7.3,0,0-3,.5-4.4-.6-2.7-2.2-21.3-10.7-21.3-10.7l-.7-11c.8-1.6,1-2.8,1-2.8l1.9-11.4s7.9-10.8,7.3-15.3c-.9-7.1-3.5-4.4-3.5-4.4v-16.5c-5.4-14.3-22.2-14.6-22.2-14.6h-2.8s-16.8.3-22.2,14.6v16.5s-2.6-2.7-3.5,4.4c-.6,4.5,7.3,15.3,7.3,15.3l1.9,11.4s.2,1.3,1,2.9l-.7,10.9s-19.2,8.8-21.3,10.7c-1.4,1.2-4.4.6-4.4.6,0,0-15.6,2.9-20,7.3-4.4,4.4-14.9,27.6-13.3,31.4-1.6,4.8-.2,9.2-.2,9.2,0,0,.9,6-.6,7.9-1.5,1.9-2.1,12.7-2.1,16.2v30.8c0,2.9-2.5,8.9-2.5,14.3s-2.3,31.5-1.3,41.6c.6,6.1,2.2,26.6,2.2,26.6,0,0,1,14,2.2,15.9,1.3,1.9-2.2,14.3-1.6,16.5.6,2.2,4.4,10.2,4.4,10.2,0,0,3.5,8.3,11.8,7.3,8.3-1,7.6-4.4,7.6-4.4,0,0,2.2-7.4,2.2-17.2s-10.5-24.1-10.5-24.1c0,0,4.2-33.1,5.7-40.3,1.5-7.3.5-46.4.5-46.4,0,0,3-29,6.2-27.1,3.2,1.9,4.9,7.3,6.9,13.4,3.3,9.9,2.5,17.5,2.5,19.4s-.6,19.1-1.6,21.6-3.2,30.5-4.4,35.3c-1.3,4.8-.3,6.5-1.7,15.2-1.4,8.7,1.7,36,1.7,36l5.1,22.6s9.8,39.7,10.1,45.4c.4,5.7,0,19.7,0,24.1,0,4.4-2.2,15.2-3.1,17.8-1,2.5-3.5,25.4-1,31.8,2.5,6.4,9.5,34.3,9.5,34.3l4.4,13.3s2.9,10.2,2.5,12.4c-.3,2.2-1.3,4.8-2.2,7-1,2.2-6.4,9.2-7.3,10.5-1,1.3-5.1,4.4-5.7,5.4-.6,1-2.9,2.2-1.9,3.8,1,1.6,4.4,2.5,6.4,2.5s20.6-1.3,22.9-1.3,4.4-.6,5.1-2.5c.6-1.9,1.9-3.5,1.6-6-.3-2.5-1.5-2.9,0-4.8,1.5-1.9.4-11.1-2.8-16.2-3.2-5.1-.3-20.9-.9-25.3-.6-4.4,4-33,4-37.7s-1.5-23.4-1.8-24.2c.2-2.9.7-12.4,1.2-21.4.3-5.4.9-70.8.9-70.8,0,0,.6-31.3,1.6-31.1,1.9.3,2.5,31.1,2.5,31.1,0,0,.6,65.4.9,70.8.5,9.1,1,18.5,1.2,21.4-.4.8-1.8,20-1.8,24.2s4.6,33.3,4,37.7c-.6,4.4,2.2,20.3-.9,25.3-3.2,5.1-4.3,14.3-2.8,16.2,1.5,1.9.4,2.2,0,4.8s1,4.1,1.6,6c.6,1.9,2.9,2.5,5.1,2.5s21,1.3,22.9,1.3,5.4-1,6.4-2.5c1-1.6-1.3-2.9-1.9-3.8-.6-1-4.8-4.1-5.7-5.4-1-1.3-6.4-8.3-7.3-10.5-1-2.2-1.9-4.8-2.2-7-.3-2.2,2.5-12.4,2.5-12.4l4.4-13.3s7-28,9.5-34.3c2.5-6.4,0-29.2-1-31.8-1-2.5-3.2-13.3-3.1-17.8,0-4.4-.4-18.4,0-24.1.4-5.7,10.1-45.4,10.1-45.4l5.1-22.6s3.2-27.3,1.7-36c-1.4-8.7-.5-10.4-1.7-15.2-1.3-4.8-3.5-32.7-4.4-35.3s-1.6-19.7-1.6-21.6-.7-10.3,2.5-19.4c2.2-6,3.7-11.5,6.9-13.4,3.2-1.9,6.2,27.1,6.2,27.1,0,0-1,38.6.5,46.4,1.5,7.3,5.7,40.3,5.7,40.3,0,0-10.5,14.3-10.5,24.1s2.2,17.2,2.2,17.2c0,0-.6,3.5,7.6,4.4,8.3,1,11.8-7.3,11.8-7.3,0,0,3.8-7.9,4.4-10.2.6-2.2-2.9-14.6-1.6-16.5,1.3-1.9,1.6-16.5,1.6-16.5Z";
+const FIG_BB = {x:344.5, y:25.4, w:167.0, h:534.8};
+const FIG = new Path2D(FIG_D);
+
+function person(x, hIn, alpha){
+  const h=hIn*ppi, sc=h/FIG_BB.h, X=originX+x*ppi;
+  ctx.save();
+  ctx.translate(X, groundY);
+  ctx.scale(sc, sc);
+  ctx.translate(-(FIG_BB.x+FIG_BB.w/2), -(FIG_BB.y+FIG_BB.h));
+  ctx.fillStyle="rgba(32,42,46," + alpha + ")";
+  ctx.strokeStyle="rgba(178,199,201," + (alpha*0.9) + ")";
+  ctx.lineWidth=1.3/sc;
+  ctx.fill(FIG); ctx.stroke(FIG);
+  ctx.restore();
+
+  ctx.fillStyle="rgba(143,176,166,0.85)";
+  ctx.font="500 11px Archivo, sans-serif";
+  ctx.textAlign="center";
+  ctx.fillText(hIn+String.fromCharCode(8243)+" "+String.fromCharCode(183)+" "
+    +Math.floor(hIn/12)+String.fromCharCode(8242)+Math.round(hIn%12)+String.fromCharCode(8243),
+    X, groundY-h-11);
+  ctx.textAlign="left";
+}
+
+function drawStalk(s, offX, rod, cRest, cMax){
+  const pos=nodes(s, V.height);
+  const ta=tipAngle(s);
+  const raw=Math.min(1, Math.abs(ta)/(V.fullScale*Math.PI/180));
+  const drive=Math.pow(raw, V.gamma);
+
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  for(let i=0;i<N;i++){
+    const w=V.thick*ppi*(1-V.taper*0.55*(i/(N-1)));
+    ctx.strokeStyle=rod; ctx.lineWidth=Math.max(0.7,w);
+    ctx.beginPath();
+    ctx.moveTo(originX+(pos[i*2]+offX)*ppi, groundY-pos[i*2+1]*ppi);
+    ctx.lineTo(originX+(pos[(i+1)*2]+offX)*ppi, groundY-pos[(i+1)*2+1]*ppi);
+    ctx.stroke();
+  }
+
+  const tx=originX+(pos[N*2]+offX)*ppi, ty=groundY-pos[N*2+1]*ppi;
+  const col=blend(cRest,cMax,drive);
+  const br=V.brRest+(V.brMax-V.brRest)*drive;
+  const core=Math.max(1.6, V.diff*ppi*0.5);
+
+  ctx.globalCompositeOperation='lighter';
+  const bloomR=core*(3.5+V.bloom*9);
+  const g=ctx.createRadialGradient(tx,ty,0,tx,ty,bloomR);
+  g.addColorStop(0, rgba(col, 0.55*br));
+  g.addColorStop(0.18, rgba(col, 0.20*br));
+  g.addColorStop(0.5, rgba(col, 0.05*br));
+  g.addColorStop(1, rgba(col, 0));
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.arc(tx,ty,bloomR,0,Math.PI*2); ctx.fill();
+
+  const g2=ctx.createRadialGradient(tx,ty,0,tx,ty,core);
+  g2.addColorStop(0, rgba(mix(col,[255,255,255],0.55*br), Math.min(1,0.35+br)));
+  g2.addColorStop(1, rgba(col, 0.55*br));
+  ctx.fillStyle=g2;
+  ctx.beginPath(); ctx.arc(tx,ty,core,0,Math.PI*2); ctx.fill();
+  ctx.globalCompositeOperation='source-over';
+
+  return {ta, drive, dx:pos[N*2], pos};
+}
+
+function draw(){
+  layout();
+  const r=cv.getBoundingClientRect();
+  const amb=V.ambient;
+
+  const sky=ctx.createLinearGradient(0,0,0,groundY);
+  sky.addColorStop(0, `rgb(${5+amb*16},${8+amb*22},${11+amb*30})`);
+  sky.addColorStop(1, `rgb(${9+amb*30},${13+amb*38},${16+amb*44})`);
+  ctx.fillStyle=sky; ctx.fillRect(0,0,r.width,groundY);
+  ctx.fillStyle=`rgb(${6+amb*14},${9+amb*16},${8+amb*14})`;
+  ctx.fillRect(0,groundY,r.width,r.height-groundY);
+  ctx.strokeStyle=`rgba(150,175,170,${0.10+amb*0.35})`;
+  ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,groundY+0.5); ctx.lineTo(r.width,groundY+0.5); ctx.stroke();
+
+  ctx.strokeStyle='rgba(143,176,166,0.30)';
+  ctx.fillStyle='rgba(143,176,166,0.55)';
+  ctx.font='500 10px Archivo, sans-serif';
+  ctx.lineWidth=1;
+  for(let inch=0; inch*ppi < groundY; inch+=12){
+    const y=groundY-inch*ppi, long=(inch%24===0);
+    ctx.beginPath();
+    ctx.moveTo(10,y+0.5); ctx.lineTo(10+(long?16:9),y+0.5); ctx.stroke();
+    if(long && inch>0) ctx.fillText((inch/12)+'\u2032', 30, y+3.5);
+  }
+
+  if(P.figures){
+    person(-20, V.figH, 0.92);
+  }
+
+  const rod=$('poleCol').value, cR=hex($('colRest').value), cM=hex($('colMax').value);
+  if(P.two) drawStalk(B, V.spacing, rod, cR, cM);
+  const m=drawStalk(A, 0, rod, cR, cM);
+
+  drawRamp();
+  $('rAngle').textContent=(Math.abs(m.ta)*180/Math.PI).toFixed(1)+'°';
+  $('rDrive').textContent='light at '+Math.round(m.drive*100)+'%'+(m.drive>=1?' — at full scale':'');
+  $('rDisp').textContent='tip moved '+Math.abs(m.dx).toFixed(1)+'″ ('+Math.round(Math.abs(m.dx)/V.height*100)+'% of height)';
+}
+
+function drawRamp(){
+  const el=$('ramp'), g=el.getContext('2d');
+  const w=el.clientWidth||240; if(el.width!==w) el.width=w;
+  const cR=hex($('colRest').value), cM=hex($('colMax').value);
+  for(let i=0;i<w;i++){
+    const t=i/(w-1), c=blend(cR,cM,Math.pow(t,V.gamma));
+    const br=V.brRest+(V.brMax-V.brRest)*Math.pow(t,V.gamma);
+    g.fillStyle=rgba(mix([0,0,0],c,Math.min(1,0.25+br)),1);
+    g.fillRect(i,0,1,el.height);
+  }
+}
+
+/* ---------- drag ---------- */
+function toInches(ev){
+  const r=cv.getBoundingClientRect();
+  return {x:(ev.clientX-r.left-originX)/ppi, y:(groundY-(ev.clientY-r.top))/ppi};
+}
+cv.addEventListener('pointerdown',ev=>{
+  const p=toInches(ev), pos=nodes(A,V.height);
+  let best=-1, bd=1e9;
+  for(let i=1;i<=N;i++){
+    const d=Math.hypot(pos[i*2]-p.x, pos[i*2+1]-p.y);
+    if(d<bd){bd=d;best=i;}
+  }
+  if(bd < Math.max(4, 28/ppi)){
+    A.grabIndex=best; A.grabX=p.x; A.grabY=p.y;
+    cv.setPointerCapture(ev.pointerId);
+  }
+});
+cv.addEventListener('pointermove',ev=>{
+  if(A.grabIndex>0){const p=toInches(ev); A.grabX=p.x; A.grabY=p.y;}
+});
+for(const e of ['pointerup','pointercancel'])
+  cv.addEventListener(e,()=>{A.grabIndex=-1;});
+
+/* ---------- loop ---------- */
+let t=0, last=performance.now();
+function frame(now){
+  let dt=(now-last)/1000; last=now;
+  if(!P.paused){
+    dt=Math.min(dt,0.05);
+    const p=params(), h=1/240, n=Math.ceil(dt/h), sub=dt/n;
+    for(let i=0;i<n;i++){ step(A,p,t,sub); if(P.two) step(B,p,t,sub); t+=sub; }
+  }
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

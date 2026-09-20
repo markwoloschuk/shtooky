@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
   // Has no effect on Vercel/production builds regardless of this setting.
   reactStrictMode: false,
 allowedDevOrigins: ['10.0.0.154'],
+  // Serves standalone art-project pages from public/art/<slug>/index.html
+  // at the clean URL /art/<slug>. Wildcarded, so new projects need no config change.
+  async rewrites() {
+    return [{ source: '/art/:slug', destination: '/art/:slug/index.html' }];
+  },
 };
 
 export default nextConfig;
