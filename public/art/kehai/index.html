@@ -86,6 +86,13 @@
     border:1px solid var(--rule);border-radius:3px}
   input:focus-visible,button:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
 
+  /* A 320px panel inside a 390px viewport is not a control surface, it is an
+     obstruction. Below desktop the controls are simply not offered — and the
+     pill is hidden too, since a button that opens nothing is worse than none. */
+  @media (max-width:1199px){
+    #panel,#ghost{display:none!important}
+  }
+
   @media (max-width:760px), (pointer:coarse){
     html,body{height:auto;overflow:visible}
     #app{display:block;height:auto}
@@ -544,7 +551,7 @@ seg('afOn','afOff',()=>{P.autoFrame=true;syncFrameUI();},
    sync() rewrite is corrected on the next pass. */
 function syncFrameUI(){
   const on=P.autoFrame;
-  for(const id of ['tilt','lens']){
+  for(const id of ['tilt','lens','titleTop']){
     const el=$(id); if(!el) continue;
     el.disabled=on;
     const box=el.closest('.ctl'); if(box) box.classList.toggle('off',on);
@@ -574,6 +581,14 @@ const setClean=on=>{document.body.classList.toggle('clean',on);
 setClean(true);
 $('hide').addEventListener('click',()=>setClean(true));
 $('ghost').addEventListener('click',()=>setClean(false));
+/* Keep the flag in step with the CSS above: if the panel was open and the
+   window crosses down into tablet, it closes itself rather than lingering in
+   a state the stylesheet is hiding. */
+const CTRL_MIN=1200;
+const controlsAllowed=()=>window.innerWidth>=CTRL_MIN;
+function enforceControls(){ if(!controlsAllowed()) setClean(true); }
+addEventListener('resize',enforceControls);
+enforceControls();
 addEventListener('keydown',e=>{
   if(e.key==='h'&&!/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName))
     setClean(!document.body.classList.contains('clean'));
@@ -743,8 +758,16 @@ const TOPD=1000;
    extent, which changes scale, which moves the horizon — so this is a small
    bisection, not a formula. Cheap: the screen offsets rr/d and uu/d do not
    depend on scale at all, so each trial pitch costs a dozen dot products. */
-const ARRAY_FIT_W={desktop:0.70,tablet:0.75,mobile:0.80};
+const ARRAY_FIT_W={desktop:0.70,tablet:0.85,mobile:0.90};
+/* Desktop also fits the array's FULL height — no vertical cropping — so its
+   width figure is a ceiling the shot usually sits under rather than a target
+   it hits. Height almost always binds first at that aspect. Tablet and mobile
+   are width-driven only; they are tall enough that height never binds. */
+const ARRAY_FIT_H={desktop:0.92,tablet:null,mobile:null};
 const HORIZON_FRAC=0.33;
+/* Fraction of canvas width the title lockup spans. null = size from
+   TITLE_REF_W instead and simply centre it. */
+const TITLE_SKY_W={desktop:null,tablet:0.50,mobile:0.50};
 const AUTO={tilt:null,lens:null};
 
 /* Orientation only — everything except sx/sy, which the caller sets. */
@@ -785,18 +808,22 @@ function framePts(){
   return pts;
 }
 
-/* Horizontal extent in projection units — independent of scale, which is the
-   whole reason one trial pitch is cheap. */
-function frameExtentU(){
-  let lo=Infinity, hi=-Infinity;
+/* Extent in projection units — independent of scale, which is the whole
+   reason one trial pitch is cheap. `w` is the horizontal span; `vmax` is the
+   furthest any corner sits from the optical centre vertically, which is what
+   caps scale when the full array height has to stay on screen. */
+function frameExtent(){
+  let lo=Infinity, hi=-Infinity, vlo=Infinity, vhi=-Infinity;
   for(const q of framePts()){
     const dx=q[0]-cam.ex, dy=q[1]-cam.ey, dz=q[2]-cam.ez;
     const d=dx*cam.fx+dy*cam.fy+dz*cam.fz;
     if(d<=2) continue;
     const u=(dx*cam.rx+dy*cam.ry+dz*cam.rz)/d;
+    const v=(dx*cam.ux+dy*cam.uy+dz*cam.uz)/d;
     if(u<lo)lo=u; if(u>hi)hi=u;
+    if(v<vlo)vlo=v; if(v>vhi)vhi=v;
   }
-  return (hi>lo)?hi-lo:0;
+  return {w:(hi>lo)?hi-lo:0, vmax:Math.max(Math.abs(vhi),Math.abs(vlo))};
 }
 
 /* du/df from horizonY(), factored out so the solver can ask without drawing. */
@@ -817,14 +844,17 @@ function frameTier(){
 
 /* Tilting up raises the horizon fraction, so plain bisection converges. */
 function solveFrame(){
-  const target=ARRAY_FIT_W[frameTier()];
+  const t=frameTier(), target=ARRAY_FIT_W[t], targetH=ARRAY_FIT_H[t];
   let lo=-45, hi=25, best=null;
   for(let i=0;i<26;i++){
     const mid=(lo+hi)/2;
     camOrient(mid*Math.PI/180);
-    const e=frameExtentU(), r=horizonRatio();
-    if(e<=0||r===null){ lo=mid; continue; }
-    const sc=target*cw/e;
+    const e=frameExtent(), r=horizonRatio();
+    if(e.w<=0||r===null){ lo=mid; continue; }
+    let sc=target*cw/e.w;
+    // Screen y is chh/2 - v*s, so keeping every corner inside the canvas
+    // means |v|*s <= chh/2. Whichever axis binds first wins.
+    if(targetH&&e.vmax>0) sc=Math.min(sc, targetH*(chh/2)/e.vmax);
     const frac=0.5-r*sc/chh;
     best={s:sc,tilt:mid};
     if(frac<HORIZON_FRAC) lo=mid; else hi=mid;
@@ -989,7 +1019,14 @@ function drawTitle(){
       wSub=ctx.measureText(sub).width;
       if(hasLS) ctx.letterSpacing='0px';
     }
-    return {size,enFont,jpFont,subFont,wEn,wJp,gap,total,ss,wSub,track,hasLS};
+    // Ink height of the tallest run, so the block can be centred on what the
+    // eye sees rather than on the em box.
+    let asc=0;
+    if(en){ ctx.font=enFont; const me=ctx.measureText(en);
+            asc=Math.max(asc, me.actualBoundingBoxAscent||size*0.71); }
+    if(jp){ ctx.font=jpFont; const mj=ctx.measureText(jp);
+            asc=Math.max(asc, mj.actualBoundingBoxAscent||jpSize*0.88); }
+    return {size,enFont,jpFont,subFont,wEn,wJp,gap,total,ss,wSub,track,hasLS,asc};
   }
 
   ctx.save();
@@ -999,6 +1036,12 @@ function drawTitle(){
   ctx.textAlign='left';
 
   let m=measure(V.titleSize*titleScale());
+  /* On the narrow tiers the lockup is a block of fixed proportion: it spans
+     TITLE_SKY_W of the width, so it reads as a deliberate masthead rather
+     than as type that happens to fit. Desktop is left at its tier size — the
+     array is the subject there, and the title just sits in the sky. */
+  const skyW=P.autoFrame?TITLE_SKY_W[frameTier()]:null;
+  if(skyW&&m.total>0) m=measure(m.size*(skyW*cw)/m.total);
   /* Loops because the subtitle has a 7px floor, which breaks strict
      linearity at very small sizes; converges on the first pass otherwise. */
   for(let i=0;i<3;i++){
@@ -1008,7 +1051,17 @@ function drawTitle(){
   }
 
   const size=m.size;
-  const baseline=chh*(V.titleTop/100)+size*0.86;
+  /* Centred in the sky — the band between the top edge and the horizon —
+     rather than at a fixed percentage of the whole canvas, so the lockup
+     keeps its relationship to the horizon as the framing solves. */
+  let baseline;
+  if(P.autoFrame){
+    const hy=Math.max(24,Math.min(chh,horizonY()));
+    const blockH=m.asc+(m.ss>0?size*V.subGap+m.ss:0);
+    baseline=hy/2-blockH/2+m.asc;
+  }else{
+    baseline=chh*(V.titleTop/100)+size*0.86;
+  }
   let x=cw/2-m.total/2;
   if(en){ ctx.font=m.enFont; ctx.fillText(en,x,baseline); x+=m.wEn+m.gap; }
   if(jp){ ctx.font=m.jpFont; ctx.fillText(jp,x,baseline); }
