@@ -797,52 +797,103 @@ Promise.allSettled([
   document.fonts.load('500 20px Archivo','A SENSE OF PRESENCE'),
 ]).then(()=>{fontsReady=true; fontT0=performance.now();});
 
+/* Title sizing is pinned per breakpoint instead of living in raw px.
+   TITLE_REF_W holds each breakpoint's REFERENCE viewport width; the slider is
+   authored at the desktop reference (1440) and every other tier is that same
+   value evaluated at its own reference width. Same principle as SCALE_TIERS
+   (WhoSkillsSphere) and pxToPxBurst (ThinkOpenAnimation) on the main site:
+   freeze fluid sizing by evaluating the SAME formula at a fixed point, so the
+   lockup reads identically at every width instead of floating with the window.
+   Tier off window width, not canvas width, so opening the controls panel never
+   changes tier — the fit clamp below absorbs the narrower canvas that causes.
+   Thresholds line up with this page's own `max-width:760px` media query so the
+   panel layout and the title tier switch together. */
+const TITLE_REF_W={desktop:1440,tablet:768,mobile:390};
+const TITLE_BASE_W=TITLE_REF_W.desktop;
+/* Guardrail, not the primary mechanism: the widest fraction of the canvas the
+   lockup may occupy before it is scaled to fit. Only engages for a long title
+   or a slider push that would otherwise run off both edges. */
+const TITLE_FIT=0.90;
+
+function titleTier(){
+  const w=window.innerWidth;
+  if(w>=1200) return 'desktop';
+  if(w>760) return 'tablet';
+  return 'mobile';
+}
+function titleScale(){ return TITLE_REF_W[titleTier()]/TITLE_BASE_W; }
+
 function drawTitle(){
   const en=$('titleText').value.trim(), jp=$('titleJp').value.trim(),
         sub=$('subText').value.trim();
   if(!en&&!jp&&!sub) return;
-  const size=V.titleSize;
   // one-second fade once the webfonts settle, so the lockup doesn't pop
   const fade=fontsReady?Math.min(1,(performance.now()-fontT0)/1000):0;
   if(fade<=0) return;
+
+  /* Every width below scales linearly with `size`, so fitting is a plain
+     ratio: measure, and if the widest line overruns, re-measure at the
+     corrected size rather than squashing the type non-uniformly. */
+  function measure(size){
+    const enFont='600 '+size+'px Archivo, "Helvetica Neue", sans-serif';
+    // Latin cap height sits near 70% of the em; Japanese glyphs fill it. Match
+    // the two by measured ink height, then apply the ratio slider on top.
+    ctx.font=enFont;
+    const capM=ctx.measureText('H');
+    const cap=(capM.actualBoundingBoxAscent||size*0.71);
+    let jpSize=size;
+    if(jp){
+      ctx.font='700 '+size+'px "Noto Sans JP", Archivo, sans-serif';
+      const jm=ctx.measureText(jp);
+      const ink=(jm.actualBoundingBoxAscent||size*0.88)+(jm.actualBoundingBoxDescent||0);
+      if(ink>1) jpSize=size*(cap/ink);
+    }
+    jpSize*=V.jpScale;
+    const jpFont='700 '+jpSize.toFixed(2)+'px "Noto Sans JP", Archivo, sans-serif';
+    ctx.font=enFont; const wEn=en?ctx.measureText(en).width:0;
+    ctx.font=jpFont; const wJp=jp?ctx.measureText(jp).width:0;
+    const gap=(en&&jp)?size*V.jpGap:0;
+    const total=wEn+gap+wJp;
+    let ss=0, wSub=0, track=0, subFont='';
+    const hasLS=('letterSpacing' in ctx);
+    if(sub&&V.subScale>0){
+      ss=Math.max(7,size*V.subScale);
+      subFont='500 '+ss+'px Archivo, "Helvetica Neue", sans-serif';
+      track=ss*V.subTrack;
+      ctx.font=subFont;
+      if(hasLS) ctx.letterSpacing=track.toFixed(2)+'px';
+      wSub=ctx.measureText(sub).width;
+      if(hasLS) ctx.letterSpacing='0px';
+    }
+    return {size,enFont,jpFont,subFont,wEn,wJp,gap,total,ss,wSub,track,hasLS};
+  }
+
   ctx.save();
   ctx.globalAlpha=V.titleOpacity*fade;
   ctx.fillStyle=$('titleCol').value;
   ctx.textBaseline='alphabetic';
   ctx.textAlign='left';
-  const enFont='600 '+size+'px Archivo, "Helvetica Neue", sans-serif';
-  // Latin cap height sits near 70% of the em; Japanese glyphs fill it. Match
-  // the two by measured ink height, then apply the ratio slider on top.
-  ctx.font=enFont;
-  const capM=ctx.measureText('H');
-  const cap=(capM.actualBoundingBoxAscent||size*0.71);
-  let jpSize=size;
-  if(jp){
-    ctx.font='700 '+size+'px "Noto Sans JP", Archivo, sans-serif';
-    const jm=ctx.measureText(jp);
-    const ink=(jm.actualBoundingBoxAscent||size*0.88)+(jm.actualBoundingBoxDescent||0);
-    if(ink>1) jpSize=size*(cap/ink);
+
+  let m=measure(V.titleSize*titleScale());
+  /* Loops because the subtitle has a 7px floor, which breaks strict
+     linearity at very small sizes; converges on the first pass otherwise. */
+  for(let i=0;i<3;i++){
+    const widest=Math.max(m.total,m.wSub);
+    if(widest<=0||widest<=cw*TITLE_FIT) break;
+    m=measure(m.size*(cw*TITLE_FIT)/widest);
   }
-  jpSize*=V.jpScale;
-  const jpFont='700 '+jpSize.toFixed(2)+'px "Noto Sans JP", Archivo, sans-serif';
-  ctx.font=enFont; const wEn=en?ctx.measureText(en).width:0;
-  ctx.font=jpFont; const wJp=jp?ctx.measureText(jp).width:0;
-  const gap=(en&&jp)?size*V.jpGap:0;
-  const total=wEn+gap+wJp;
+
+  const size=m.size;
   const baseline=chh*(V.titleTop/100)+size*0.86;
-  let x=cw/2-total/2;
-  if(en){ ctx.font=enFont; ctx.fillText(en,x,baseline); x+=wEn+gap; }
-  if(jp){ ctx.font=jpFont; ctx.fillText(jp,x,baseline); }
-  if(sub&&V.subScale>0){
-    const ss=Math.max(7,size*V.subScale);
-    ctx.font='500 '+ss+'px Archivo, "Helvetica Neue", sans-serif';
-    const track=ss*V.subTrack;
-    const hasLS=('letterSpacing' in ctx);
-    if(hasLS) ctx.letterSpacing=track.toFixed(2)+'px';
-    const wSub=ctx.measureText(sub).width;
-    const sx=cw/2-(wSub-(hasLS?track:0))/2;
-    ctx.fillText(sub, sx, baseline+size*V.subGap+ss);
-    if(hasLS) ctx.letterSpacing='0px';
+  let x=cw/2-m.total/2;
+  if(en){ ctx.font=m.enFont; ctx.fillText(en,x,baseline); x+=m.wEn+m.gap; }
+  if(jp){ ctx.font=m.jpFont; ctx.fillText(jp,x,baseline); }
+  if(m.ss>0){
+    ctx.font=m.subFont;
+    if(m.hasLS) ctx.letterSpacing=m.track.toFixed(2)+'px';
+    const sx=cw/2-(m.wSub-(m.hasLS?m.track:0))/2;
+    ctx.fillText(sub, sx, baseline+size*V.subGap+m.ss);
+    if(m.hasLS) ctx.letterSpacing='0px';
   }
   ctx.restore();
 }
