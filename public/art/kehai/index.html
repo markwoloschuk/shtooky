@@ -89,8 +89,13 @@
   @media (max-width:760px), (pointer:coarse){
     html,body{height:auto;overflow:visible}
     #app{display:block;height:auto}
-    #stage{position:sticky;top:0;z-index:3;height:56vh;height:56dvh;
-      background:var(--night);border-bottom:1px solid var(--rule)}
+    /* Full-bleed: the scene runs to the bottom of the viewport and simply
+       falls off into black. No border here — a rule across the bottom read as
+       a second horizon and fought the real one. */
+    #stage{position:sticky;top:0;z-index:3;height:100vh;height:100dvh;
+      background:var(--night)}
+    /* No hover on touch, so the pill would sit at opacity 0 forever. */
+    #ghost{opacity:.42}
     #panel{width:100%;border-left:0;padding:14px 16px calc(40px + env(safe-area-inset-bottom,0px))}
     .ctl{margin-bottom:18px}
     .ctl input[type=range]{height:34px}
@@ -245,6 +250,9 @@
       <legend><button type="button" class="tog">Camera</button></legend>
       <div class="row"><span>View</span>
         <span class="seg"><button id="vEye" aria-pressed="true">Eye level</button><button id="vTop" aria-pressed="false">Overhead</button></span>
+      </div>
+      <div class="row"><span>Auto frame</span>
+        <span class="seg"><button id="afOn" aria-pressed="true">On</button><button id="afOff" aria-pressed="false">Manual</button></span>
       </div>
       <div class="ctl"><label for="dist">Distance back</label><output id="oDist"></output>
         <input type="range" id="dist" min="4" max="60" step="0.5" value="18"></div>
@@ -444,7 +452,7 @@ function buildRamp(cR,cM){
 /* ================= controls ================= */
 const $=id=>document.getElementById(id);
 const P={blendMode:'rgb', contour:false, rings:false, figures:true, paused:false,
-         title:true, view:'eye', place:'grid'};
+         title:true, view:'eye', place:'grid', autoFrame:true};
 const sliders={
   count:{fmt:v=>v.toFixed(0)}, fw:{fmt:v=>v.toFixed(1)+"'"}, fd:{fmt:v=>v.toFixed(1)+"'"},
   round:{fmt:v=>v===0?'square':Math.round(v*100)+'%'},
@@ -527,6 +535,30 @@ function seg(a,b,fa,fb){
 seg('cOn','cOff',()=>P.contour=true,()=>P.contour=false);
 seg('rOn','rOff',()=>P.rings=true,()=>P.rings=false);
 seg('figOn','figOff',()=>P.figures=true,()=>P.figures=false);
+seg('afOn','afOff',()=>{P.autoFrame=true;syncFrameUI();},
+                  ()=>{P.autoFrame=false;syncFrameUI();});
+
+/* With Auto frame on, tilt and lens are outputs: grey the sliders out and
+   show what the solver picked, so the panel never lies about what is driving
+   the shot. Compared against textContent each frame so a slider-driven
+   sync() rewrite is corrected on the next pass. */
+function syncFrameUI(){
+  const on=P.autoFrame;
+  for(const id of ['tilt','lens']){
+    const el=$(id); if(!el) continue;
+    el.disabled=on;
+    const box=el.closest('.ctl'); if(box) box.classList.toggle('off',on);
+  }
+}
+function syncAutoReadout(){
+  if(!P.autoFrame||AUTO.tilt===null) return;
+  const t='auto '+(AUTO.tilt<0?'down ':'up ')+Math.abs(AUTO.tilt).toFixed(1)+'°';
+  const l='auto '+AUTO.lens.toFixed(0)+' mm';
+  const et=$('oTilt'), el=$('oLens');
+  if(et&&et.textContent!==t) et.textContent=t;
+  if(el&&el.textContent!==l) el.textContent=l;
+}
+syncFrameUI();
 seg('bOk','bRgb',()=>P.blendMode='ok',()=>P.blendMode='rgb');
 seg('tOn','tOff',()=>P.title=true,()=>P.title=false);
 seg('vEye','vTop',()=>P.view='eye',()=>P.view='top');
@@ -700,20 +732,25 @@ resize();
 const cam={ex:0,ey:0,ez:0,fx:0,fy:0,fz:0,rx:0,ry:0,rz:0,ux:0,uy:0,uz:0,sx:0,sy:0,
            top:false,k:1,cz:0};
 const TOPD=1000;
-function setupCam(){
-  const D=V.fd*12, W=V.fw*12;
-  if(P.view==='top'){
-    cam.top=true;
-    const m=1.18/V.topZoom;
-    cam.k=Math.min(cw/(W*m), chh/(D*m));
-    cam.cz=D*0.5;
-    cam.sx=cam.k*TOPD; cam.sy=cam.sx;
-    return;
-  }
-  cam.top=false;
-  const dist=V.dist*12;
-  const yaw=V.yaw*Math.PI/180, pitch=V.tilt*Math.PI/180;
-  const tz=D*0.5;
+/* ---- composition framing ----------------------------------------------
+   Two things are pinned: the horizon sits at HORIZON_FRAC of canvas height,
+   and the stalk field plus the scale figure span ARRAY_FIT_W of canvas width
+   at each breakpoint. Two constraints need two free variables, so tilt and
+   scale are solved for rather than dialled in; dist / yaw / eyeH stay manual
+   and are what actually change how the shot feels.
+
+   They are coupled — tilt changes the projection, which changes the measured
+   extent, which changes scale, which moves the horizon — so this is a small
+   bisection, not a formula. Cheap: the screen offsets rr/d and uu/d do not
+   depend on scale at all, so each trial pitch costs a dozen dot products. */
+const ARRAY_FIT_W={desktop:0.70,tablet:0.75,mobile:0.80};
+const HORIZON_FRAC=0.33;
+const AUTO={tilt:null,lens:null};
+
+/* Orientation only — everything except sx/sy, which the caller sets. */
+function camOrient(pitch){
+  const D=V.fd*12;
+  const dist=V.dist*12, yaw=V.yaw*Math.PI/180, tz=D*0.5;
   cam.ex=Math.sin(yaw)*dist;
   cam.ey=V.eyeH;
   cam.ez=tz-Math.cos(yaw)*dist;
@@ -727,6 +764,97 @@ function setupCam(){
   cam.ux=fy*cam.rz-fz*cam.ry;
   cam.uy=fz*cam.rx-fx*cam.rz;
   cam.uz=fx*cam.ry-fy*cam.rx;
+}
+
+/* Corners of what must stay on screen: the stalk field's bounding box at its
+   tallest, plus the figure. Stalks span x in [-W/2,W/2], z in [0,D]. */
+function framePts(){
+  const W=V.fw*12, D=V.fd*12, H=V.height*(1+Math.abs(V.hvar));
+  const pts=[];
+  for(const x of [-W/2,W/2]) for(const z of [0,D]) for(const y of [0,H]) pts.push([x,y,z]);
+  if(P.figures){
+    const yawR=V.yaw*Math.PI/180;
+    const rX=Math.cos(yawR), rZ=Math.sin(yawR);
+    const aX=-Math.sin(yawR), aZ=Math.cos(yawR);
+    const fx=V.figX*12*rX+V.figZ*12*aX;
+    const fz=D*0.5+V.figX*12*rZ+V.figZ*12*aZ;
+    const hw=V.figH*0.20;              // silhouette half-width, measured off FIG_BB
+    for(const sgn of [-1,1]) for(const y of [0,V.figH])
+      pts.push([fx+hw*sgn*rX, y, fz+hw*sgn*rZ]);
+  }
+  return pts;
+}
+
+/* Horizontal extent in projection units — independent of scale, which is the
+   whole reason one trial pitch is cheap. */
+function frameExtentU(){
+  let lo=Infinity, hi=-Infinity;
+  for(const q of framePts()){
+    const dx=q[0]-cam.ex, dy=q[1]-cam.ey, dz=q[2]-cam.ez;
+    const d=dx*cam.fx+dy*cam.fy+dz*cam.fz;
+    if(d<=2) continue;
+    const u=(dx*cam.rx+dy*cam.ry+dz*cam.rz)/d;
+    if(u<lo)lo=u; if(u>hi)hi=u;
+  }
+  return (hi>lo)?hi-lo:0;
+}
+
+/* du/df from horizonY(), factored out so the solver can ask without drawing. */
+function horizonRatio(){
+  const hl=Math.hypot(cam.fx,cam.fz)||1e-6;
+  const dx=cam.fx/hl, dz=cam.fz/hl;
+  const du=dx*cam.ux+dz*cam.uz, df=dx*cam.fx+dz*cam.fz;
+  if(Math.abs(df)<1e-6) return null;
+  return du/df;
+}
+
+function frameTier(){
+  const w=window.innerWidth;
+  if(w>=1200) return 'desktop';
+  if(w>760) return 'tablet';
+  return 'mobile';
+}
+
+/* Tilting up raises the horizon fraction, so plain bisection converges. */
+function solveFrame(){
+  const target=ARRAY_FIT_W[frameTier()];
+  let lo=-45, hi=25, best=null;
+  for(let i=0;i<26;i++){
+    const mid=(lo+hi)/2;
+    camOrient(mid*Math.PI/180);
+    const e=frameExtentU(), r=horizonRatio();
+    if(e<=0||r===null){ lo=mid; continue; }
+    const sc=target*cw/e;
+    const frac=0.5-r*sc/chh;
+    best={s:sc,tilt:mid};
+    if(frac<HORIZON_FRAC) lo=mid; else hi=mid;
+  }
+  return best;
+}
+
+function setupCam(){
+  const D=V.fd*12, W=V.fw*12;
+  if(P.view==='top'){
+    cam.top=true;
+    const m=1.18/V.topZoom;
+    cam.k=Math.min(cw/(W*m), chh/(D*m));
+    cam.cz=D*0.5;
+    cam.sx=cam.k*TOPD; cam.sy=cam.sx;
+    return;
+  }
+  cam.top=false;
+  if(P.autoFrame){
+    const r=solveFrame();
+    if(r){
+      camOrient(r.tilt*Math.PI/180);
+      cam.sy=r.s; cam.sx=r.s;
+      AUTO.tilt=r.tilt;
+      AUTO.lens=24*r.s/chh;          // inverse of sy=(chh/2)/tan(atan(12/lens))
+      return;
+    }
+  }
+  AUTO.tilt=null; AUTO.lens=null;
+  camOrient(V.tilt*Math.PI/180);
   cam.sy=(chh/2)/Math.tan(Math.atan(12/V.lens));
   cam.sx=cam.sy;
 }
@@ -815,12 +943,8 @@ const TITLE_BASE_W=TITLE_REF_W.desktop;
    or a slider push that would otherwise run off both edges. */
 const TITLE_FIT=0.90;
 
-function titleTier(){
-  const w=window.innerWidth;
-  if(w>=1200) return 'desktop';
-  if(w>760) return 'tablet';
-  return 'mobile';
-}
+// Same thresholds as the camera framing — one notion of breakpoint per page.
+function titleTier(){ return frameTier(); }
 function titleScale(){ return TITLE_REF_W[titleTier()]/TITLE_BASE_W; }
 
 function drawTitle(){
@@ -902,6 +1026,7 @@ function drawTitle(){
 function draw(){
   if(!isFinite(cw)||cw<=0)return;
   setupCam();
+  syncAutoReadout();
   const amb=V.ambient, W=V.fw*12, D=V.fd*12;
 
   if(cam.top){
