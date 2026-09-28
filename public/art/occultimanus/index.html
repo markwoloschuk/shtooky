@@ -25,11 +25,12 @@
     background:transparent; color:var(--accent); width:100%; margin-top:12px; }
   button.small { font-size:15px; padding:12px 16px; border-radius:10px; border:1px solid #333; background:#111; color:var(--fg); }
   button.small.active { border-color:var(--accent); color:var(--accent); }
-  .row { display:flex; gap:10px; align-items:center; justify-content:center; margin:16px 0; }
-  #latVal { font-size:44px; font-weight:200; text-align:center; font-variant-numeric:tabular-nums; }
-  input[type=range] { width:100%; margin:18px 0 6px; accent-color:var(--accent); }
-  #cal .panel { margin-top:auto; border-radius:16px; padding:16px 0 0; }
-  #sweep { display:block; width:min(72vw,300px); height:min(72vw,300px); margin:24px auto 0; }
+  .row { display:flex; gap:10px; align-items:center; justify-content:center; margin:10px 0; }
+  #latVal { font-size:32px; font-weight:200; text-align:center; font-variant-numeric:tabular-nums; }
+  input[type=range] { width:100%; margin:8px 0 4px; accent-color:var(--accent); }
+  #cal .panel { margin-top:auto; padding:8px 0 0; }
+  #cal button.big { padding:14px; margin-top:6px; }
+  #sweep { display:block; width:min(58vw,230px); height:min(58vw,230px); margin:14px auto 0; }
   #loadMsg { color:var(--dim); font-size:13px; text-align:center; margin-top:8px; }
 
   /* run screen: black. tap to reveal the overlay for a few seconds */
@@ -48,6 +49,26 @@
   #info .v { overflow-wrap:anywhere; color:#8a8a8a; }
   .bar { display:flex; gap:10px; }
   .bar button { flex:1; }
+
+  /* operator view */
+  #opBtn { margin-top:auto; border-color:#444; color:var(--fg); }
+  #op { padding-top:20px; }
+  #opHead { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  #opSec { font-size:20px; font-weight:300; }
+  #opTime { font-family:ui-monospace, Menlo, monospace; font-size:13px; color:var(--dim); }
+  #opTl { position:relative; height:6px; background:#161616; border-radius:3px; margin:14px 0 4px; }
+  #opTl .seg { position:absolute; top:0; bottom:0; border-left:1px solid #000; background:#232323; }
+  #opTl .seg.on { background:#3a1234; }
+  #opHead2 { position:absolute; top:-4px; width:2px; height:14px; background:var(--accent); }
+  #tiles { display:grid; grid-template-columns:repeat(3,1fr); gap:18px 12px; margin:auto 0; padding:24px 0; }
+  @media (min-width:720px) { #tiles { grid-template-columns:repeat(6,1fr); } }
+  .tile { display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .tile .n { font-size:13px; letter-spacing:.2em; color:var(--dim); }
+  .tile .c { width:min(22vw,110px); aspect-ratio:1; border-radius:50%; border:2px solid #e8e8e8;
+    transition:background .08s, border-color .08s, box-shadow .08s; }
+  .tile .c.on { background:var(--accent); border-color:var(--accent); box-shadow:0 0 28px 4px rgba(255,43,214,.55); }
+  .tile .m { min-height:2.6em; font-size:13px; text-align:center; color:var(--fg); line-height:1.3; transition:opacity .4s; }
+  .tile .m.old { opacity:.25; }
 </style>
 </head>
 <body>
@@ -58,12 +79,22 @@
   <p>Silent switch off, volume up, headphones in. Pick the number on your light.</p>
   <div class="grid" id="nums"></div>
   <div id="loadMsg"></div>
+  <button class="big" id="opBtn">Operator view</button>
+</section>
+
+<!-- Operator: all six units, no sound -->
+<section id="op" class="screen">
+  <h1>Occultimanus · operator</h1>
+  <div id="opHead"><div id="opSec">–</div><div id="opTime"></div></div>
+  <div id="opTl"><div id="opHead2"></div></div>
+  <div id="tiles"></div>
+  <p style="text-align:center">Silent. Same clock as the phones. Magenta = light on.</p>
 </section>
 
 <!-- 2. Calibrate headphone delay -->
 <section id="cal" class="screen">
   <h1>Line up the beep</h1>
-  <p>The hand sweeps once a second. Adjust until the beep lands exactly as the hand crosses the top mark. Speakers: leave at 0.</p>
+  <p>Sweep is 1 sec. Adjust timing so the beep lands at the top of the sweep. Leave at 0 ms for speaker.</p>
   <canvas id="sweep"></canvas>
   <div class="panel">
     <div id="latVal">0 ms</div>
@@ -132,7 +163,7 @@ const SECTIONS = [
   { t:0,   name:'1 · Unison pulse' },
   { t:24,  name:'2 · Ripple' },
   { t:60,  name:'3 · Unison arms' },
-  { t:84,  name:'4 · Sequenced arms' },
+  { t:84,  name:'4 · Sequenced arms + light (overlap)' },
   { t:104, name:'5 · Chaos → sync' },
   { t:164, name:'6 · Stop. Dark.' },
   { t:176, name:'7 · Finale' },
@@ -157,8 +188,11 @@ function buildScore(u) {
   L(61, 'on');
   M(64, 'arm_up'); M(70, 'arm_down'); M(76, 'arm_up'); M(82, 'arm_down');
 
-  // 4 · Sequenced arms — arm up/down in order
-  M(86 + 2 * s, 'arm_up'); M(96 + 2 * s, 'arm_down');
+  // 4 · Sequenced arms + light — OVERLAP: movement (left ear) and light (right ear)
+  //     land at the same instant, rippling through the units
+  L(84, 'off');
+  M(87 + 2 * s, 'arm_up');   L(87 + 2 * s, 'on');
+  M(97 + 2 * s, 'arm_down'); L(97 + 2 * s, 'off');
 
   // 5 · Chaos → sync
   L(104, 'off');                                   // everyone starts dark
@@ -345,6 +379,7 @@ function frame() {
   const w = now();
   if (mode === 'cal') drawSweep((w - EPOCH) % CAL_MS / CAL_MS);
   if (mode === 'run' && (lit || $('overlay').classList.contains('show'))) drawOverlay(w);
+  if (mode === 'op') drawOperator(w);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -370,6 +405,41 @@ function drawOverlay(w) {
     ['time', new Date(w).toISOString().slice(11, 23)],
   ];
   $('info').innerHTML = rows.map(([k, v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('');
+}
+
+/* ---------- operator view: derive every unit's state from the score ---------- */
+const MOVE_FRESH_S = 4;       // a movement cue reads bright for this long, then dims
+let opScores = null;
+function stateAt(sc, pos) {
+  const Ls = sc.filter(e => e.clip[0] === 'L'), Ms = sc.filter(e => e.clip[0] === 'M');
+  const l = [...Ls].reverse().find(e => e.t <= pos) || Ls[Ls.length - 1];  // wraps from previous loop
+  const m = [...Ms].reverse().find(e => e.t <= pos) || Ms[Ms.length - 1];
+  const mAge = m.t <= pos ? pos - m.t : pos + LOOP_S - m.t;
+  return { on: l.clip === 'L_on', move: LABEL[m.clip], fresh: mAge < MOVE_FRESH_S };
+}
+function buildOperator() {
+  opScores = [1,2,3,4,5,6].map(buildScore);
+  $('tiles').innerHTML = [1,2,3,4,5,6].map(u =>
+    `<div class="tile"><div class="n">UNIT ${u}</div><div class="c" id="c${u}"></div><div class="m" id="m${u}"></div></div>`).join('');
+  $('opTl').insertAdjacentHTML('afterbegin', SECTIONS.map((x, i) => {
+    const end = (SECTIONS[i + 1] || { t: LOOP_S }).t;
+    return `<div class="seg" data-i="${i}" style="left:${x.t / LOOP_S * 100}%;width:${(end - x.t) / LOOP_S * 100}%"></div>`;
+  }).join(''));
+}
+function drawOperator(w) {
+  const pos = ((w - EPOCH) % (LOOP_S * 1000)) / 1000;
+  const si = SECTIONS.length - 1 - [...SECTIONS].reverse().findIndex(x => pos >= x.t);
+  $('opSec').textContent = SECTIONS[si].name;
+  $('opTime').textContent = `${fmt(pos)} / ${fmt(LOOP_S)} · top in ${fmt(LOOP_S - pos)}`;
+  $('opHead2').style.left = `calc(${pos / LOOP_S * 100}% - 1px)`;
+  document.querySelectorAll('#opTl .seg').forEach(el => el.classList.toggle('on', +el.dataset.i === si));
+  opScores.forEach((sc, k) => {
+    const st = stateAt(sc, pos), u = k + 1;
+    $('c' + u).classList.toggle('on', st.on);
+    const m = $('m' + u);
+    if (m.textContent !== st.move) m.textContent = st.move;
+    m.classList.toggle('old', !st.fresh);
+  });
 }
 
 function drawSweep(ph) {             // ph 0..1, 0 = hand at top = beep
@@ -449,6 +519,7 @@ $('mute').onclick = e => {
   $('mute').classList.toggle('active', muted);
 };
 $('run').addEventListener('click', () => flashOverlay());
+$('opBtn').onclick = () => { if (!opScores) buildOperator(); keepAwake(); show('op'); };
 $('dark').onclick = e => {
   e.stopPropagation(); flashOverlay();
   lit = !lit;
