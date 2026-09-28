@@ -4,10 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<title>Occultimanus — sync test</title>
+<title>Occultimanus — test</title>
 <style>
   :root { --bg:#000; --fg:#d8d8d8; --dim:#5a5a5a; --accent:#ff2bd6; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { touch-action:manipulation; }
+  button, input { touch-action:manipulation; }
   html,body { margin:0; height:100%; background:var(--bg); color:var(--fg);
     font-family: -apple-system, system-ui, "Helvetica Neue", Arial, sans-serif; }
   body { overscroll-behavior:none; user-select:none; -webkit-user-select:none; }
@@ -22,21 +24,28 @@
   button.big { font-size:18px; padding:18px; border-radius:14px; border:1px solid var(--accent);
     background:transparent; color:var(--accent); width:100%; margin-top:12px; }
   button.small { font-size:15px; padding:12px 16px; border-radius:10px; border:1px solid #333; background:#111; color:var(--fg); }
-  #flash { position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; }
+  button.small.active { border-color:var(--accent); color:var(--accent); }
   .row { display:flex; gap:10px; align-items:center; justify-content:center; margin:16px 0; }
   #latVal { font-size:44px; font-weight:200; text-align:center; font-variant-numeric:tabular-nums; }
   input[type=range] { width:100%; margin:18px 0 6px; accent-color:var(--accent); }
-  #cal { position:relative; z-index:1; }
-  #cal .panel { margin-top:auto; background:rgba(0,0,0,.85); border-radius:16px; padding:16px; }
-  #beatBig { font-size:120px; font-weight:100; text-align:center; margin:auto 0 0; font-variant-numeric:tabular-nums; line-height:1; }
-  #dots { display:flex; gap:8px; justify-content:center; margin:22px 0 auto; }
-  .dot { width:14px; height:14px; border-radius:50%; background:#222; }
-  .dot.on { background:var(--fg); } .dot.down.on { background:var(--accent); }
+  #cal .panel { margin-top:auto; border-radius:16px; padding:16px 0 0; }
   #sweep { display:block; width:min(72vw,300px); height:min(72vw,300px); margin:24px auto 0; }
-  .bar { display:flex; gap:10px; margin-top:auto; }
+  #loadMsg { color:var(--dim); font-size:13px; text-align:center; margin-top:8px; }
+
+  /* run screen: black. tap to reveal the overlay for a few seconds */
+  #run { padding:0; }
+  #overlay { position:fixed; inset:0; display:flex; flex-direction:column;
+    padding:24px 20px calc(24px + env(safe-area-inset-bottom));
+    opacity:0; pointer-events:none; transition:opacity .4s; }
+  #overlay.show { opacity:1; pointer-events:auto; }
+  #now { font-size:28px; font-weight:300; margin:auto 0 6px; color:var(--fg); }
+  #next { font-size:15px; color:var(--dim); margin-bottom:auto; }
+  #info { display:grid; grid-template-columns:max-content 1fr; column-gap:16px; row-gap:6px;
+    font-family: ui-monospace, Menlo, monospace; font-size:12px; color:var(--dim); line-height:1.4; margin:16px 0; }
+  #info .k { white-space:nowrap; }
+  #info .v { overflow-wrap:anywhere; color:#8a8a8a; }
+  .bar { display:flex; gap:10px; }
   .bar button { flex:1; }
-  button.small.active { border-color:var(--accent); color:var(--accent); }
-  #info { font-family: ui-monospace, Menlo, monospace; font-size:12px; color:var(--dim); line-height:1.6; white-space:pre-wrap; margin:16px 0; }
 </style>
 </head>
 <body>
@@ -44,8 +53,9 @@
 <!-- 1. Pick your number -->
 <section id="pick" class="screen on">
   <h1>Occultimanus</h1>
-  <p>Sync test. Silent switch off, volume up, headphones in. Pick the number on your light.</p>
+  <p>Silent switch off, volume up, headphones in. Pick the number on your light.</p>
   <div class="grid" id="nums"></div>
+  <div id="loadMsg"></div>
 </section>
 
 <!-- 2. Calibrate headphone delay -->
@@ -62,54 +72,132 @@
       <button class="small" data-d="5">+5</button>
       <button class="small" data-d="10">+10</button>
     </div>
-    <button class="big" id="calDone">Done</button>
+    <button class="big" id="calDone">Begin</button>
   </div>
 </section>
 
-<!-- 3. Running -->
+<!-- 3. Running: black screen, tap for overlay -->
 <section id="run" class="screen">
-  <h1 id="unitLabel">Unit</h1>
-  <div id="beatBig">–</div>
-  <div id="dots"></div>
-  <div id="info"></div>
-  <div class="bar">
-    <button class="small" id="mute">Mute</button>
-    <button class="small" id="stop">Stop</button>
-    <button class="small" id="recal">Recalibrate</button>
+  <div id="overlay">
+    <h1 id="unitLabel">Unit</h1>
+    <div id="now">–</div>
+    <div id="next"></div>
+    <div id="info"></div>
+    <div class="bar">
+      <button class="small" id="mute">Mute</button>
+      <button class="small" id="recal">Recalibrate</button>
+    </div>
   </div>
 </section>
-
-<div id="flash"></div>
 
 <script>
 /* ============================================================
-   OCCULTIMANUS — sync test
+   OCCULTIMANUS — test rig
    Every phone computes position from its own clock against a
    hard-coded epoch. Nothing talks to anything during playback.
    ============================================================ */
 
-const EPOCH   = Date.UTC(2026, 8, 1, 0, 0, 0); // 2026-09-01 00:00 UTC — shared by every phone
-const BEAT_MS = 2000;  // one click every 2 s during the test
-const BAR     = 8;     // high tone every 8th beat (catches whole-beat errors)
-const CAL_MS  = 1000;  // calibration pulse: once a second
+const EPOCH   = Date.UTC(2026, 8, 1, 0, 0, 0); // shared by every phone
+const CAL_MS  = 1000;          // calibration beep: once a second
 const LOOKAHEAD_MS = 1500;
-const CLOCK_FIX_THRESHOLD_MS = 1500; // only override the phone clock if it is grossly wrong
+const CLOCK_FIX_THRESHOLD_MS = 1500;
+const OVERLAY_MS = 6000;
 
-let ctx = null;
-let unit = null;
-let latencyMs = 0;       // headphone delay, set by calibration
-let clockFix = 0;        // ms added to Date.now() if the phone clock is badly off
-let clockReport = 'checking…';
-let mode = 'pick';       // pick | cal | run
-let nextIdx = null;      // next pulse index to schedule
-let wakeLock = null;
-let master = null;       // all sound goes through here (mute)
+/* ---------- clips ---------- */
+// L_* = light voice, right ear.  M_* = movement voice, left ear.
+const CLIPS = ['L_on', 'L_off', 'M_arm_up', 'M_arm_down', 'M_chaos', 'M_stop', 'M_face'];
+const LABEL = {
+  L_on:'Light on', L_off:'Light off', M_arm_up:'Arm up', M_arm_down:'Arm down',
+  M_chaos:'Move chaotically', M_stop:'Stop moving', M_face:'Point your light at your face',
+};
+const PAN = { L:+1, M:-1 };
+
+/* ============================================================
+   THE SCORE
+   Times in seconds from the top of the loop.
+   step(u) = ripple position. Units 5 & 6 share steps with 1 & 2,
+   so a 4-person ripple has no gaps.
+   ============================================================ */
+const step = u => (u - 1) % 4;
+
+// deterministic per-unit randomness: same unit → same chaos every loop
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+  let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+  return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+const SECTIONS = [
+  { t:0,   name:'1 · Unison pulse' },
+  { t:24,  name:'2 · Ripple' },
+  { t:60,  name:'3 · Unison arms' },
+  { t:84,  name:'4 · Sequenced arms' },
+  { t:104, name:'5 · Chaos → sync' },
+  { t:164, name:'6 · Stop. Dark.' },
+  { t:176, name:'7 · Finale' },
+];
+const LOOP_S = 200;
+
+function buildScore(u) {
+  const ev = [];
+  const L = (t, c) => ev.push({ t, clip: 'L_' + c });
+  const M = (t, c) => ev.push({ t, clip: 'M_' + c });
+  const s = step(u);
+
+  // 1 · Unison pulse — everyone on/off together, slow
+  for (let t = 2; t < 24; t += 8) { L(t, 'on'); L(t + 4, 'off'); }
+
+  // 2 · Ripple — on in order, off in order; three passes, each faster
+  [[26, 34, 1.5], [42, 47, 0.8], [51, 55, 0.5]].forEach(([on, off, gap]) => {
+    L(on + gap * s, 'on'); L(off + gap * s, 'off');
+  });
+
+  // 3 · Unison arms — light on, arms together
+  L(61, 'on');
+  M(64, 'arm_up'); M(70, 'arm_down'); M(76, 'arm_up'); M(82, 'arm_down');
+
+  // 4 · Sequenced arms — arm up/down in order
+  M(86 + 2 * s, 'arm_up'); M(96 + 2 * s, 'arm_down');
+
+  // 5 · Chaos → sync
+  L(104, 'off');                                   // everyone starts dark
+  M(107, 'chaos');
+  const r = rng(u * 7919);
+  const blinker = (u % 2 === 1);                   // odd units blink, even units hold
+  const syncAt = [130, 138, 146, 154][[2, 0, 3, 1][s]]; // one by one, scrambled order
+  let t = 108 + r() * 2, on = true;
+  while (t < syncAt - 0.3) {                       // free-running, per-unit timing
+    L(t, on ? 'on' : 'off'); on = !on;
+    t += blinker ? 1.1 + r() * 0.9 : 3 + r() * 3;
+  }
+  // snap onto the shared pulse: on at every multiple of 4 s, off 2 s later
+  for (let g = Math.ceil(syncAt / 4) * 4; g < 162; g += 4) { L(g, 'on'); L(g + 2, 'off'); }
+
+  // 6 · Stop. Dark.
+  M(164, 'stop'); L(166, 'off');
+
+  // 7 · Finale — light under the face, dark, then all on at once
+  M(176, 'face');
+  L(184, 'on');
+  L(196, 'off');
+
+  return ev.sort((a, b) => a.t - b.t);
+}
+
+/* ---------- state ---------- */
+let ctx = null, master = null;
+let buffers = {};
+let unit = null, score = [];
+let latencyMs = 0;
+let clockFix = 0, clockReport = 'checking…';
+let mode = 'pick';          // pick | cal | run
+let calIdx = null;          // next calibration beep index
+let cur = null;             // next score event: { cycle, i }
+let loopClickCycle = null;  // last loop-top click scheduled
 let muted = false;
-let stopped = false;     // Stop/Start: pauses scheduling; Start rejoins the current moment
+let wakeLock = null, overlayTimer = null;
+const pending = [];
 
 const now = () => Date.now() + clockFix;
 const $ = id => document.getElementById(id);
-
 try { latencyMs = +localStorage.getItem('occ_lat') || 0; } catch(e) {}
 
 /* ---------- clock sanity check against the server's Date header ---------- */
@@ -119,32 +207,41 @@ async function checkClock() {
     const r = await fetch(location.pathname + '?t=' + t0, { method:'HEAD', cache:'no-store' });
     const t1 = Date.now();
     const d = r.headers.get('date');
-    if (!d) { clockReport = 'no server date — trusting phone clock'; return; }
-    // Date header has 1 s resolution, so it can only catch gross errors
-    const server = Date.parse(d) + 500;
-    const offset = server - (t0 + t1) / 2;
+    if (!d) { clockReport = 'no server date — trusting phone'; return; }
+    const offset = Date.parse(d) + 500 - (t0 + t1) / 2;   // header has 1 s resolution
     if (Math.abs(offset) > CLOCK_FIX_THRESHOLD_MS) {
-      clockFix = offset;
-      clockReport = `phone clock off by ${(offset/1000).toFixed(1)} s — CORRECTED`;
-    } else {
-      clockReport = `phone clock OK (server diff ${(offset/1000).toFixed(1)} s, within ±1 s header precision)`;
-    }
-  } catch(e) { clockReport = 'clock check failed — trusting phone clock'; }
+      clockFix = offset; clockReport = `off by ${(offset/1000).toFixed(1)} s — corrected`;
+    } else clockReport = `OK (${(offset/1000).toFixed(1)} s vs server)`;
+  } catch(e) { clockReport = 'check failed — trusting phone'; }
 }
 
 /* ---------- audio ---------- */
 function initAudio() {
   if (ctx) { ctx.resume(); return; }
-  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch(e) {} // ignore silent switch where supported
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch(e) {}
   ctx = new (window.AudioContext || window.webkitAudioContext)();
   master = ctx.createGain(); master.gain.value = muted ? 0 : 1; master.connect(ctx.destination);
-  // unlock on iOS
   const b = ctx.createBuffer(1, 1, 22050), s = ctx.createBufferSource();
   s.buffer = b; s.connect(ctx.destination); s.start(0);
   ctx.resume();
+  loadClips();
 }
 
-// Convert a wall-clock time (ms) into AudioContext time (s)
+async function loadClips() {
+  $('loadMsg').textContent = 'loading voices…';
+  let n = 0;
+  await Promise.all(CLIPS.map(async k => {
+    try {
+      const r = await fetch('clips/' + k + '.mp3');
+      const a = await r.arrayBuffer();
+      buffers[k] = await new Promise((ok, no) => ctx.decodeAudioData(a, ok, no));
+      n++;
+    } catch(e) { console.warn('clip failed', k, e); }
+  }));
+  $('loadMsg').textContent = n === CLIPS.length ? '' : `${n}/${CLIPS.length} voices loaded`;
+}
+
+// wall-clock ms → AudioContext seconds
 function wallToCtx(w) {
   const wallNow = now(), perfNow = performance.now();
   const ts = ctx.getOutputTimestamp ? ctx.getOutputTimestamp() : null;
@@ -155,44 +252,75 @@ function wallToCtx(w) {
   return ctx.currentTime + (w - wallNow) / 1000 - (ctx.outputLatency || ctx.baseLatency || 0);
 }
 
-function click(t, hi) {
+function beep(t, freq, vol) {
   const o = ctx.createOscillator(), g = ctx.createGain();
-  o.type = 'triangle';
-  o.frequency.value = hi ? 1760 : 880;
+  o.type = 'triangle'; o.frequency.value = freq;
   g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(hi ? 0.7 : 0.5, t + 0.002);
+  g.gain.linearRampToValueAtTime(vol, t + 0.002);
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
   o.connect(g); g.connect(master);
   o.start(t); o.stop(t + 0.1);
-  pending.push({ o, t });
+  pending.push({ node:o, t });
 }
 
-// Cancel clicks already queued but not yet heard, then reschedule from scratch
-const pending = [];
+function playClip(t, key) {
+  const buf = buffers[key]; if (!buf) return;
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  let out = src;
+  if (ctx.createStereoPanner) {
+    const p = ctx.createStereoPanner(); p.pan.value = PAN[key[0]];
+    src.connect(p); out = p;
+  }
+  out.connect(master);
+  src.start(t);
+  pending.push({ node:src, t });
+}
+
 function resetSchedule() {
-  if (ctx) pending.forEach(p => { if (p.t > ctx.currentTime) { try { p.o.stop(); } catch(e) {} } });
+  if (ctx) pending.forEach(p => { if (p.t > ctx.currentTime) { try { p.node.stop(); } catch(e) {} } });
   pending.length = 0;
-  nextIdx = null;
+  calIdx = null; cur = null; loopClickCycle = null;
 }
 
 /* ---------- scheduler: decide ahead, play on the tick ---------- */
-function period() { return mode === 'cal' ? CAL_MS : BEAT_MS; }
-
 function schedule() {
-  if (!ctx || (mode !== 'cal' && mode !== 'run')) return;
-  if (mode === 'run' && stopped) return;
-  const P = period(), w = now();
-  const horizon = w + LOOKAHEAD_MS + latencyMs;
-  if (nextIdx === null) nextIdx = Math.ceil((w - EPOCH) / P);
-  while (EPOCH + nextIdx * P < horizon) {
-    const t = wallToCtx(EPOCH + nextIdx * P) - latencyMs / 1000; // play early by the headphone delay
-    if (t > ctx.currentTime + 0.01) {
-      const hi = mode === 'run' ? (nextIdx % BAR === 0) : false;
-      click(t, hi);
+  if (!ctx) return;
+  const w = now(), horizon = w + LOOKAHEAD_MS + latencyMs;
+  const early = latencyMs / 1000;   // play early by the headphone delay
+
+  if (mode === 'cal') {
+    if (calIdx === null) calIdx = Math.ceil((w - EPOCH) / CAL_MS);
+    while (EPOCH + calIdx * CAL_MS < horizon) {
+      const t = wallToCtx(EPOCH + calIdx * CAL_MS) - early;
+      if (t > ctx.currentTime + 0.01) beep(t, 880, 0.5);
+      calIdx++;
     }
-    nextIdx++;
   }
-  while (pending.length && pending[0].t < ctx.currentTime - 1) pending.shift();
+
+  if (mode === 'run' && score.length) {
+    const LMS = LOOP_S * 1000;
+    if (cur === null) {
+      const cycle = Math.floor((w - EPOCH) / LMS), pos = (w - EPOCH) - cycle * LMS;
+      const i = score.findIndex(e => e.t * 1000 >= pos);
+      cur = i < 0 ? { cycle: cycle + 1, i: 0 } : { cycle, i };
+    }
+    // soft click at the top of every loop
+    const nextTop = Math.ceil((w - EPOCH) / LMS);
+    if (loopClickCycle !== nextTop && EPOCH + nextTop * LMS < horizon) {
+      const t = wallToCtx(EPOCH + nextTop * LMS) - early;
+      if (t > ctx.currentTime + 0.01) beep(t, 1760, 0.35);
+      loopClickCycle = nextTop;
+    }
+    // clips
+    for (;;) {
+      const e = score[cur.i], at = EPOCH + cur.cycle * LMS + e.t * 1000;
+      if (at >= horizon) break;
+      const t = wallToCtx(at) - early;
+      if (t > ctx.currentTime + 0.01) playClip(t, e.clip);
+      cur.i++; if (cur.i >= score.length) { cur.i = 0; cur.cycle++; }
+    }
+  }
+  while (pending.length && pending[0].t < ctx.currentTime - 2) pending.shift();
 }
 setInterval(schedule, 100);
 
@@ -200,57 +328,56 @@ setInterval(schedule, 100);
 function frame() {
   const w = now();
   if (mode === 'cal') drawSweep((w - EPOCH) % CAL_MS / CAL_MS);
-  if (mode === 'run') {
-    const idx = Math.floor((w - EPOCH) / BEAT_MS);
-    const pos = ((idx % BAR) + BAR) % BAR;
-    const ph = (w - EPOCH) % BEAT_MS;
-    $('beatBig').textContent = pos + 1;
-    $('beatBig').style.opacity = stopped ? 0.25 : 1;
-    $('beatBig').style.color = ph < 150 ? (pos === 0 ? 'var(--accent)' : '#fff') : 'var(--fg)';
-    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === pos));
-    const lat = ctx ? `out ${Math.round(((ctx.outputLatency||0)+(ctx.baseLatency||0))*1000)} ms (browser-reported)` : '';
-    $('info').textContent =
-      `unit          ${unit}\n` +
-      `headphone lag ${latencyMs} ms (calibrated)\n` +
-      `audio         ${lat}\n` +
-      `clock         ${clockReport}\n` +
-      `time          ${new Date(w).toISOString().slice(11,23)}\n` +
-      `bar           ${Math.floor(idx / BAR)}`;
-  }
+  if (mode === 'run' && $('overlay').classList.contains('show')) drawOverlay(w);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
-/* ---------- calibration sweep hand ---------- */
-function drawSweep(ph) {           // ph 0..1, 0 = hand at top = beep
-  const c = $('sweep'), dpr = window.devicePixelRatio || 1;
-  const size = c.clientWidth;
-  if (c.width !== size * dpr) { c.width = c.height = size * dpr; }
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+function drawOverlay(w) {
+  const pos = ((w - EPOCH) % (LOOP_S * 1000)) / 1000;
+  const sec = [...SECTIONS].reverse().find(x => pos >= x.t);
+  const past = [...score].reverse().find(e => e.t <= pos);
+  const next = score.find(e => e.t > pos) || score[0];
+  const dt = next.t > pos ? next.t - pos : next.t + LOOP_S - pos;
+  $('now').textContent = past ? LABEL[past.clip] : '–';
+  $('next').textContent = `next: ${LABEL[next.clip]} in ${dt.toFixed(1)} s`;
+  const rows = [
+    ['unit', unit],
+    ['section', sec.name],
+    ['loop', `${fmt(pos)} / ${fmt(LOOP_S)} · top in ${fmt(LOOP_S - pos)}`],
+    ['headphone lag', `${latencyMs} ms`],
+    ['audio out', ctx ? `${Math.round(((ctx.outputLatency||0)+(ctx.baseLatency||0))*1000)} ms (browser)` : '–'],
+    ['clock', clockReport],
+    ['time', new Date(w).toISOString().slice(11, 23)],
+  ];
+  $('info').innerHTML = rows.map(([k, v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('');
+}
+
+function drawSweep(ph) {             // ph 0..1, 0 = hand at top = beep
+  const c = $('sweep'), dpr = window.devicePixelRatio || 1, size = c.clientWidth;
+  if (c.width !== size * dpr) c.width = c.height = size * dpr;
   const x = c.getContext('2d');
-  x.setTransform(dpr, 0, 0, dpr, 0, 0);
-  x.clearRect(0, 0, size, size);
-  const r = size / 2, cx = r, cy = r;
-  const near = ph < 0.06 || ph > 0.97;   // glow window around the top
-  // face
+  x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, size, size);
+  const r = size / 2, cx = r, cy = r, near = ph < 0.06 || ph > 0.97;
   x.strokeStyle = '#2a2a2a'; x.lineWidth = 2;
   x.beginPath(); x.arc(cx, cy, r - 6, 0, Math.PI * 2); x.stroke();
-  // minor ticks
   for (let i = 1; i < 20; i++) {
     const a = i / 20 * Math.PI * 2 - Math.PI / 2;
-    x.strokeStyle = '#333'; x.lineWidth = 2;
-    x.beginPath();
+    x.strokeStyle = '#333'; x.beginPath();
     x.moveTo(cx + Math.cos(a) * (r - 14), cy + Math.sin(a) * (r - 14));
-    x.lineTo(cx + Math.cos(a) * (r - 6),  cy + Math.sin(a) * (r - 6));
-    x.stroke();
+    x.lineTo(cx + Math.cos(a) * (r - 6),  cy + Math.sin(a) * (r - 6)); x.stroke();
   }
-  // top mark (the target)
   x.strokeStyle = near ? '#fff' : '#ff2bd6'; x.lineWidth = near ? 8 : 5;
   x.beginPath(); x.moveTo(cx, 4); x.lineTo(cx, 36); x.stroke();
-  // hand
-  const a = ph * Math.PI * 2 - Math.PI / 2;
+  const a = ph * Math.PI * 2 - Math.PI / 2, TAIL = Math.PI * 0.35, STEPS = 14;
+  x.fillStyle = 'rgba(232,232,232,0.045)';
+  for (let k = 1; k <= STEPS; k++) {
+    x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, r - 10, a - TAIL * k / STEPS, a); x.closePath(); x.fill();
+  }
   x.strokeStyle = '#e8e8e8'; x.lineWidth = 3; x.lineCap = 'round';
-  x.beginPath(); x.moveTo(cx, cy);
-  x.lineTo(cx + Math.cos(a) * (r - 10), cy + Math.sin(a) * (r - 10)); x.stroke();
+  x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(a) * (r - 10), cy + Math.sin(a) * (r - 10)); x.stroke();
   x.fillStyle = '#e8e8e8'; x.beginPath(); x.arc(cx, cy, 5, 0, Math.PI * 2); x.fill();
 }
 
@@ -260,8 +387,7 @@ async function keepAwake() {
 }
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
-    resetSchedule();          // resync scheduling after being backgrounded
-    if (ctx) ctx.resume();
+    resetSchedule(); if (ctx) ctx.resume();
     if (mode !== 'pick') keepAwake();
   }
 });
@@ -270,24 +396,29 @@ document.addEventListener('visibilitychange', () => {
 function show(id) {
   mode = id; resetSchedule();
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  if (id === 'run') flashOverlay();
+}
+function flashOverlay() {
+  $('overlay').classList.add('show');
+  clearTimeout(overlayTimer);
+  overlayTimer = setTimeout(() => $('overlay').classList.remove('show'), OVERLAY_MS);
 }
 
-// number picker
 for (let i = 1; i <= 6; i++) {
   const b = document.createElement('button');
   b.className = 'num'; b.textContent = i;
-  b.onclick = () => { unit = i; initAudio(); keepAwake(); $('unitLabel').textContent = 'Unit ' + i; show('cal'); };
+  b.onclick = () => {
+    unit = i; score = buildScore(i);
+    initAudio(); keepAwake();
+    $('unitLabel').textContent = 'Unit ' + i; show('cal');
+  };
   $('nums').appendChild(b);
 }
-for (let i = 0; i < BAR; i++) {
-  const d = document.createElement('div'); d.className = 'dot' + (i === 0 ? ' down' : ''); $('dots').appendChild(d);
-}
 
-// calibration controls
 function setLat(v) {
   latencyMs = Math.max(0, Math.min(500, v));
   $('lat').value = latencyMs; $('latVal').textContent = latencyMs + ' ms';
-  resetSchedule(); // reschedule with new offset
+  resetSchedule();
 }
 $('lat').oninput = e => setLat(+e.target.value);
 document.querySelectorAll('[data-d]').forEach(b => b.onclick = () => setLat(latencyMs + +b.dataset.d));
@@ -296,19 +427,15 @@ $('calDone').onclick = () => {
   try { localStorage.setItem('occ_lat', latencyMs); } catch(e) {}
   initAudio(); show('run');
 };
-$('recal').onclick = () => { initAudio(); stopped = false; $('stop').textContent = 'Stop'; show('cal'); };
-$('mute').onclick = () => {
+$('recal').onclick = e => { e.stopPropagation(); initAudio(); show('cal'); };
+$('mute').onclick = e => {
+  e.stopPropagation(); flashOverlay();
   muted = !muted;
   if (master) master.gain.setTargetAtTime(muted ? 0 : 1, ctx.currentTime, 0.01);
   $('mute').textContent = muted ? 'Unmute' : 'Mute';
   $('mute').classList.toggle('active', muted);
 };
-$('stop').onclick = () => {
-  stopped = !stopped;
-  initAudio(); resetSchedule();
-  $('stop').textContent = stopped ? 'Start' : 'Stop';
-  $('stop').classList.toggle('active', stopped);
-};
+$('run').addEventListener('click', () => flashOverlay());
 document.body.addEventListener('touchstart', () => { if (ctx && ctx.state !== 'running') ctx.resume(); }, { passive:true });
 
 checkClock();
