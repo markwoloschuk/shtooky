@@ -38,6 +38,8 @@
     padding:24px 20px calc(24px + env(safe-area-inset-bottom));
     opacity:0; pointer-events:none; transition:opacity .4s; }
   #overlay.show { opacity:1; pointer-events:auto; }
+  #overlay.lit  { opacity:.35; pointer-events:auto; }
+  #overlay.lit.show { opacity:1; }
   #now { font-size:28px; font-weight:300; margin:auto 0 6px; color:var(--fg); }
   #next { font-size:15px; color:var(--dim); margin-bottom:auto; }
   #info { display:grid; grid-template-columns:max-content 1fr; column-gap:16px; row-gap:6px;
@@ -85,6 +87,7 @@
     <div id="info"></div>
     <div class="bar">
       <button class="small" id="mute">Mute</button>
+      <button class="small" id="dark">Dark</button>
       <button class="small" id="recal">Recalibrate</button>
     </div>
   </div>
@@ -194,6 +197,7 @@ let cur = null;             // next score event: { cycle, i }
 let loopClickCycle = null;  // last loop-top click scheduled
 let muted = false;
 let wakeLock = null, overlayTimer = null;
+let lit = true;             // screen stays up, dimmed; Dark = fully black between taps
 const pending = [];
 
 const now = () => Date.now() + clockFix;
@@ -227,18 +231,30 @@ function initAudio() {
   loadClips();
 }
 
+// Folder this page lives in, however the URL was typed (…/occultimanus, …/occultimanus/, …/index.html)
+const BASE = (() => {
+  const u = new URL(location.href); u.search = ''; u.hash = '';
+  if (!u.pathname.endsWith('/') && !/\.html?$/.test(u.pathname)) u.pathname += '/';
+  return new URL('.', u).href;
+})();
+let voiceReport = 'not loaded';
+
 async function loadClips() {
   $('loadMsg').textContent = 'loading voices…';
-  let n = 0;
+  voiceReport = 'loading…';
+  let n = 0; const fails = [];
   await Promise.all(CLIPS.map(async k => {
     try {
-      const r = await fetch('clips/' + k + '.mp3');
+      const r = await fetch(BASE + 'clips/' + k + '.mp3');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
       const a = await r.arrayBuffer();
       buffers[k] = await new Promise((ok, no) => ctx.decodeAudioData(a, ok, no));
       n++;
-    } catch(e) { console.warn('clip failed', k, e); }
+    } catch(e) { fails.push(k + ' (' + (e.message || e) + ')'); }
   }));
   $('loadMsg').textContent = n === CLIPS.length ? '' : `${n}/${CLIPS.length} voices loaded`;
+  voiceReport = n === CLIPS.length ? `${n}/${CLIPS.length} loaded`
+    : `${n}/${CLIPS.length} loaded · FAILED: ${fails.join(', ')} · from ${BASE}clips/`;
 }
 
 // wall-clock ms → AudioContext seconds
@@ -328,7 +344,7 @@ setInterval(schedule, 100);
 function frame() {
   const w = now();
   if (mode === 'cal') drawSweep((w - EPOCH) % CAL_MS / CAL_MS);
-  if (mode === 'run' && $('overlay').classList.contains('show')) drawOverlay(w);
+  if (mode === 'run' && (lit || $('overlay').classList.contains('show'))) drawOverlay(w);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -347,6 +363,7 @@ function drawOverlay(w) {
     ['unit', unit],
     ['section', sec.name],
     ['loop', `${fmt(pos)} / ${fmt(LOOP_S)} · top in ${fmt(LOOP_S - pos)}`],
+    ['voices', voiceReport],
     ['headphone lag', `${latencyMs} ms`],
     ['audio out', ctx ? `${Math.round(((ctx.outputLatency||0)+(ctx.baseLatency||0))*1000)} ms (browser)` : '–'],
     ['clock', clockReport],
@@ -371,11 +388,7 @@ function drawSweep(ph) {             // ph 0..1, 0 = hand at top = beep
   }
   x.strokeStyle = near ? '#fff' : '#ff2bd6'; x.lineWidth = near ? 8 : 5;
   x.beginPath(); x.moveTo(cx, 4); x.lineTo(cx, 36); x.stroke();
-  const a = ph * Math.PI * 2 - Math.PI / 2, TAIL = Math.PI * 0.35, STEPS = 14;
-  x.fillStyle = 'rgba(232,232,232,0.045)';
-  for (let k = 1; k <= STEPS; k++) {
-    x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, r - 10, a - TAIL * k / STEPS, a); x.closePath(); x.fill();
-  }
+  const a = ph * Math.PI * 2 - Math.PI / 2;
   x.strokeStyle = '#e8e8e8'; x.lineWidth = 3; x.lineCap = 'round';
   x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(a) * (r - 10), cy + Math.sin(a) * (r - 10)); x.stroke();
   x.fillStyle = '#e8e8e8'; x.beginPath(); x.arc(cx, cy, 5, 0, Math.PI * 2); x.fill();
@@ -436,6 +449,14 @@ $('mute').onclick = e => {
   $('mute').classList.toggle('active', muted);
 };
 $('run').addEventListener('click', () => flashOverlay());
+$('dark').onclick = e => {
+  e.stopPropagation(); flashOverlay();
+  lit = !lit;
+  $('overlay').classList.toggle('lit', lit);
+  $('dark').textContent = lit ? 'Dark' : 'Lit';
+  $('dark').classList.toggle('active', !lit);
+};
+$('overlay').classList.add('lit');
 document.body.addEventListener('touchstart', () => { if (ctx && ctx.state !== 'running') ctx.resume(); }, { passive:true });
 
 checkClock();
