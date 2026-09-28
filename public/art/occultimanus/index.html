@@ -32,6 +32,10 @@
   #dots { display:flex; gap:8px; justify-content:center; margin:22px 0 auto; }
   .dot { width:14px; height:14px; border-radius:50%; background:#222; }
   .dot.on { background:var(--fg); } .dot.down.on { background:var(--accent); }
+  #sweep { display:block; width:min(72vw,300px); height:min(72vw,300px); margin:24px auto 0; }
+  .bar { display:flex; gap:10px; margin-top:auto; }
+  .bar button { flex:1; }
+  button.small.active { border-color:var(--accent); color:var(--accent); }
   #info { font-family: ui-monospace, Menlo, monospace; font-size:12px; color:var(--dim); line-height:1.6; white-space:pre-wrap; margin:16px 0; }
 </style>
 </head>
@@ -47,7 +51,8 @@
 <!-- 2. Calibrate headphone delay -->
 <section id="cal" class="screen">
   <h1>Line up the beep</h1>
-  <p>The screen flashes once a second. Drag until the beep lands exactly on the flash. Speakers: leave at 0.</p>
+  <p>The hand sweeps once a second. Adjust until the beep lands exactly as the hand crosses the top mark. Speakers: leave at 0.</p>
+  <canvas id="sweep"></canvas>
   <div class="panel">
     <div id="latVal">0 ms</div>
     <input type="range" id="lat" min="0" max="500" step="5" value="0">
@@ -67,7 +72,11 @@
   <div id="beatBig">–</div>
   <div id="dots"></div>
   <div id="info"></div>
-  <button class="small" id="recal">Recalibrate</button>
+  <div class="bar">
+    <button class="small" id="mute">Mute</button>
+    <button class="small" id="stop">Stop</button>
+    <button class="small" id="recal">Recalibrate</button>
+  </div>
 </section>
 
 <div id="flash"></div>
@@ -94,6 +103,9 @@ let clockReport = 'checking…';
 let mode = 'pick';       // pick | cal | run
 let nextIdx = null;      // next pulse index to schedule
 let wakeLock = null;
+let master = null;       // all sound goes through here (mute)
+let muted = false;
+let stopped = false;     // Stop/Start: pauses scheduling; Start rejoins the current moment
 
 const now = () => Date.now() + clockFix;
 const $ = id => document.getElementById(id);
@@ -125,6 +137,7 @@ function initAudio() {
   if (ctx) { ctx.resume(); return; }
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch(e) {} // ignore silent switch where supported
   ctx = new (window.AudioContext || window.webkitAudioContext)();
+  master = ctx.createGain(); master.gain.value = muted ? 0 : 1; master.connect(ctx.destination);
   // unlock on iOS
   const b = ctx.createBuffer(1, 1, 22050), s = ctx.createBufferSource();
   s.buffer = b; s.connect(ctx.destination); s.start(0);
@@ -149,7 +162,7 @@ function click(t, hi) {
   g.gain.setValueAtTime(0, t);
   g.gain.linearRampToValueAtTime(hi ? 0.7 : 0.5, t + 0.002);
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-  o.connect(g); g.connect(ctx.destination);
+  o.connect(g); g.connect(master);
   o.start(t); o.stop(t + 0.1);
   pending.push({ o, t });
 }
@@ -167,6 +180,7 @@ function period() { return mode === 'cal' ? CAL_MS : BEAT_MS; }
 
 function schedule() {
   if (!ctx || (mode !== 'cal' && mode !== 'run')) return;
+  if (mode === 'run' && stopped) return;
   const P = period(), w = now();
   const horizon = w + LOOKAHEAD_MS + latencyMs;
   if (nextIdx === null) nextIdx = Math.ceil((w - EPOCH) / P);
@@ -185,17 +199,13 @@ setInterval(schedule, 100);
 /* ---------- visuals (screen has no headphone delay → true time) ---------- */
 function frame() {
   const w = now();
-  if (mode === 'cal') {
-    const ph = (w - EPOCH) % CAL_MS;
-    $('flash').style.opacity = ph < 90 ? 1 : 0;
-  } else {
-    $('flash').style.opacity = 0;
-  }
+  if (mode === 'cal') drawSweep((w - EPOCH) % CAL_MS / CAL_MS);
   if (mode === 'run') {
     const idx = Math.floor((w - EPOCH) / BEAT_MS);
     const pos = ((idx % BAR) + BAR) % BAR;
     const ph = (w - EPOCH) % BEAT_MS;
     $('beatBig').textContent = pos + 1;
+    $('beatBig').style.opacity = stopped ? 0.25 : 1;
     $('beatBig').style.color = ph < 150 ? (pos === 0 ? 'var(--accent)' : '#fff') : 'var(--fg)';
     document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === pos));
     const lat = ctx ? `out ${Math.round(((ctx.outputLatency||0)+(ctx.baseLatency||0))*1000)} ms (browser-reported)` : '';
@@ -210,6 +220,39 @@ function frame() {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+/* ---------- calibration sweep hand ---------- */
+function drawSweep(ph) {           // ph 0..1, 0 = hand at top = beep
+  const c = $('sweep'), dpr = window.devicePixelRatio || 1;
+  const size = c.clientWidth;
+  if (c.width !== size * dpr) { c.width = c.height = size * dpr; }
+  const x = c.getContext('2d');
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  x.clearRect(0, 0, size, size);
+  const r = size / 2, cx = r, cy = r;
+  const near = ph < 0.06 || ph > 0.97;   // glow window around the top
+  // face
+  x.strokeStyle = '#2a2a2a'; x.lineWidth = 2;
+  x.beginPath(); x.arc(cx, cy, r - 6, 0, Math.PI * 2); x.stroke();
+  // minor ticks
+  for (let i = 1; i < 20; i++) {
+    const a = i / 20 * Math.PI * 2 - Math.PI / 2;
+    x.strokeStyle = '#333'; x.lineWidth = 2;
+    x.beginPath();
+    x.moveTo(cx + Math.cos(a) * (r - 14), cy + Math.sin(a) * (r - 14));
+    x.lineTo(cx + Math.cos(a) * (r - 6),  cy + Math.sin(a) * (r - 6));
+    x.stroke();
+  }
+  // top mark (the target)
+  x.strokeStyle = near ? '#fff' : '#ff2bd6'; x.lineWidth = near ? 8 : 5;
+  x.beginPath(); x.moveTo(cx, 4); x.lineTo(cx, 36); x.stroke();
+  // hand
+  const a = ph * Math.PI * 2 - Math.PI / 2;
+  x.strokeStyle = '#e8e8e8'; x.lineWidth = 3; x.lineCap = 'round';
+  x.beginPath(); x.moveTo(cx, cy);
+  x.lineTo(cx + Math.cos(a) * (r - 10), cy + Math.sin(a) * (r - 10)); x.stroke();
+  x.fillStyle = '#e8e8e8'; x.beginPath(); x.arc(cx, cy, 5, 0, Math.PI * 2); x.fill();
+}
 
 /* ---------- wake lock ---------- */
 async function keepAwake() {
@@ -253,7 +296,19 @@ $('calDone').onclick = () => {
   try { localStorage.setItem('occ_lat', latencyMs); } catch(e) {}
   initAudio(); show('run');
 };
-$('recal').onclick = () => { initAudio(); show('cal'); };
+$('recal').onclick = () => { initAudio(); stopped = false; $('stop').textContent = 'Stop'; show('cal'); };
+$('mute').onclick = () => {
+  muted = !muted;
+  if (master) master.gain.setTargetAtTime(muted ? 0 : 1, ctx.currentTime, 0.01);
+  $('mute').textContent = muted ? 'Unmute' : 'Mute';
+  $('mute').classList.toggle('active', muted);
+};
+$('stop').onclick = () => {
+  stopped = !stopped;
+  initAudio(); resetSchedule();
+  $('stop').textContent = stopped ? 'Start' : 'Stop';
+  $('stop').classList.toggle('active', stopped);
+};
 document.body.addEventListener('touchstart', () => { if (ctx && ctx.state !== 'running') ctx.resume(); }, { passive:true });
 
 checkClock();
