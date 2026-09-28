@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Occultimanus — sync test</title>
+<style>
+  :root { --bg:#000; --fg:#d8d8d8; --dim:#5a5a5a; --accent:#ff2bd6; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg);
+    font-family: -apple-system, system-ui, "Helvetica Neue", Arial, sans-serif; }
+  body { overscroll-behavior:none; user-select:none; -webkit-user-select:none; }
+  .screen { display:none; min-height:100%; padding:24px 20px calc(24px + env(safe-area-inset-bottom)); flex-direction:column; }
+  .screen.on { display:flex; }
+  h1 { font-weight:600; letter-spacing:.2em; text-transform:uppercase; font-size:14px; color:var(--accent); margin:8px 0 4px; }
+  p { color:var(--dim); font-size:15px; line-height:1.45; margin:6px 0; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:28px 0; }
+  .num { aspect-ratio:1; font-size:40px; font-weight:300; background:#111; color:var(--fg);
+    border:1px solid #2a2a2a; border-radius:14px; }
+  .num:active { background:var(--accent); color:#000; }
+  button.big { font-size:18px; padding:18px; border-radius:14px; border:1px solid var(--accent);
+    background:transparent; color:var(--accent); width:100%; margin-top:12px; }
+  button.small { font-size:15px; padding:12px 16px; border-radius:10px; border:1px solid #333; background:#111; color:var(--fg); }
+  #flash { position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; }
+  .row { display:flex; gap:10px; align-items:center; justify-content:center; margin:16px 0; }
+  #latVal { font-size:44px; font-weight:200; text-align:center; font-variant-numeric:tabular-nums; }
+  input[type=range] { width:100%; margin:18px 0 6px; accent-color:var(--accent); }
+  #cal { position:relative; z-index:1; }
+  #cal .panel { margin-top:auto; background:rgba(0,0,0,.85); border-radius:16px; padding:16px; }
+  #beatBig { font-size:120px; font-weight:100; text-align:center; margin:auto 0 0; font-variant-numeric:tabular-nums; line-height:1; }
+  #dots { display:flex; gap:8px; justify-content:center; margin:22px 0 auto; }
+  .dot { width:14px; height:14px; border-radius:50%; background:#222; }
+  .dot.on { background:var(--fg); } .dot.down.on { background:var(--accent); }
+  #info { font-family: ui-monospace, Menlo, monospace; font-size:12px; color:var(--dim); line-height:1.6; white-space:pre-wrap; margin:16px 0; }
+</style>
+</head>
+<body>
+
+<!-- 1. Pick your number -->
+<section id="pick" class="screen on">
+  <h1>Occultimanus</h1>
+  <p>Sync test. Silent switch off, volume up, headphones in. Pick the number on your light.</p>
+  <div class="grid" id="nums"></div>
+</section>
+
+<!-- 2. Calibrate headphone delay -->
+<section id="cal" class="screen">
+  <h1>Line up the beep</h1>
+  <p>The screen flashes once a second. Drag until the beep lands exactly on the flash. Speakers: leave at 0.</p>
+  <div class="panel">
+    <div id="latVal">0 ms</div>
+    <input type="range" id="lat" min="0" max="500" step="5" value="0">
+    <div class="row">
+      <button class="small" data-d="-10">−10</button>
+      <button class="small" data-d="-5">−5</button>
+      <button class="small" data-d="5">+5</button>
+      <button class="small" data-d="10">+10</button>
+    </div>
+    <button class="big" id="calDone">Done</button>
+  </div>
+</section>
+
+<!-- 3. Running -->
+<section id="run" class="screen">
+  <h1 id="unitLabel">Unit</h1>
+  <div id="beatBig">–</div>
+  <div id="dots"></div>
+  <div id="info"></div>
+  <button class="small" id="recal">Recalibrate</button>
+</section>
+
+<div id="flash"></div>
+
+<script>
+/* ============================================================
+   OCCULTIMANUS — sync test
+   Every phone computes position from its own clock against a
+   hard-coded epoch. Nothing talks to anything during playback.
+   ============================================================ */
+
+const EPOCH   = Date.UTC(2026, 8, 1, 0, 0, 0); // 2026-09-01 00:00 UTC — shared by every phone
+const BEAT_MS = 2000;  // one click every 2 s during the test
+const BAR     = 8;     // high tone every 8th beat (catches whole-beat errors)
+const CAL_MS  = 1000;  // calibration pulse: once a second
+const LOOKAHEAD_MS = 1500;
+const CLOCK_FIX_THRESHOLD_MS = 1500; // only override the phone clock if it is grossly wrong
+
+let ctx = null;
+let unit = null;
+let latencyMs = 0;       // headphone delay, set by calibration
+let clockFix = 0;        // ms added to Date.now() if the phone clock is badly off
+let clockReport = 'checking…';
+let mode = 'pick';       // pick | cal | run
+let nextIdx = null;      // next pulse index to schedule
+let wakeLock = null;
+
+const now = () => Date.now() + clockFix;
+const $ = id => document.getElementById(id);
+
+try { latencyMs = +localStorage.getItem('occ_lat') || 0; } catch(e) {}
+
+/* ---------- clock sanity check against the server's Date header ---------- */
+async function checkClock() {
+  try {
+    const t0 = Date.now();
+    const r = await fetch(location.pathname + '?t=' + t0, { method:'HEAD', cache:'no-store' });
+    const t1 = Date.now();
+    const d = r.headers.get('date');
+    if (!d) { clockReport = 'no server date — trusting phone clock'; return; }
+    // Date header has 1 s resolution, so it can only catch gross errors
+    const server = Date.parse(d) + 500;
+    const offset = server - (t0 + t1) / 2;
+    if (Math.abs(offset) > CLOCK_FIX_THRESHOLD_MS) {
+      clockFix = offset;
+      clockReport = `phone clock off by ${(offset/1000).toFixed(1)} s — CORRECTED`;
+    } else {
+      clockReport = `phone clock OK (server diff ${(offset/1000).toFixed(1)} s, within ±1 s header precision)`;
+    }
+  } catch(e) { clockReport = 'clock check failed — trusting phone clock'; }
+}
+
+/* ---------- audio ---------- */
+function initAudio() {
+  if (ctx) { ctx.resume(); return; }
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch(e) {} // ignore silent switch where supported
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  // unlock on iOS
+  const b = ctx.createBuffer(1, 1, 22050), s = ctx.createBufferSource();
+  s.buffer = b; s.connect(ctx.destination); s.start(0);
+  ctx.resume();
+}
+
+// Convert a wall-clock time (ms) into AudioContext time (s)
+function wallToCtx(w) {
+  const wallNow = now(), perfNow = performance.now();
+  const ts = ctx.getOutputTimestamp ? ctx.getOutputTimestamp() : null;
+  if (ts && ts.performanceTime > 0) {
+    const wallAtTs = wallNow - (perfNow - ts.performanceTime);
+    return ts.contextTime + (w - wallAtTs) / 1000;
+  }
+  return ctx.currentTime + (w - wallNow) / 1000 - (ctx.outputLatency || ctx.baseLatency || 0);
+}
+
+function click(t, hi) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'triangle';
+  o.frequency.value = hi ? 1760 : 880;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(hi ? 0.7 : 0.5, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(t); o.stop(t + 0.1);
+  pending.push({ o, t });
+}
+
+// Cancel clicks already queued but not yet heard, then reschedule from scratch
+const pending = [];
+function resetSchedule() {
+  if (ctx) pending.forEach(p => { if (p.t > ctx.currentTime) { try { p.o.stop(); } catch(e) {} } });
+  pending.length = 0;
+  nextIdx = null;
+}
+
+/* ---------- scheduler: decide ahead, play on the tick ---------- */
+function period() { return mode === 'cal' ? CAL_MS : BEAT_MS; }
+
+function schedule() {
+  if (!ctx || (mode !== 'cal' && mode !== 'run')) return;
+  const P = period(), w = now();
+  const horizon = w + LOOKAHEAD_MS + latencyMs;
+  if (nextIdx === null) nextIdx = Math.ceil((w - EPOCH) / P);
+  while (EPOCH + nextIdx * P < horizon) {
+    const t = wallToCtx(EPOCH + nextIdx * P) - latencyMs / 1000; // play early by the headphone delay
+    if (t > ctx.currentTime + 0.01) {
+      const hi = mode === 'run' ? (nextIdx % BAR === 0) : false;
+      click(t, hi);
+    }
+    nextIdx++;
+  }
+  while (pending.length && pending[0].t < ctx.currentTime - 1) pending.shift();
+}
+setInterval(schedule, 100);
+
+/* ---------- visuals (screen has no headphone delay → true time) ---------- */
+function frame() {
+  const w = now();
+  if (mode === 'cal') {
+    const ph = (w - EPOCH) % CAL_MS;
+    $('flash').style.opacity = ph < 90 ? 1 : 0;
+  } else {
+    $('flash').style.opacity = 0;
+  }
+  if (mode === 'run') {
+    const idx = Math.floor((w - EPOCH) / BEAT_MS);
+    const pos = ((idx % BAR) + BAR) % BAR;
+    const ph = (w - EPOCH) % BEAT_MS;
+    $('beatBig').textContent = pos + 1;
+    $('beatBig').style.color = ph < 150 ? (pos === 0 ? 'var(--accent)' : '#fff') : 'var(--fg)';
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === pos));
+    const lat = ctx ? `out ${Math.round(((ctx.outputLatency||0)+(ctx.baseLatency||0))*1000)} ms (browser-reported)` : '';
+    $('info').textContent =
+      `unit          ${unit}\n` +
+      `headphone lag ${latencyMs} ms (calibrated)\n` +
+      `audio         ${lat}\n` +
+      `clock         ${clockReport}\n` +
+      `time          ${new Date(w).toISOString().slice(11,23)}\n` +
+      `bar           ${Math.floor(idx / BAR)}`;
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- wake lock ---------- */
+async function keepAwake() {
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    resetSchedule();          // resync scheduling after being backgrounded
+    if (ctx) ctx.resume();
+    if (mode !== 'pick') keepAwake();
+  }
+});
+
+/* ---------- screens ---------- */
+function show(id) {
+  mode = id; resetSchedule();
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+}
+
+// number picker
+for (let i = 1; i <= 6; i++) {
+  const b = document.createElement('button');
+  b.className = 'num'; b.textContent = i;
+  b.onclick = () => { unit = i; initAudio(); keepAwake(); $('unitLabel').textContent = 'Unit ' + i; show('cal'); };
+  $('nums').appendChild(b);
+}
+for (let i = 0; i < BAR; i++) {
+  const d = document.createElement('div'); d.className = 'dot' + (i === 0 ? ' down' : ''); $('dots').appendChild(d);
+}
+
+// calibration controls
+function setLat(v) {
+  latencyMs = Math.max(0, Math.min(500, v));
+  $('lat').value = latencyMs; $('latVal').textContent = latencyMs + ' ms';
+  resetSchedule(); // reschedule with new offset
+}
+$('lat').oninput = e => setLat(+e.target.value);
+document.querySelectorAll('[data-d]').forEach(b => b.onclick = () => setLat(latencyMs + +b.dataset.d));
+setLat(latencyMs);
+$('calDone').onclick = () => {
+  try { localStorage.setItem('occ_lat', latencyMs); } catch(e) {}
+  initAudio(); show('run');
+};
+$('recal').onclick = () => { initAudio(); show('cal'); };
+document.body.addEventListener('touchstart', () => { if (ctx && ctx.state !== 'running') ctx.resume(); }, { passive:true });
+
+checkClock();
+</script>
+</body>
+</html>
