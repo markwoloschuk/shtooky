@@ -53,21 +53,23 @@
   /* operator view */
   #opBtn { margin-top:auto; border-color:#444; color:var(--fg); }
   #op { padding-top:20px; }
-  #opHead { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
-  #opSec { font-size:20px; font-weight:300; }
-  #opTime { font-family:ui-monospace, Menlo, monospace; font-size:13px; color:var(--dim); }
-  #opTl { position:relative; height:6px; background:#161616; border-radius:3px; margin:14px 0 4px; }
-  #opTl .seg { position:absolute; top:0; bottom:0; border-left:1px solid #000; background:#232323; }
-  #opTl .seg.on { background:#3a1234; }
-  #opHead2 { position:absolute; top:-4px; width:2px; height:14px; background:var(--accent); }
-  #tiles { display:grid; grid-template-columns:repeat(3,1fr); gap:18px 12px; margin:auto 0; padding:24px 0; }
+  #opHead { display:block; }
+  #opSec, #opTime { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #opSec  { font-size:26px; font-weight:300; height:36px; line-height:36px; margin-top:6px; }
+  #opTime { font-family:ui-monospace, Menlo, monospace; font-size:24px; height:32px; line-height:32px; color:#9a9a9a; }
+  #opTl { position:relative; height:30px; background:#161616; border-radius:4px; margin:16px 0 0; overflow:visible; }
+  #opTl .seg { position:absolute; top:0; bottom:0; border-left:2px solid #000; background:#1e1e1e;
+    font-family:ui-monospace, Menlo, monospace; font-size:13px; color:#666; line-height:30px; padding-left:8px; overflow:hidden; }
+  #opTl .seg.on { background:#4a1542; color:#fff; }
+  #opHead2 { position:absolute; top:-6px; width:3px; height:42px; background:var(--accent); border-radius:2px; z-index:1; }
+  #tiles { display:grid; grid-template-columns:repeat(3,1fr); gap:18px 12px; margin:48px 0 0; }
   @media (min-width:720px) { #tiles { grid-template-columns:repeat(6,1fr); } }
   .tile { display:flex; flex-direction:column; align-items:center; gap:10px; }
   .tile .n { font-size:13px; letter-spacing:.2em; color:var(--dim); }
   .tile .c { width:min(22vw,110px); aspect-ratio:1; border-radius:50%; border:2px solid #e8e8e8;
     transition:background .08s, border-color .08s, box-shadow .08s; }
   .tile .c.on { background:var(--accent); border-color:var(--accent); box-shadow:0 0 28px 4px rgba(255,43,214,.55); }
-  .tile .m { min-height:2.6em; font-size:13px; text-align:center; color:var(--fg); line-height:1.3; transition:opacity .4s; }
+  .tile .m { height:3.9em; overflow:hidden; font-size:13px; text-align:center; color:var(--fg); line-height:1.3; transition:opacity .4s; }
   .tile .m.old { opacity:.25; }
 </style>
 </head>
@@ -88,7 +90,6 @@
   <div id="opHead"><div id="opSec">–</div><div id="opTime"></div></div>
   <div id="opTl"><div id="opHead2"></div></div>
   <div id="tiles"></div>
-  <p style="text-align:center">Silent. Same clock as the phones. Magenta = light on.</p>
 </section>
 
 <!-- 2. Calibrate headphone delay -->
@@ -423,7 +424,7 @@ function buildOperator() {
     `<div class="tile"><div class="n">UNIT ${u}</div><div class="c" id="c${u}"></div><div class="m" id="m${u}"></div></div>`).join('');
   $('opTl').insertAdjacentHTML('afterbegin', SECTIONS.map((x, i) => {
     const end = (SECTIONS[i + 1] || { t: LOOP_S }).t;
-    return `<div class="seg" data-i="${i}" style="left:${x.t / LOOP_S * 100}%;width:${(end - x.t) / LOOP_S * 100}%"></div>`;
+    return `<div class="seg" data-i="${i}" style="left:${x.t / LOOP_S * 100}%;width:${(end - x.t) / LOOP_S * 100}%">${i + 1}</div>`;
   }).join(''));
 }
 function drawOperator(w) {
