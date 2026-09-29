@@ -460,6 +460,11 @@ const bandDocYRef = useRef(0);
   const [gridVisible, setGridVisible] = useState(false);
 
 const gridInsetRef = useRef({ offset: 0, scale: 1 });
+  // 2026-09-28 — the stage's centring translate (scaleStage's stageX), kept
+  // so computeCellRect can land a closing card where the cell ACTUALLY is.
+  // Above STAGE_MAX_PX the stage stops scaling and centres; without this the
+  // close target ignored that shift and the card landed (width-1440)/2 px left.
+  const stageXRef = useRef(0);
   function cellToScreen(rect: Rect): Rect {
     const { offset, scale } = gridInsetRef.current;
     return { x: offset + rect.x * scale, y: rect.y, w: rect.w * scale, h: rect.h };
@@ -481,7 +486,7 @@ const gridInsetRef = useRef({ offset: 0, scale: 1 });
     const raw = cellToScreen(LAYOUT[i]);
     const s = scaleRef.current;
     const docY = gridDocTopRef.current + raw.y * s;
-    return { x: raw.x * s, y: docY - anchor, w: raw.w * s, h: raw.h * s };
+    return { x: stageXRef.current + raw.x * s, y: docY - anchor, w: raw.w * s, h: raw.h * s };
   }
 
   // 2026-09-14 — what scroll position should CLOSING land on, for
@@ -1499,6 +1504,7 @@ imgsRef.current = Array.from({ length: N }, (_, i) => {
       // exactly on the content column. Below 1440 the first term wins.
       const s = Math.min(wrap.clientWidth, STAGE_MAX_PX) / NATIVE_W;
       const stageX = (wrap.clientWidth - NATIVE_W * s) / 2;
+      stageXRef.current = stageX;
       scaleRef.current = s;
       gridInsetRef.current = { offset: NATIVE_W * col.marginVw / 100, scale: col.vw / 100 };
       // translate THEN scale: transformOrigin is 0 0, and transform functions
