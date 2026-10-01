@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11.1)</title>
+<title>Texhibit — Memory Wall (v11.4)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&family=Tilt+Neon:XROT,YROT@-45..45,-45..45&display=swap" rel="stylesheet">
@@ -79,19 +79,24 @@
     .app{display:block;height:auto}
     .viewer{height:56vw;flex:none}
     .panel{border-left:0;border-top:1px solid var(--ui-line)}
+    /* phones: iOS zooms into any control with text under 16px, and nothing may stick out sideways */
+    html,body{overflow-x:hidden}
+    .panel,.bar,.stats,.bar input,.bar button,.pbtn,.row select,.row input[type=text],.row input[type=datetime-local]{font-size:16px}
+    .bar input{min-width:0}
   }
+  /* the wall owns its gestures: no zoom, no text selection, no callout menu on long-press */
+  .viewer{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  html.wall .viewer{touch-action:none}
 
-  /* ---------- show mode (?show in the URL, or launched from the home screen) ----------
-     Landscape = the wall alone, full screen, for the TV. Portrait = the editor, for adjusting settings. */
-  html.show{touch-action:manipulation;-webkit-text-size-adjust:100%}
-  @media (orientation:landscape){
-    html.show,html.show body{background:#000;overflow:hidden;height:100%}
-    html.show .app{display:block;height:100vh;height:100dvh}
-    html.show .main{padding:0;height:100%;gap:0}
-    html.show .viewer{height:100%;flex:none}
-    html.show .frame{box-shadow:none}
-    html.show .bar,html.show .stats,html.show .panel{display:none}
-  }
+  /* ---------- wall-only view (phones: the Fullscreen button, or landscape in show mode) ----------
+     The wall alone, filling the screen. Double-tap the wall to come back to the settings. */
+  html.show,html.wall{touch-action:manipulation;-webkit-text-size-adjust:100%}
+  html.wall,html.wall body{background:#000;overflow:hidden;height:100%}
+  html.wall .app{display:block;height:100vh;height:100dvh}
+  html.wall .main{padding:0;height:100%;gap:0}
+  html.wall .viewer{height:100%;flex:none}
+  html.wall .frame{box-shadow:none}
+  html.wall .bar,html.wall .stats,html.wall .panel{display:none}
 </style>
 </head>
 <body>
@@ -118,14 +123,14 @@
     <div class="stats" id="stats"></div>
   </main>
   <aside class="panel" id="panel">
-    <div class="ph">Texhibit memory wall, v11.1</div>
-    <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips.</div>
+    <div class="ph">Texhibit memory wall, v11.4</div>
+    <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips. On a phone: Fullscreen fills the screen with the wall. On the wall, double-tap to pause or resume; long-press to come back here.</div>
   </aside>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const VERSION='v11.1';   // bump with every change: shown in the panel heading and the page title
+const VERSION='v11.4';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -134,7 +139,7 @@ if(SHOW)document.documentElement.classList.add('show');
 const stage=$('stage'), frame=$('frame'), viewer=$('viewer'), msgBox=$('msgBox'),
       drift=$('drift'), block=$('block'), titleEl=$('title'), gSafe=$('gSafe'),
       gBox=$('gBox'), statsEl=$('stats'), panel=$('panel'), grainEl=$('grain');
-const SW=1920, SH=1080;
+let SW=1920; const SH=1080;   // SW widens in the wall-only view to match a wide screen (phones)
 const HALF_LIFE_MIN=20;       // recency weighting half-life (minutes)
 const SHORT_WORDS=4, LONG_WORDS=50; // hold ramps from min at SHORT to min×multiplier at LONG
 
@@ -429,8 +434,15 @@ async function pollNow(){
 function fitFrame(){
   if(document.fullscreenElement!==frame){
     const vw=viewer.clientWidth,vh=viewer.clientHeight;
-    const w=Math.min(vw,vh*16/9);
-    frame.style.width=w+'px';frame.style.height=(w*9/16)+'px';
+    // wall-only view on a screen wider than 16:9: widen the stage to the screen's shape, so there are no side bars
+    const wallOn=document.documentElement.classList.contains('wall');
+    const want=(wallOn&&vh>0)?Math.max(1920,Math.round(SH*vw/vh)):1920;
+    if(want!==SW){
+      SW=want;stage.style.width=SW+'px';grainEl.style.width=(SW+512)+'px';
+      if(cur){applyTitle();relayout();}
+    }
+    const a=SW/SH, w=Math.min(vw,vh*a);
+    frame.style.width=w+'px';frame.style.height=(w/a)+'px';
   }
   const fw=frame.clientWidth,fh=frame.clientHeight;
   const k=Math.min(fw/SW,fh/SH);
@@ -796,10 +808,50 @@ function feedStatus(){
   return feedErr?`feed error (${feedErr}), last good ${ago}`:`feed live, ${n} text${n===1?'':'s'}, checked ${ago}`;
 }
 
+/* ---------- wall-only view ---------- */
+function setWall(on){
+  document.documentElement.classList.toggle('wall',on);
+  window.scrollTo(0,0);
+  requestAnimationFrame(fitFrame);
+}
+if(SHOW){   // show mode: landscape = wall, portrait = settings (a double-tap or the button can override)
+  const land=matchMedia('(orientation: landscape)');
+  setWall(land.matches);
+  land.addEventListener('change',e=>setWall(e.matches));
+}
+/* Touch gestures on the wall (phones and tablets):
+   double-tap = pause / resume in place;  long-press = switch between the wall and the settings */
+const LONG_MS=600, MOVE_PX=12, DOUBLE_MS=350;
+let lastTap=0, lastX=0, lastY=0, pressTimer=null, pressFired=false, sx=0, sy=0;
+viewer.addEventListener('touchstart',e=>{
+  if(e.touches.length>1){clearTimeout(pressTimer);return;}
+  const t=e.touches[0];sx=t.clientX;sy=t.clientY;pressFired=false;
+  clearTimeout(pressTimer);
+  pressTimer=setTimeout(()=>{pressFired=true;lastTap=0;setWall(!document.documentElement.classList.contains('wall'));},LONG_MS);
+},{passive:true});
+viewer.addEventListener('touchmove',e=>{
+  const t=e.touches[0];
+  if(Math.hypot(t.clientX-sx,t.clientY-sy)>MOVE_PX)clearTimeout(pressTimer);
+},{passive:true});
+viewer.addEventListener('touchend',e=>{
+  clearTimeout(pressTimer);
+  e.preventDefault();                       // no zoom, no synthetic click
+  if(pressFired){pressFired=false;return;}
+  const now=Date.now();
+  if(now-lastTap<DOUBLE_MS&&Math.hypot(sx-lastX,sy-lastY)<40){lastTap=0;$('bPlay').click();}
+  else{lastTap=now;lastX=sx;lastY=sy;}
+},{passive:false});
+viewer.addEventListener('touchcancel',()=>clearTimeout(pressTimer));
+
 /* ---------- controls ---------- */
 $('bPlay').onclick=()=>{playing=!playing;$('bPlay').textContent=playing?'Pause':'Play';};
 $('bNext').onclick=interrupt;
-$('bFs').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else frame.requestFullscreen?.().catch(()=>{});};
+$('bFs').onclick=()=>{
+  // desktop browsers: real fullscreen of the wall. iPhone Safari has none, so fill the page instead.
+  if(document.fullscreenEnabled&&frame.requestFullscreen){
+    if(document.fullscreenElement)document.exitFullscreen();else frame.requestFullscreen().catch(()=>setWall(true));
+  }else setWall(true);
+};
 function send(){
   const v=$('sim').value.trim();if(!v)return;
   const m={id:'sim'+Date.now(),text:smarten(v),ts:Date.now(),sim:true};
