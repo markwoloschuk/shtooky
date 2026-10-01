@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11)</title>
+<title>Texhibit — Memory Wall (v11.1)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&family=Tilt+Neon:XROT,YROT@-45..45,-45..45&display=swap" rel="stylesheet">
@@ -118,13 +118,14 @@
     <div class="stats" id="stats"></div>
   </main>
   <aside class="panel" id="panel">
-    <div class="ph">Memory wall, v10</div>
+    <div class="ph">Texhibit memory wall, v11.1</div>
     <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips.</div>
   </aside>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
+const VERSION='v11.1';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -825,6 +826,8 @@ document.addEventListener('click',keepAwake,{once:true});
 
 /* ---------- boot ---------- */
 (async function init(){
+  document.title='Texhibit — Memory Wall ('+VERSION+')';
+  document.querySelector('.panel .ph').textContent='Texhibit memory wall, '+VERSION+(SHOW?' (show mode)':'');
   buildPanel();applyTitle();applyGrain();fitFrame();keepAwake();
   try{
     await Promise.race([
