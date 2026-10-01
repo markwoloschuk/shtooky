@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11.8)</title>
+<title>Texhibit — Memory Wall (v11.9)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji&family=Tilt+Neon&display=swap" rel="stylesheet">
@@ -139,14 +139,14 @@
     <div class="stats" id="stats"></div>
   </main>
   <aside class="panel" id="panel">
-    <div class="ph">Texhibit memory wall, v11.8</div>
+    <div class="ph">Texhibit memory wall, v11.9</div>
     <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips. On a phone: Fullscreen fills the screen with the wall. On the wall, double-tap to pause or resume; long-press to come back here.</div>
   </aside>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const VERSION='v11.8';   // bump with every change: shown in the panel heading and the page title
+const VERSION='v11.9';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -937,6 +937,15 @@ document.addEventListener('click',keepAwake,{once:true});
   buildPanel();
   const qAfter=new URLSearchParams(location.search).get('after');
   if(qAfter&&!isNaN(new Date(qAfter).getTime())){S.cutoff=qAfter.slice(0,16);S.gateOn=true;syncUI('cutoff');syncUI('gateOn');}
+  // URL overrides for testing, this visit only: ?set=grainAnim:0,grain:0,offOn:0,emoji:color
+  const qSet=new URLSearchParams(location.search).get('set');
+  if(qSet)for(const pair of qSet.split(',')){
+    const i=pair.indexOf(':');if(i<1)continue;
+    const k=pair.slice(0,i).trim(),v=pair.slice(i+1).trim();
+    if(!(k in S))continue;
+    S[k]=typeof S[k]==='boolean'?(v==='1'||v==='true'||v==='on'):typeof S[k]==='number'?parseFloat(v):v;
+    syncUI(k);
+  }
   applyTitle();applyGrain();fitFrame();keepAwake();
   try{
     await Promise.race([
