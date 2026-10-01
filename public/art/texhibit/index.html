@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11.5)</title>
+<title>Texhibit — Memory Wall (v11.7)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tilt+Neon:XROT,YROT@-45..45,-45..45&display=swap" rel="stylesheet">
@@ -83,6 +83,15 @@
     html,body{overflow-x:hidden}
     .panel,.bar,.stats,.bar input,.bar button,.pbtn,.row select,.row input[type=text],.row input[type=datetime-local]{font-size:16px}
     .bar input{min-width:0}
+    .viewer{height:min(56vw,45vh)}     /* the preview never fills the whole screen */
+    #sim{order:4;flex:1 1 auto;min-width:60%}   /* Simulate box gets its own line under the buttons */
+    #bSend{order:5}
+  }
+  /* phones held upright: the preview and buttons stay pinned at the top; the settings scroll underneath */
+  @media (max-width:900px) and (orientation:portrait){
+    .main{position:sticky;top:0;z-index:5;background:var(--ui-bg);
+      padding-top:max(12px,env(safe-area-inset-top));padding-bottom:12px;border-bottom:1px solid var(--ui-line)}
+    .stats{font-size:13px}
   }
   /* the wall owns its gestures: no zoom, no text selection, no callout menu on long-press */
   .viewer{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -123,14 +132,14 @@
     <div class="stats" id="stats"></div>
   </main>
   <aside class="panel" id="panel">
-    <div class="ph">Texhibit memory wall, v11.5</div>
+    <div class="ph">Texhibit memory wall, v11.7</div>
     <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips. On a phone: Fullscreen fills the screen with the wall. On the wall, double-tap to pause or resume; long-press to come back here.</div>
   </aside>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const VERSION='v11.5';   // bump with every change: shown in the panel heading and the page title
+const VERSION='v11.7';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -212,9 +221,10 @@ const schema=[
   {id:'feedOn',label:'Pull texts from Twilio',type:'check',value:true,re:'feed'},
   {id:'feedUrl',label:'Feed address',type:'text',value:'https://memory-wall-1750.twil.io/messages?token=cheetoburrito',re:'feed'},
   {id:'pollSec',label:'Check every',min:2,max:30,step:1,value:5,fmt:v=>v+' s'},
-  {id:'cutoff',label:'Show texts sent after',type:'datetime-local',value:'',re:'cutoff'},
+  {id:'samples',label:'Demo: show sample messages only',type:'check',value:false,re:'pool'},
+  {id:'gateOn',label:'Only show texts sent after this time',type:'check',value:true,re:'pool'},
+  {id:'cutoff',label:'Show texts sent after',type:'datetime-local',value:'2026-10-02T15:00',re:'pool'},
   {id:'freshBtn',label:'Start fresh from now',type:'button',action:()=>startFresh()},
-  {id:'clearCut',label:'Show all texts',type:'button',action:()=>clearCutoff()},
 ];
 
 function buildPanel(){
@@ -245,7 +255,7 @@ function buildPanel(){
     let input;
     if(type==='check'){
       row.className='row check';
-      input=document.createElement('input');input.type='checkbox';input.checked=v;
+      input=document.createElement('input');input.type='checkbox';input.checked=v;input.dataset.id=it.id;
       const t=document.createElement('span');t.textContent=it.label;
       row.append(input,t);
       input.addEventListener('change',()=>{S[it.id]=input.checked;queueChange(it.re);});
@@ -265,6 +275,7 @@ function buildPanel(){
         if(type==='range'){input.min=it.min;input.max=it.max;input.step=it.step;val.textContent=fmt(v);}
         input.value=v;
       }
+      input.dataset.id=it.id;
       row.append(top,input);
       input.addEventListener('input',()=>{
         S[it.id]=(type==='range')?parseFloat(input.value):input.value;
@@ -320,7 +331,7 @@ function onChange(re){
   else if(re==='guides')drawGuides();
   else if(re==='grain')applyGrain();
   else if(re==='fx')resetFx();
-  else if(re==='cutoff')rebuildPool();
+  else if(re==='pool')rebuildPool();
   else if(re==='feed'){feedFails=0;pollNow();}
 }
 
@@ -334,72 +345,71 @@ function smarten(t){
     .replace(/'/g,'\u2019');                                          // apostrophe / closing single
 }
 
-/* ---------- sample memories ---------- */
+/* ---------- sample memories (only shown when the Demo toggle is on) ---------- */
 const SAMPLES=[
-  'Happy anniversary, you two!',
-  'Beckie, you’re the only person who can get Mark to leave a party before 2am. Respect.',
-  'Mark taught me to make risotto years ago and I still stir it exactly the way he told me to. Forty minutes. No shortcuts. Happy anniversary!',
-  'That road trip where the car died in the middle of nowhere and you two turned it into the best night of the whole summer. Nobody else could have pulled that off. Love you both. — Jess',
-  'Beckie’s laugh. That’s the memory.',
-  'To many more.',
-  'I still have the mixtape Mark made for your first date. Beckie, you lent it to me and I never gave it back. Sorry not sorry.',
-  'Watching you two dance in the kitchen at 1am to a song neither of you knew the words to.',
-  'Mark: the only man I know who irons his jeans. Beckie: the only woman who would put up with it.',
-  'I remember the first dinner party you threw in that tiny apartment with the slanted floor. Eleven people, six chairs, one working burner, and somehow it was the best meal any of us had all year. Beckie made the bread, Mark made a speech that went on way too long, and we all stayed until the neighbors complained. Here’s to many more nights like that.',
-  'You two make it look easy. We know it isn’t. That’s what makes it beautiful.',
-  'Beckie crying at the airport when Mark showed up a day early. I was there. I cried too.',
-  'Mark once drove four hours to bring Beckie soup. It was cold by the time he got there. She said it was the best soup she ever had.',
+  'So glad we’re all here ❤️',
+  'Cheers to tonight!',
+  'Love you all 😘',
+  'Dance floor. Now.',
+  'To old friends and new ones.',
+  'Remember when we all ended up in the kitchen at 2am? Same time next year.',
+  'I came for the snacks and stayed for you people ❤️',
+  'Hi Mom! 😘',
+  'Somebody tell the host this is a great party.',
+  'Best. Night. Ever.',
+  'Every time this crew gets together something ridiculous happens, and it turns into the story we tell for years. Here’s to whatever tonight becomes.',
+  'Your words, up in lights.',
 ];
 const now0=Date.now();
-const msgs=SAMPLES.map((text,i)=>({id:'sample'+i,text:smarten(text),ts:now0-(10+Math.random()*140)*60000,sample:true}));
-const queue=[];
+const sampleMsgs=SAMPLES.map((text,i)=>({id:'sample'+i,text:smarten(text),ts:now0-(10+Math.random()*140)*60000,sample:true}));
+const sims=[];                 // texts typed into the Simulate box
+const queue=[];                // new arrivals, played next
+const EMPTY={id:'empty',text:'',empty:true,ts:0};   // nothing to show yet: the wall stays dark (footer only)
 let lastMsg=null;
-
-function pickNext(){
-  if(queue.length)return queue.shift();
-  const pool=msgs.length>1?msgs.filter(m=>m!==lastMsg):msgs;
-  const now=Date.now();
-  const w=pool.map(m=>0.15+Math.pow(0.5,(now-m.ts)/(HALF_LIFE_MIN*60000)));
-  let r=Math.random()*w.reduce((a,b)=>a+b,0);
-  for(let i=0;i<pool.length;i++){r-=w[i];if(r<=0)return pool[i];}
-  return pool[pool.length-1];
-}
 
 /* ---------- live feed (Twilio function) ---------- */
 const seen=new Map();          // every real text ever fetched, by Twilio id
 let feedPrimed=false, feedFails=0, lastOk=0, feedErr='', pollTimer=null;
 const cutoffMs=()=>S.cutoff?new Date(S.cutoff).getTime():0;
-const realMsgs=()=>msgs.filter(m=>!m.sample&&!m.sim);
+const passGate=m=>!S.gateOn||m.ts>=cutoffMs();
+const realMsgs=()=>[...seen.values()].filter(passGate);
+// what the wall draws from: samples only in demo mode, otherwise real texts (past the gate) plus simulated ones
+const pool=()=>S.samples?sampleMsgs:realMsgs().concat(sims);
 
+function pickNext(){
+  while(queue.length){const m=queue.shift();if(pool().includes(m))return m;}
+  const all=pool();
+  if(!all.length)return EMPTY;
+  const cand=all.length>1?all.filter(m=>m!==lastMsg):all;
+  const now=Date.now();
+  const w=cand.map(m=>0.15+Math.pow(0.5,(now-m.ts)/(HALF_LIFE_MIN*60000)));
+  let r=Math.random()*w.reduce((a,b)=>a+b,0);
+  for(let i=0;i<cand.length;i++){r-=w[i];if(r<=0)return cand[i];}
+  return cand[cand.length-1];
+}
 function addReal(m,announce){
-  if(m.ts<cutoffMs()||msgs.some(x=>x.id===m.id))return;
-  // first real text: the samples step aside
-  if(!realMsgs().length){
-    for(let i=msgs.length-1;i>=0;i--)if(msgs[i].sample)msgs.splice(i,1);
-    for(let i=queue.length-1;i>=0;i--)if(queue[i].sample)queue.splice(i,1);
+  if(seen.has(m.id))return;
+  seen.set(m.id,m);
+  if(announce&&!S.samples&&passGate(m)){
+    queue.push(m);                      // new arrivals play next (after the current one finishes)
+    if(cur&&cur.msg.empty)interrupt();  // dark wall: show it right away
   }
-  msgs.push(m);
-  if(announce)queue.push(m);   // new arrivals play next (after the current one finishes)
 }
 function rebuildPool(){
-  // drop real texts older than the cutoff, restore any newer ones, samples back if nothing is left
-  const cut=cutoffMs();
-  for(let i=msgs.length-1;i>=0;i--)if(!msgs[i].sample&&!msgs[i].sim&&msgs[i].ts<cut)msgs.splice(i,1);
-  for(let i=queue.length-1;i>=0;i--)if(!queue[i].sample&&!queue[i].sim&&queue[i].ts<cut)queue.splice(i,1);
-  for(const m of seen.values())addReal(m,false);
-  if(!realMsgs().length&&!msgs.some(m=>m.sample))
-    SAMPLES.forEach((text,i)=>msgs.push({id:'sample'+i,text:smarten(text),ts:Date.now()-(10+Math.random()*140)*60000,sample:true}));
+  for(let i=queue.length-1;i>=0;i--)if(!pool().includes(queue[i]))queue.splice(i,1);
+  if(cur&&!cur.msg.empty&&!pool().includes(cur.msg))interrupt();   // current message no longer belongs: move on
+  if(cur&&cur.msg.empty&&pool().length)interrupt();                   // something to show now
   updateStats();
 }
 function pad(n){return String(n).padStart(2,'0');}
 function localStamp(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;}
-function setCutoff(v){
-  S.cutoff=v;saveSoon();
-  const inp=panel.querySelector('input[type="datetime-local"]');if(inp)inp.value=v;
-  rebuildPool();
+function syncUI(id){
+  const el=panel.querySelector(`[data-id="${id}"]`);if(!el)return;
+  if(el.type==='checkbox')el.checked=!!S[id];else el.value=S[id];
 }
-function startFresh(){setCutoff(localStamp(new Date()));}
-function clearCutoff(){setCutoff('');}
+function startFresh(){
+  S.cutoff=localStamp(new Date());S.gateOn=true;syncUI('cutoff');syncUI('gateOn');saveSoon();rebuildPool();
+}
 
 async function pollNow(){
   clearTimeout(pollTimer);
@@ -411,9 +421,7 @@ async function pollNow(){
       if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
       for(const x of (j.messages||[])){
         if(seen.has(x.id))continue;
-        const m={id:x.id,text:smarten(x.text),ts:new Date(x.at).getTime()};
-        seen.set(m.id,m);
-        addReal(m,feedPrimed);   // the backlog on first load joins the pool quietly
+        addReal({id:x.id,text:smarten(x.text),ts:new Date(x.at).getTime()},feedPrimed);   // the backlog on first load joins the pool quietly
       }
       feedPrimed=true;feedFails=0;lastOk=Date.now();feedErr='';
     }catch(e){
@@ -559,7 +567,7 @@ function layout(text){
   const words=text.replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
   const N=words.length;
   const box=msgBoxRect();
-  if(!N)return {lines:[''],s:10,n:1,N:0,box};
+  if(!N)return {lines:[],s:10,n:0,N:0,box};
   mctx.font=`${fontW()} 100px "${FONT}", system-ui, sans-serif`;
   const tr=S.tracking*100;
   const sp=mctx.measureText(' ').width+tr;
@@ -680,9 +688,9 @@ function relayout(){
 function startMessage(msg){
   const lay=layout(msg.text);
   const t=clamp((lay.N-SHORT_WORDS)/(LONG_WORDS-SHORT_WORDS));
-  const hold=S.hold*(1+(S.mult-1)*t);
-  cur={msg,lay,start:clock,inDur:S.inMs/1000,hold,outDur:S.outMs/1000,gap:S.gapMs/1000,
-       strikeIn:S.strikeIn?S.strikeMs/1000:0,strikeOut:S.strikeOut?S.strikeMs/1000:0,
+  const hold=msg.empty?1:S.hold*(1+(S.mult-1)*t);
+  cur={msg,lay,start:clock,inDur:msg.empty?0:S.inMs/1000,hold,outDur:msg.empty?0:S.outMs/1000,gap:msg.empty?0:S.gapMs/1000,
+       strikeIn:(S.strikeIn&&!msg.empty)?S.strikeMs/1000:0,strikeOut:(S.strikeOut&&!msg.empty)?S.strikeMs/1000:0,
        hue:(Math.random()*2-1)*S.randHue/2};
   // timeline: fade in (lines strike) → hold → lines stutter → fade out → empty gap → next
   cur.outStart=cur.start+Math.max(cur.inDur,cur.strikeIn+0.06)+hold;
@@ -795,7 +803,7 @@ function updateStats(){
   if(!cur)return;
   const l=cur.lay;
   statsEl.textContent=`${l.N} words, ${l.n} lines, ${Math.round(l.s)} px type, ${cur.hold.toFixed(1)} s hold`
-    +(queue.length?`  |  ${queue.length} new waiting`:'')+`  |  ${msgs.length} memories in the pool`
+    +(queue.length?`  |  ${queue.length} new waiting`:'')+`  |  ${pool().length} ${S.samples?'samples (demo)':'memories'} in the pool`
     +`  |  ${feedStatus()}`;
 }
 function feedStatus(){
@@ -852,7 +860,7 @@ $('bFs').onclick=()=>{
 function send(){
   const v=$('sim').value.trim();if(!v)return;
   const m={id:'sim'+Date.now(),text:smarten(v),ts:Date.now(),sim:true};
-  msgs.push(m);queue.push(m);$('sim').value='';
+  sims.push(m);queue.push(m);$('sim').value='';
   interrupt();updateStats();
 }
 $('bSend').onclick=send;
@@ -877,7 +885,10 @@ document.addEventListener('click',keepAwake,{once:true});
 (async function init(){
   document.title='Texhibit — Memory Wall ('+VERSION+')';
   document.querySelector('.panel .ph').textContent='Texhibit memory wall, '+VERSION+(SHOW?' (show mode)':'');
-  buildPanel();applyTitle();applyGrain();fitFrame();keepAwake();
+  buildPanel();
+  const qAfter=new URLSearchParams(location.search).get('after');
+  if(qAfter&&!isNaN(new Date(qAfter).getTime())){S.cutoff=qAfter.slice(0,16);S.gateOn=true;syncUI('cutoff');syncUI('gateOn');}
+  applyTitle();applyGrain();fitFrame();keepAwake();
   try{
     await Promise.race([
       document.fonts.load('400 100px "Tilt Neon"'),
