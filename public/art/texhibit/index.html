@@ -8,10 +8,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11.4)</title>
+<title>Texhibit — Memory Wall (v11.5)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&family=Tilt+Neon:XROT,YROT@-45..45,-45..45&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tilt+Neon:XROT,YROT@-45..45,-45..45&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Tilt+Neon&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -28,9 +28,9 @@
   .stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;background:#000;overflow:hidden}
   .msgBox{position:absolute;display:flex;align-items:center;justify-content:center}
   .drift{flex:none}
-  .block{position:relative;font-family:Archivo,system-ui,sans-serif;white-space:nowrap;text-align:left;width:max-content;will-change:opacity}
+  .block{position:relative;font-family:"Tilt Neon",system-ui,sans-serif;white-space:nowrap;text-align:left;width:max-content;will-change:opacity}
   .title{position:absolute;left:0;right:0;text-align:center;line-height:1.2;
-    font-family:Archivo,system-ui,sans-serif;white-space:pre}
+    font-family:"Tilt Neon",system-ui,sans-serif;white-space:pre}
   .block .lw{position:relative;width:max-content;will-change:opacity}   /* one layer per line: flicker never repaints */
   .block.al-left .lw{margin-right:auto}
   .block.al-center .lw{margin-left:auto;margin-right:auto}
@@ -123,14 +123,14 @@
     <div class="stats" id="stats"></div>
   </main>
   <aside class="panel" id="panel">
-    <div class="ph">Texhibit memory wall, v11.4</div>
+    <div class="ph">Texhibit memory wall, v11.5</div>
     <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips. On a phone: Fullscreen fills the screen with the wall. On the wall, double-tap to pause or resume; long-press to come back here.</div>
   </aside>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const VERSION='v11.4';   // bump with every change: shown in the panel heading and the page title
+const VERSION='v11.5';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -151,64 +151,60 @@ const schema=[
   {id:'copyBtn',label:'Copy settings',type:'button',action:e=>copySettings(e.currentTarget)},
   {id:'resetBtn',label:'Reset all settings to defaults',type:'button',action:()=>resetSettings()},
   {g:'Message type'},
-  {id:'font',label:'Typeface',type:'select',value:'Tilt Neon',re:'font',
-    options:[['Tilt Neon','Tilt Neon'],['Archivo','Archivo']]},
-  {id:'weight',label:'Weight (Archivo only)',min:100,max:900,step:1,value:500,re:'font'},
-  {id:'xrot',label:'Tilt X (Tilt Neon only)',min:-45,max:45,step:1,value:0,fmt:v=>v+'°',re:'font'},
-  {id:'yrot',label:'Tilt Y (Tilt Neon only)',min:-45,max:45,step:1,value:0,fmt:v=>v+'°',re:'font'},
+  {id:'xrot',label:'Tilt X',min:-45,max:45,step:1,value:0,fmt:v=>v+'°',re:'font'},
+  {id:'yrot',label:'Tilt Y',min:-45,max:45,step:1,value:0,fmt:v=>v+'°',re:'font'},
   {id:'tracking',label:'Tracking',min:-0.1,max:0.2,step:0.005,value:0,fmt:v=>(+v).toFixed(3)+' em',re:'layout'},
   {id:'leading',label:'Leading',min:0.75,max:1.6,step:0.01,value:1.1,fmt:v=>(+v).toFixed(2),re:'layout'},
   {id:'color',label:'Color (tube color when neon is on)',type:'color',value:'#ff2d95',re:'look'},
   {g:'Neon'},
   {id:'neon',label:'Neon glow',type:'check',value:true,re:'look'},
-  {id:'heat',label:'Core heat (0 = tube color, 100 = white-hot)',min:0,max:100,step:1,value:59,fmt:v=>v+'%',re:'look'},
+  {id:'heat',label:'Core heat (0 = tube color, 100 = white-hot)',min:0,max:100,step:1,value:76,fmt:v=>v+'%',re:'look'},
   {id:'glowIn',label:'Inner glow (tight, around the tube)',min:0,max:0.3,step:0.005,value:0.21,fmt:v=>(+v).toFixed(3)+' em',re:'look'},
-  {id:'glowOut',label:'Halo',min:0,max:1.5,step:0.01,value:0.3,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
+  {id:'glowOut',label:'Halo',min:0,max:1.5,step:0.01,value:0.78,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
   {id:'glowStr',label:'Glow strength',min:0,max:2,step:0.05,value:1.4,fmt:v=>Math.round(v*100)+'%',re:'look'},
   {id:'washStr',label:'Wall wash strength',min:0,max:1,step:0.01,value:0.35,fmt:v=>Math.round(v*100)+'%',re:'look'},
   {id:'washSize',label:'Wall wash size',min:0,max:3,step:0.05,value:1,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
   {id:'washSoft',label:'Wall wash falloff (higher = softer)',min:0.5,max:4,step:0.1,value:2,fmt:v=>(+v).toFixed(1),re:'look'},
   {id:'spread',label:'Line color spread (hue)',min:-180,max:180,step:1,value:40,fmt:v=>v+'°',re:'look'},
-  {id:'randHue',label:'Random hue shift per message',min:0,max:360,step:1,value:188,fmt:v=>'±'+Math.round(v/2)+'°'},
+  {id:'randHue',label:'Random hue shift per message',min:0,max:360,step:1,value:360,fmt:v=>'±'+Math.round(v/2)+'°'},
   {g:'Grain'},
-  {id:'grain',label:'Grain amount (hides banding in the glow)',min:0,max:0.6,step:0.01,value:0.12,fmt:v=>Math.round(v*100)+'%',re:'grain'},
-  {id:'grainAnim',label:'Animate grain',type:'check',value:false,re:'grain'},
+  {id:'grain',label:'Grain amount (hides banding in the glow)',min:0,max:0.6,step:0.01,value:0.08,fmt:v=>Math.round(v*100)+'%',re:'grain'},
+  {id:'grainAnim',label:'Animate grain',type:'check',value:true,re:'grain'},
   {g:'Flicker'},
   {id:'hum',label:'Hum (slow brightness sway)',min:0,max:0.4,step:0.005,value:0.045,fmt:v=>Math.round(v*100)+'%'},
   {id:'humSpeed',label:'Hum speed',min:0.05,max:4,step:0.05,value:0.3,fmt:v=>(+v).toFixed(2)+' Hz'},
   {id:'flickRate',label:'Flicker events per minute',min:0,max:30,step:0.5,value:4.5},
-  {id:'flickDepth',label:'Flicker depth',min:0,max:1,step:0.01,value:0.5,fmt:v=>Math.round(v*100)+'%'},
+  {id:'flickDepth',label:'Flicker depth',min:0,max:1,step:0.01,value:0.08,fmt:v=>Math.round(v*100)+'%'},
   {g:'Layout'},
-  {id:'margin',label:'Safe margin (% of height)',min:0,max:20,step:0.5,value:8,fmt:v=>v+'%',re:'layout'},
-  {id:'vbias',label:'Vertical bias (+ is up)',min:-300,max:300,step:1,value:0,fmt:v=>v+' px',re:'layout'},
-  {id:'align',label:'Alignment',type:'select',value:'center',re:'layout',
+  {id:'margin',label:'Safe margin (% of height)',min:0,max:20,step:0.5,value:10,fmt:v=>v+'%',re:'layout'},
+  {id:'vbias',label:'Vertical bias (+ is up)',min:-300,max:300,step:1,value:60,fmt:v=>v+' px',re:'layout'},
+  {id:'align',label:'Alignment',type:'select',value:'left',re:'layout',
     options:[['left','Left'],['center','Center'],['right','Right']]},
-  {id:'balance',label:'Balance (0 = biggest type, 100 = most even lines)',min:0,max:1,step:0.01,value:0.5,fmt:v=>Math.round(v*100)+'%',re:'layout'},
-  {id:'maxWords',label:'Max words per line',min:1,max:12,step:1,value:6,re:'layout'},
-  {id:'minWords',label:'Min words per line',min:1,max:6,step:1,value:3,re:'layout'},
+  {id:'balance',label:'Balance (0 = biggest type, 100 = most even lines)',min:0,max:1,step:0.01,value:1,fmt:v=>Math.round(v*100)+'%',re:'layout'},
+  {id:'maxWords',label:'Max words per line',min:1,max:12,step:1,value:5,re:'layout'},
+  {id:'minWords',label:'Min words per line',min:1,max:6,step:1,value:2,re:'layout'},
   {id:'widows',label:'Avoid widows and orphans',type:'check',value:true,re:'layout'},
   {g:'Footer'},
-  {id:'tText',label:'Text',type:'text',value:'Text 415-358-2714 to share a memory',re:'title'},
+  {id:'tText',label:'Text',type:'text',value:'Text 415-358-2714 to share memories, jokes, toasts, roasts, hot-takes etc.',re:'title'},
   {id:'tWords',label:'Max words per line (0 = no limit)',min:0,max:12,step:1,value:0,fmt:v=>+v?v:'no limit',re:'title'},
   {id:'tAlign',label:'Alignment',type:'select',value:'center',re:'title',
     options:[['center','Centred'],['left','Left (at the safe margin)']]},
-  {id:'tSize',label:'Size',min:12,max:96,step:1,value:56,fmt:v=>v+' px',re:'title'},
-  {id:'tWeight',label:'Weight (Archivo only)',min:100,max:900,step:1,value:400,re:'title'},
+  {id:'tSize',label:'Size',min:12,max:96,step:1,value:42,fmt:v=>v+' px',re:'title'},
   {id:'tTracking',label:'Tracking',min:-0.1,max:0.3,step:0.005,value:0.065,fmt:v=>(+v).toFixed(3)+' em',re:'title'},
   {id:'tColor',label:'Color',type:'color',value:'#ffffff',re:'title'},
-  {id:'tOpacity',label:'Opacity',min:0,max:1,step:0.01,value:0.7,fmt:v=>Math.round(v*100)+'%',re:'title'},
+  {id:'tOpacity',label:'Opacity',min:0,max:1,step:0.01,value:1,fmt:v=>Math.round(v*100)+'%',re:'title'},
   {id:'tBottom',label:'Distance from bottom',min:0,max:300,step:1,value:56,fmt:v=>v+' px',re:'title'},
   {id:'tGlow',label:'Footer glow',type:'check',value:false,re:'title'},
   {id:'tGlowStr',label:'Footer glow strength',min:0,max:2,step:0.05,value:0.6,fmt:v=>Math.round(v*100)+'%',re:'title'},
   {g:'Transitions'},
-  {id:'inMs',label:'Fade in (0 = cut)',min:0,max:1000,step:10,value:200,fmt:v=>v+' ms'},
-  {id:'outMs',label:'Fade out (0 = cut)',min:0,max:1000,step:10,value:200,fmt:v=>v+' ms'},
+  {id:'inMs',label:'Fade in (0 = cut)',min:0,max:1000,step:10,value:160,fmt:v=>v+' ms'},
+  {id:'outMs',label:'Fade out (0 = cut)',min:0,max:1000,step:10,value:150,fmt:v=>v+' ms'},
   {id:'gapMs',label:'Gap between messages',min:0,max:2000,step:10,value:500,fmt:v=>v+' ms'},
   {id:'strikeIn',label:'Flicker on the way in',type:'check',value:true},
   {id:'strikeOut',label:'Flicker on the way out',type:'check',value:true},
-  {id:'strikeMs',label:'In/out flicker length',min:50,max:1000,step:10,value:350,fmt:v=>v+' ms'},
+  {id:'strikeMs',label:'In/out flicker length',min:50,max:1000,step:10,value:110,fmt:v=>v+' ms'},
   {g:'Hold'},
-  {id:'hold',label:'Min hold',min:1,max:20,step:0.5,value:4,fmt:v=>(+v).toFixed(1)+' s'},
+  {id:'hold',label:'Min hold',min:1,max:20,step:0.5,value:8,fmt:v=>(+v).toFixed(1)+' s'},
   {id:'mult',label:'Length multiplier',min:1,max:5,step:0.1,value:2.5,fmt:v=>(+v).toFixed(1)+'×'},
   {g:'Guides'},
   {id:'guides',label:'Show safe area and message box',type:'check',value:false,re:'guides'},
@@ -317,7 +313,7 @@ function queueChange(re){
 }
 
 function onChange(re){
-  if(re==='font'){applyTitle();relayout();document.fonts.load(`${fontW()} 100px "${S.font}"`).then(()=>{applyTitle();relayout();}).catch(()=>{});}
+  if(re==='font'){applyTitle();relayout();document.fonts.load(`${fontW()} 100px "${FONT}"`).then(()=>{applyTitle();relayout();}).catch(()=>{});}
   else if(re==='layout')relayout();
   else if(re==='look')applyLook();
   else if(re==='title'){applyTitle();relayout();}
@@ -464,8 +460,9 @@ function msgBoxRect(){
 }
 
 /* ---------- look: typeface, neon glow, footer ---------- */
-const fontW=()=>S.font==='Tilt Neon'?400:Math.round(S.weight);
-const fontVar=()=>S.font==='Tilt Neon'?`"XROT" ${Math.round(S.xrot)}, "YROT" ${Math.round(S.yrot)}`:'normal';
+const FONT='Tilt Neon';   // the only typeface (Archivo removed in v11.5)
+const fontW=()=>400;
+const fontVar=()=>`"XROT" ${Math.round(S.xrot)}, "YROT" ${Math.round(S.yrot)}`;
 function hexRgb(h){const n=parseInt(h.slice(1),16);return [n>>16&255,n>>8&255,n&255];}
 function rgbHex(r,g,b){return '#'+[r,g,b].map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('');}
 function rotateHue(hex,deg){
@@ -544,8 +541,8 @@ function applyTitle(){
     textAlign:S.tAlign==='left'?'left':'center',
     left:S.tAlign==='left'?m+'px':'0px',
     right:S.tAlign==='left'?'auto':'0px',
-    fontFamily:`"${S.font}", system-ui, sans-serif`,
-    fontWeight:S.font==='Tilt Neon'?400:Math.round(S.tWeight),
+    fontFamily:`"${FONT}", system-ui, sans-serif`,
+    fontWeight:400,
     fontVariationSettings:fontVar(),
     fontSize:S.tSize+'px',letterSpacing:S.tTracking+'em',
     opacity:S.tOpacity,bottom:S.tBottom+'px',
@@ -563,7 +560,7 @@ function layout(text){
   const N=words.length;
   const box=msgBoxRect();
   if(!N)return {lines:[''],s:10,n:1,N:0,box};
-  mctx.font=`${fontW()} 100px "${S.font}", system-ui, sans-serif`;
+  mctx.font=`${fontW()} 100px "${FONT}", system-ui, sans-serif`;
   const tr=S.tracking*100;
   const sp=mctx.measureText(' ').width+tr;
   const ws=words.map(w=>mctx.measureText(w).width+tr*[...w].length);
@@ -666,7 +663,7 @@ function renderBlock(){
   cur.fl=lay.lines.map(()=>({phase:Math.random()*Math.PI*2,f:0.75+Math.random()*0.5,next:clock+nextGap(),end:0,stepEnd:0,level:1,
     inOff:Math.random()*0.06,outOff:Math.random()*0.06,sEnd:0,sLevel:0,outArmed:false}));
   placeBox(lay.box);
-  Object.assign(block.style,{fontFamily:`"${S.font}", system-ui, sans-serif`,fontVariationSettings:fontVar(),fontWeight:fontW(),letterSpacing:S.tracking+'em',lineHeight:S.leading,fontSize:lay.s+'px'});
+  Object.assign(block.style,{fontFamily:`"${FONT}", system-ui, sans-serif`,fontVariationSettings:fontVar(),fontWeight:fontW(),letterSpacing:S.tracking+'em',lineHeight:S.leading,fontSize:lay.s+'px'});
   applyLook();
   // Safety pass: correct any drift between canvas measurement and real rendering.
   const bw=block.offsetWidth,bh=block.offsetHeight;
@@ -883,7 +880,7 @@ document.addEventListener('click',keepAwake,{once:true});
   buildPanel();applyTitle();applyGrain();fitFrame();keepAwake();
   try{
     await Promise.race([
-      Promise.all([document.fonts.load('500 100px Archivo'),document.fonts.load('400 100px Archivo'),document.fonts.load('400 100px "Tilt Neon"')]),
+      document.fonts.load('400 100px "Tilt Neon"'),
       new Promise(r=>setTimeout(r,2500))
     ]);
   }catch(e){}
