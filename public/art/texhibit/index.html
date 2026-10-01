@@ -2,8 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>M &amp; B — Memory Wall (v10)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Texhibit">
+<meta name="theme-color" content="#000000">
+<title>Texhibit — Memory Wall (v11)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&family=Tilt+Neon:XROT,YROT@-45..45,-45..45&display=swap" rel="stylesheet">
@@ -75,6 +80,18 @@
     .viewer{height:56vw;flex:none}
     .panel{border-left:0;border-top:1px solid var(--ui-line)}
   }
+
+  /* ---------- show mode (?show in the URL, or launched from the home screen) ----------
+     Landscape = the wall alone, full screen, for the TV. Portrait = the editor, for adjusting settings. */
+  html.show{touch-action:manipulation;-webkit-text-size-adjust:100%}
+  @media (orientation:landscape){
+    html.show,html.show body{background:#000;overflow:hidden;height:100%}
+    html.show .app{display:block;height:100vh;height:100dvh}
+    html.show .main{padding:0;height:100%;gap:0}
+    html.show .viewer{height:100%;flex:none}
+    html.show .frame{box-shadow:none}
+    html.show .bar,html.show .stats,html.show .panel{display:none}
+  }
 </style>
 </head>
 <body>
@@ -108,6 +125,11 @@
 
 <script>
 const $ = id => document.getElementById(id);
+
+/* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
+const SHOW=new URLSearchParams(location.search).has('show')
+  ||matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+if(SHOW)document.documentElement.classList.add('show');
 const stage=$('stage'), frame=$('frame'), viewer=$('viewer'), msgBox=$('msgBox'),
       drift=$('drift'), block=$('block'), titleEl=$('title'), gSafe=$('gSafe'),
       gBox=$('gBox'), statsEl=$('stats'), panel=$('panel'), grainEl=$('grain');
@@ -791,9 +813,19 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowRight')interrupt();
 });
 
+/* ---------- keep the screen awake (best effort: still set Auto-Lock to Never on the phone) ---------- */
+let wakeLock=null;
+async function keepAwake(){
+  try{if('wakeLock' in navigator&&document.visibilityState==='visible'&&!wakeLock)
+    {wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null;});}}catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')keepAwake();});
+document.addEventListener('touchend',keepAwake,{once:true});
+document.addEventListener('click',keepAwake,{once:true});
+
 /* ---------- boot ---------- */
 (async function init(){
-  buildPanel();applyTitle();applyGrain();fitFrame();
+  buildPanel();applyTitle();applyGrain();fitFrame();keepAwake();
   try{
     await Promise.race([
       Promise.all([document.fonts.load('500 100px Archivo'),document.fonts.load('400 100px Archivo'),document.fonts.load('400 100px "Tilt Neon"')]),
