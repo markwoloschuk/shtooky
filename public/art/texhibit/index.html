@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M &amp; B — Memory Wall (v10)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&family=Tilt+Neon:XROT,YROT@-45..45,-45..45&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tilt+Neon&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ui-bg:#1c1d20; --ui-panel:#232428; --ui-line:#34363c;
+    --ui-text:#e3e4e7; --ui-dim:#9a9ea7; --ui-accent:#8cc4ff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ui-bg);color:var(--ui-text);
+    font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .app{display:grid;grid-template-columns:minmax(0,1fr) 320px;height:100vh}
+  .main{display:flex;flex-direction:column;min-width:0;padding:20px;gap:10px}
+  .viewer{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+  .frame{position:relative;background:#000;overflow:hidden;box-shadow:0 0 0 1px var(--ui-line)}
+  .stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;background:#000;overflow:hidden}
+  .msgBox{position:absolute;display:flex;align-items:center;justify-content:center}
+  .drift{flex:none}
+  .block{position:relative;font-family:Archivo,system-ui,sans-serif;white-space:nowrap;text-align:left;width:max-content;will-change:opacity}
+  .title{position:absolute;left:0;right:0;text-align:center;line-height:1.2;
+    font-family:Archivo,system-ui,sans-serif;white-space:pre}
+  .block .lw{position:relative;width:max-content;will-change:opacity}   /* one layer per line: flicker never repaints */
+  .block.al-left .lw{margin-right:auto}
+  .block.al-center .lw{margin-left:auto;margin-right:auto}
+  .block.al-right .lw{margin-left:auto}
+  .block .washes{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}   /* all washes, beneath all text */
+  .block .wash{position:absolute;pointer-events:none;will-change:opacity}
+  .block .ln{position:relative;display:block}
+  .grain{position:absolute;left:-256px;top:-256px;width:2432px;height:1592px;pointer-events:none;
+    mix-blend-mode:overlay;will-change:transform;background-repeat:repeat}
+  .guide{position:absolute;border:2px dashed rgba(255,90,90,.55);pointer-events:none;display:none}
+  .guide.box{border-color:rgba(120,190,255,.6)}
+
+  .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .bar button{background:var(--ui-panel);color:var(--ui-text);border:1px solid var(--ui-line);
+    border-radius:6px;padding:7px 12px;font:inherit;cursor:pointer}
+  .bar button:hover{border-color:#50535b}
+  .bar input{flex:1;min-width:200px;background:var(--ui-panel);color:var(--ui-text);
+    border:1px solid var(--ui-line);border-radius:6px;padding:7px 10px;font:inherit}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ui-accent);outline-offset:1px}
+  .stats{color:var(--ui-dim);font-variant-numeric:tabular-nums;min-height:1.4em}
+
+  .panel{background:var(--ui-panel);border-left:1px solid var(--ui-line);overflow-y:auto;padding:16px 18px 40px}
+  .panel .ph{font-weight:600;font-size:14px;margin-bottom:4px}
+  .panel .sub{color:var(--ui-dim);margin-bottom:10px}
+  .grp{border-top:1px solid var(--ui-line);margin-top:12px}
+  .grp>button{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;
+    width:100%;padding:12px 0 8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--ui-accent)}
+  .grp>button:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px}
+  .grp>button::after{content:"▾";color:var(--ui-dim);transition:transform .15s}
+  .grp.closed>button::after{transform:rotate(-90deg)}
+  .grp.closed>.body{display:none}
+  .row{display:block;margin:0 0 10px}
+  .row .top{display:flex;justify-content:space-between;gap:8px;margin-bottom:3px}
+  .row .val{color:var(--ui-dim);font-variant-numeric:tabular-nums}
+  .row input[type=range]{width:100%;accent-color:var(--ui-accent)}
+  .pbtn{display:block;width:100%;margin:0 0 8px;padding:6px 8px;background:var(--ui-bg);color:var(--ui-text);
+    border:1px solid var(--ui-line);border-radius:5px;font:inherit;cursor:pointer}
+  .pbtn:hover{border-color:var(--ui-accent)}
+  .row input[type=text],.row input[type=datetime-local],.row select{width:100%;background:var(--ui-bg);color:var(--ui-text);
+    border:1px solid var(--ui-line);border-radius:5px;padding:6px 8px;font:inherit}
+  .row input[type=color]{width:100%;height:28px;border:1px solid var(--ui-line);border-radius:5px;background:none;padding:2px}
+  .row.check{display:flex;gap:8px;align-items:center;cursor:pointer}
+  .row.check input{accent-color:var(--ui-accent)}
+
+  @media (max-width:900px){
+    .app{display:block;height:auto}
+    .viewer{height:56vw;flex:none}
+    .panel{border-left:0;border-top:1px solid var(--ui-line)}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="main">
+    <div class="viewer" id="viewer">
+      <div class="frame" id="frame">
+        <div class="stage" id="stage">
+          <div class="msgBox" id="msgBox"><div class="drift" id="drift"><div class="block" id="block"></div></div></div>
+          <div class="title" id="title"></div>
+          <div class="grain" id="grain"></div>
+          <div class="guide" id="gSafe"></div>
+          <div class="guide box" id="gBox"></div>
+        </div>
+      </div>
+    </div>
+    <div class="bar">
+      <button id="bPlay">Pause</button>
+      <button id="bNext">Next</button>
+      <button id="bFs">Fullscreen</button>
+      <input id="sim" placeholder="Simulate an incoming text, then press Enter">
+      <button id="bSend">Send</button>
+    </div>
+    <div class="stats" id="stats"></div>
+  </main>
+  <aside class="panel" id="panel">
+    <div class="ph">Memory wall, v10</div>
+    <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips.</div>
+  </aside>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const stage=$('stage'), frame=$('frame'), viewer=$('viewer'), msgBox=$('msgBox'),
+      drift=$('drift'), block=$('block'), titleEl=$('title'), gSafe=$('gSafe'),
+      gBox=$('gBox'), statsEl=$('stats'), panel=$('panel'), grainEl=$('grain');
+const SW=1920, SH=1080;
+const HALF_LIFE_MIN=20;       // recency weighting half-life (minutes)
+const SHORT_WORDS=4, LONG_WORDS=50; // hold ramps from min at SHORT to min×multiplier at LONG
+
+/* ---------- settings ---------- */
+const S={};
+const secs=v=>(+v).toFixed(2)+' s';
+const schema=[
+  {g:'Settings'},
+  {id:'copyBtn',label:'Copy settings',type:'button',action:e=>copySettings(e.currentTarget)},
+  {id:'resetBtn',label:'Reset all settings to defaults',type:'button',action:()=>resetSettings()},
+  {g:'Message type'},
+  {id:'font',label:'Typeface',type:'select',value:'Tilt Neon',re:'font',
+    options:[['Tilt Neon','Tilt Neon'],['Archivo','Archivo']]},
+  {id:'weight',label:'Weight (Archivo only)',min:100,max:900,step:1,value:500,re:'font'},
+  {id:'xrot',label:'Tilt X (Tilt Neon only)',min:-45,max:45,step:1,value:0,fmt:v=>v+'°',re:'font'},
+  {id:'yrot',label:'Tilt Y (Tilt Neon only)',min:-45,max:45,step:1,value:0,fmt:v=>v+'°',re:'font'},
+  {id:'tracking',label:'Tracking',min:-0.1,max:0.2,step:0.005,value:0,fmt:v=>(+v).toFixed(3)+' em',re:'layout'},
+  {id:'leading',label:'Leading',min:0.75,max:1.6,step:0.01,value:1.1,fmt:v=>(+v).toFixed(2),re:'layout'},
+  {id:'color',label:'Color (tube color when neon is on)',type:'color',value:'#ff2d95',re:'look'},
+  {g:'Neon'},
+  {id:'neon',label:'Neon glow',type:'check',value:true,re:'look'},
+  {id:'heat',label:'Core heat (0 = tube color, 100 = white-hot)',min:0,max:100,step:1,value:59,fmt:v=>v+'%',re:'look'},
+  {id:'glowIn',label:'Inner glow (tight, around the tube)',min:0,max:0.3,step:0.005,value:0.21,fmt:v=>(+v).toFixed(3)+' em',re:'look'},
+  {id:'glowOut',label:'Halo',min:0,max:1.5,step:0.01,value:0.3,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
+  {id:'glowStr',label:'Glow strength',min:0,max:2,step:0.05,value:1.4,fmt:v=>Math.round(v*100)+'%',re:'look'},
+  {id:'washStr',label:'Wall wash strength',min:0,max:1,step:0.01,value:0.35,fmt:v=>Math.round(v*100)+'%',re:'look'},
+  {id:'washSize',label:'Wall wash size',min:0,max:3,step:0.05,value:1,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
+  {id:'washSoft',label:'Wall wash falloff (higher = softer)',min:0.5,max:4,step:0.1,value:2,fmt:v=>(+v).toFixed(1),re:'look'},
+  {id:'spread',label:'Line color spread (hue)',min:-180,max:180,step:1,value:40,fmt:v=>v+'°',re:'look'},
+  {id:'randHue',label:'Random hue shift per message',min:0,max:360,step:1,value:188,fmt:v=>'±'+Math.round(v/2)+'°'},
+  {g:'Grain'},
+  {id:'grain',label:'Grain amount (hides banding in the glow)',min:0,max:0.6,step:0.01,value:0.12,fmt:v=>Math.round(v*100)+'%',re:'grain'},
+  {id:'grainAnim',label:'Animate grain',type:'check',value:false,re:'grain'},
+  {g:'Flicker'},
+  {id:'hum',label:'Hum (slow brightness sway)',min:0,max:0.4,step:0.005,value:0.045,fmt:v=>Math.round(v*100)+'%'},
+  {id:'humSpeed',label:'Hum speed',min:0.05,max:4,step:0.05,value:0.3,fmt:v=>(+v).toFixed(2)+' Hz'},
+  {id:'flickRate',label:'Flicker events per minute',min:0,max:30,step:0.5,value:4.5},
+  {id:'flickDepth',label:'Flicker depth',min:0,max:1,step:0.01,value:0.5,fmt:v=>Math.round(v*100)+'%'},
+  {g:'Layout'},
+  {id:'margin',label:'Safe margin (% of height)',min:0,max:20,step:0.5,value:8,fmt:v=>v+'%',re:'layout'},
+  {id:'vbias',label:'Vertical bias (+ is up)',min:-300,max:300,step:1,value:0,fmt:v=>v+' px',re:'layout'},
+  {id:'align',label:'Alignment',type:'select',value:'center',re:'layout',
+    options:[['left','Left'],['center','Center'],['right','Right']]},
+  {id:'balance',label:'Balance (0 = biggest type, 100 = most even lines)',min:0,max:1,step:0.01,value:0.5,fmt:v=>Math.round(v*100)+'%',re:'layout'},
+  {id:'maxWords',label:'Max words per line',min:1,max:12,step:1,value:6,re:'layout'},
+  {id:'minWords',label:'Min words per line',min:1,max:6,step:1,value:3,re:'layout'},
+  {id:'widows',label:'Avoid widows and orphans',type:'check',value:true,re:'layout'},
+  {g:'Footer'},
+  {id:'tText',label:'Text',type:'text',value:'Text 415-358-2714 to share a memory',re:'title'},
+  {id:'tWords',label:'Max words per line (0 = no limit)',min:0,max:12,step:1,value:0,fmt:v=>+v?v:'no limit',re:'title'},
+  {id:'tAlign',label:'Alignment',type:'select',value:'center',re:'title',
+    options:[['center','Centred'],['left','Left (at the safe margin)']]},
+  {id:'tSize',label:'Size',min:12,max:96,step:1,value:56,fmt:v=>v+' px',re:'title'},
+  {id:'tWeight',label:'Weight (Archivo only)',min:100,max:900,step:1,value:400,re:'title'},
+  {id:'tTracking',label:'Tracking',min:-0.1,max:0.3,step:0.005,value:0.065,fmt:v=>(+v).toFixed(3)+' em',re:'title'},
+  {id:'tColor',label:'Color',type:'color',value:'#ffffff',re:'title'},
+  {id:'tOpacity',label:'Opacity',min:0,max:1,step:0.01,value:0.7,fmt:v=>Math.round(v*100)+'%',re:'title'},
+  {id:'tBottom',label:'Distance from bottom',min:0,max:300,step:1,value:56,fmt:v=>v+' px',re:'title'},
+  {id:'tGlow',label:'Footer glow',type:'check',value:false,re:'title'},
+  {id:'tGlowStr',label:'Footer glow strength',min:0,max:2,step:0.05,value:0.6,fmt:v=>Math.round(v*100)+'%',re:'title'},
+  {g:'Transitions'},
+  {id:'inMs',label:'Fade in (0 = cut)',min:0,max:1000,step:10,value:200,fmt:v=>v+' ms'},
+  {id:'outMs',label:'Fade out (0 = cut)',min:0,max:1000,step:10,value:200,fmt:v=>v+' ms'},
+  {id:'gapMs',label:'Gap between messages',min:0,max:2000,step:10,value:500,fmt:v=>v+' ms'},
+  {id:'strikeIn',label:'Flicker on the way in',type:'check',value:true},
+  {id:'strikeOut',label:'Flicker on the way out',type:'check',value:true},
+  {id:'strikeMs',label:'In/out flicker length',min:50,max:1000,step:10,value:350,fmt:v=>v+' ms'},
+  {g:'Hold'},
+  {id:'hold',label:'Min hold',min:1,max:20,step:0.5,value:4,fmt:v=>(+v).toFixed(1)+' s'},
+  {id:'mult',label:'Length multiplier',min:1,max:5,step:0.1,value:2.5,fmt:v=>(+v).toFixed(1)+'×'},
+  {g:'Guides'},
+  {id:'guides',label:'Show safe area and message box',type:'check',value:false,re:'guides'},
+  {g:'Live feed'},
+  {id:'feedOn',label:'Pull texts from Twilio',type:'check',value:true,re:'feed'},
+  {id:'feedUrl',label:'Feed address',type:'text',value:'https://memory-wall-1750.twil.io/messages?token=cheetoburrito',re:'feed'},
+  {id:'pollSec',label:'Check every',min:2,max:30,step:1,value:5,fmt:v=>v+' s'},
+  {id:'cutoff',label:'Show texts sent after',type:'datetime-local',value:'',re:'cutoff'},
+  {id:'freshBtn',label:'Start fresh from now',type:'button',action:()=>startFresh()},
+  {id:'clearCut',label:'Show all texts',type:'button',action:()=>clearCutoff()},
+];
+
+function buildPanel(){
+  let body=panel;
+  for(const it of schema){
+    if(it.g){
+      const sec=document.createElement('section');sec.className='grp';
+      const btn=document.createElement('button');btn.type='button';btn.textContent=it.g;btn.setAttribute('aria-expanded','true');
+      body=document.createElement('div');body.className='body';
+      btn.onclick=()=>{const c=sec.classList.toggle('closed');btn.setAttribute('aria-expanded',String(!c));};
+      sec.append(btn,body);panel.appendChild(sec);continue;
+    }
+    const type=it.type||'range';
+    if(type==='button'){
+      const b=document.createElement('button');b.type='button';b.className='pbtn';b.textContent=it.label;
+      b.onclick=it.action;body.appendChild(b);continue;
+    }
+    let v=it.value;
+    if(it.id in saved){
+      const x=saved[it.id];
+      if(type==='range'&&typeof x==='number')v=Math.min(it.max,Math.max(it.min,x));
+      else if(type==='check'&&typeof x==='boolean')v=x;
+      else if(type==='select'&&it.options.some(o=>o[0]===x))v=x;
+      else if(typeof x==='string'&&type!=='range'&&type!=='check'&&type!=='select')v=x;
+    }
+    S[it.id]=v;
+    const row=document.createElement('label');
+    let input;
+    if(type==='check'){
+      row.className='row check';
+      input=document.createElement('input');input.type='checkbox';input.checked=v;
+      const t=document.createElement('span');t.textContent=it.label;
+      row.append(input,t);
+      input.addEventListener('change',()=>{S[it.id]=input.checked;queueChange(it.re);});
+    }else{
+      row.className='row';
+      const top=document.createElement('div');top.className='top';
+      const name=document.createElement('span');name.textContent=it.label;
+      const val=document.createElement('span');val.className='val';
+      top.append(name,val);
+      const fmt=it.fmt||(v=>v);
+      if(type==='select'){
+        input=document.createElement('select');
+        for(const [v,l] of it.options){const o=document.createElement('option');o.value=v;o.textContent=l;input.appendChild(o);}
+        input.value=v;
+      }else{
+        input=document.createElement('input');input.type=type;
+        if(type==='range'){input.min=it.min;input.max=it.max;input.step=it.step;val.textContent=fmt(v);}
+        input.value=v;
+      }
+      row.append(top,input);
+      input.addEventListener('input',()=>{
+        S[it.id]=(type==='range')?parseFloat(input.value):input.value;
+        if(type==='range')val.textContent=fmt(S[it.id]);
+        queueChange(it.re);
+      });
+    }
+    body.appendChild(row);
+  }
+}
+
+/* ---------- saved settings ---------- */
+const STORE='mbMemoryWall.settings';
+let saved={};
+try{saved=JSON.parse(localStorage.getItem(STORE)||'{}')||{};}catch(e){saved={};}
+let saveTimer=null;
+function saveSoon(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{try{localStorage.setItem(STORE,JSON.stringify(S));}catch(e){}},300);
+}
+function copySettings(btn){
+  const txt=JSON.stringify(S,null,1);
+  const done=ok=>{const t=btn.textContent;btn.textContent=ok?'Copied — paste it to Claude':'Copy failed';setTimeout(()=>btn.textContent=t,2000);};
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(txt).then(()=>done(true),()=>fallback());}
+  else fallback();
+  function fallback(){
+    const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy');}catch(e){}
+    ta.remove();done(ok);
+  }
+}
+function resetSettings(){
+  if(!confirm('Reset every setting to the built-in defaults?'))return;
+  try{localStorage.removeItem(STORE);}catch(e){}
+  location.reload();
+}
+
+/* Slider drags fire dozens of events a second; apply them at most once per frame. */
+let pendingRe=new Set(), changeQueued=false;
+function queueChange(re){
+  saveSoon();
+  if(re)pendingRe.add(re);
+  if(changeQueued)return;
+  changeQueued=true;
+  requestAnimationFrame(()=>{changeQueued=false;const set=pendingRe;pendingRe=new Set();for(const r of set)onChange(r);});
+}
+
+function onChange(re){
+  if(re==='font'){applyTitle();relayout();document.fonts.load(`${fontW()} 100px "${S.font}"`).then(()=>{applyTitle();relayout();}).catch(()=>{});}
+  else if(re==='layout')relayout();
+  else if(re==='look')applyLook();
+  else if(re==='title'){applyTitle();relayout();}
+  else if(re==='guides')drawGuides();
+  else if(re==='grain')applyGrain();
+  else if(re==='fx')resetFx();
+  else if(re==='cutoff')rebuildPool();
+  else if(re==='feed'){feedFails=0;pollNow();}
+}
+
+/* ---------- typographic quotes ---------- */
+function smarten(t){
+  return String(t)
+    .replace(/(^|\s)'(?=\d\d(s|\b))/g,'$1\u2019')                   // ’90s
+    .replace(/(^|[\s(\[{\u2014\u2013\u2018-])"/g,'$1\u201C')       // opening double
+    .replace(/"/g,'\u201D')                                           // closing double
+    .replace(/(^|[\s(\[{\u2014\u2013\u201C-])'/g,'$1\u2018')       // opening single
+    .replace(/'/g,'\u2019');                                          // apostrophe / closing single
+}
+
+/* ---------- sample memories ---------- */
+const SAMPLES=[
+  'Happy anniversary, you two!',
+  'Beckie, you’re the only person who can get Mark to leave a party before 2am. Respect.',
+  'Mark taught me to make risotto years ago and I still stir it exactly the way he told me to. Forty minutes. No shortcuts. Happy anniversary!',
+  'That road trip where the car died in the middle of nowhere and you two turned it into the best night of the whole summer. Nobody else could have pulled that off. Love you both. — Jess',
+  'Beckie’s laugh. That’s the memory.',
+  'To many more.',
+  'I still have the mixtape Mark made for your first date. Beckie, you lent it to me and I never gave it back. Sorry not sorry.',
+  'Watching you two dance in the kitchen at 1am to a song neither of you knew the words to.',
+  'Mark: the only man I know who irons his jeans. Beckie: the only woman who would put up with it.',
+  'I remember the first dinner party you threw in that tiny apartment with the slanted floor. Eleven people, six chairs, one working burner, and somehow it was the best meal any of us had all year. Beckie made the bread, Mark made a speech that went on way too long, and we all stayed until the neighbors complained. Here’s to many more nights like that.',
+  'You two make it look easy. We know it isn’t. That’s what makes it beautiful.',
+  'Beckie crying at the airport when Mark showed up a day early. I was there. I cried too.',
+  'Mark once drove four hours to bring Beckie soup. It was cold by the time he got there. She said it was the best soup she ever had.',
+];
+const now0=Date.now();
+const msgs=SAMPLES.map((text,i)=>({id:'sample'+i,text:smarten(text),ts:now0-(10+Math.random()*140)*60000,sample:true}));
+const queue=[];
+let lastMsg=null;
+
+function pickNext(){
+  if(queue.length)return queue.shift();
+  const pool=msgs.length>1?msgs.filter(m=>m!==lastMsg):msgs;
+  const now=Date.now();
+  const w=pool.map(m=>0.15+Math.pow(0.5,(now-m.ts)/(HALF_LIFE_MIN*60000)));
+  let r=Math.random()*w.reduce((a,b)=>a+b,0);
+  for(let i=0;i<pool.length;i++){r-=w[i];if(r<=0)return pool[i];}
+  return pool[pool.length-1];
+}
+
+/* ---------- live feed (Twilio function) ---------- */
+const seen=new Map();          // every real text ever fetched, by Twilio id
+let feedPrimed=false, feedFails=0, lastOk=0, feedErr='', pollTimer=null;
+const cutoffMs=()=>S.cutoff?new Date(S.cutoff).getTime():0;
+const realMsgs=()=>msgs.filter(m=>!m.sample&&!m.sim);
+
+function addReal(m,announce){
+  if(m.ts<cutoffMs()||msgs.some(x=>x.id===m.id))return;
+  // first real text: the samples step aside
+  if(!realMsgs().length){
+    for(let i=msgs.length-1;i>=0;i--)if(msgs[i].sample)msgs.splice(i,1);
+    for(let i=queue.length-1;i>=0;i--)if(queue[i].sample)queue.splice(i,1);
+  }
+  msgs.push(m);
+  if(announce)queue.push(m);   // new arrivals play next (after the current one finishes)
+}
+function rebuildPool(){
+  // drop real texts older than the cutoff, restore any newer ones, samples back if nothing is left
+  const cut=cutoffMs();
+  for(let i=msgs.length-1;i>=0;i--)if(!msgs[i].sample&&!msgs[i].sim&&msgs[i].ts<cut)msgs.splice(i,1);
+  for(let i=queue.length-1;i>=0;i--)if(!queue[i].sample&&!queue[i].sim&&queue[i].ts<cut)queue.splice(i,1);
+  for(const m of seen.values())addReal(m,false);
+  if(!realMsgs().length&&!msgs.some(m=>m.sample))
+    SAMPLES.forEach((text,i)=>msgs.push({id:'sample'+i,text:smarten(text),ts:Date.now()-(10+Math.random()*140)*60000,sample:true}));
+  updateStats();
+}
+function pad(n){return String(n).padStart(2,'0');}
+function localStamp(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+function setCutoff(v){
+  S.cutoff=v;saveSoon();
+  const inp=panel.querySelector('input[type="datetime-local"]');if(inp)inp.value=v;
+  rebuildPool();
+}
+function startFresh(){setCutoff(localStamp(new Date()));}
+function clearCutoff(){setCutoff('');}
+
+async function pollNow(){
+  clearTimeout(pollTimer);
+  if(S.feedOn&&S.feedUrl.trim()){
+    const ac=new AbortController(),to=setTimeout(()=>ac.abort(),8000);
+    try{
+      const r=await fetch(S.feedUrl.trim(),{cache:'no-store',signal:ac.signal});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+      for(const x of (j.messages||[])){
+        if(seen.has(x.id))continue;
+        const m={id:x.id,text:smarten(x.text),ts:new Date(x.at).getTime()};
+        seen.set(m.id,m);
+        addReal(m,feedPrimed);   // the backlog on first load joins the pool quietly
+      }
+      feedPrimed=true;feedFails=0;lastOk=Date.now();feedErr='';
+    }catch(e){
+      feedFails++;feedErr=e.name==='AbortError'?'timed out':(e.message||String(e));
+    }finally{clearTimeout(to);}
+  }
+  updateStats();
+  // back off gently if it keeps failing, so a dropped connection doesn't hammer the network
+  const wait=S.pollSec*1000*Math.min(6,1+feedFails);
+  pollTimer=setTimeout(pollNow,wait);
+}
+
+/* ---------- viewer sizing (16:9, stage scaled to fit) ---------- */
+function fitFrame(){
+  if(document.fullscreenElement!==frame){
+    const vw=viewer.clientWidth,vh=viewer.clientHeight;
+    const w=Math.min(vw,vh*16/9);
+    frame.style.width=w+'px';frame.style.height=(w*9/16)+'px';
+  }
+  const fw=frame.clientWidth,fh=frame.clientHeight;
+  const k=Math.min(fw/SW,fh/SH);
+  stage.style.transform=`translate(${(fw-SW*k)/2}px,${(fh-SH*k)/2}px) scale(${k})`;
+}
+new ResizeObserver(fitFrame).observe(viewer);
+new ResizeObserver(fitFrame).observe(frame);
+document.addEventListener('fullscreenchange',fitFrame);
+
+/* ---------- message box ---------- */
+function msgBoxRect(){
+  const m=S.margin/100*SH;
+  let bottom=SH-m;
+  if(S.tText.trim()){
+    const titleTop=SH-S.tBottom-titleEl.offsetHeight;
+    bottom=Math.min(bottom,titleTop-m*0.5);
+  }
+  return {x:m,y:m-S.vbias,w:SW-2*m,h:Math.max(60,bottom-m),m};
+}
+
+/* ---------- look: typeface, neon glow, footer ---------- */
+const fontW=()=>S.font==='Tilt Neon'?400:Math.round(S.weight);
+const fontVar=()=>S.font==='Tilt Neon'?`"XROT" ${Math.round(S.xrot)}, "YROT" ${Math.round(S.yrot)}`:'normal';
+function hexRgb(h){const n=parseInt(h.slice(1),16);return [n>>16&255,n>>8&255,n&255];}
+function rgbHex(r,g,b){return '#'+[r,g,b].map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('');}
+function rotateHue(hex,deg){
+  if(!deg)return hex;
+  let [r,g,b]=hexRgb(hex).map(v=>v/255);
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,l=(mx+mn)/2;
+  if(d===0)return hex;
+  const sat=d/(1-Math.abs(2*l-1));
+  let h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;
+  h=((h*60+deg)%360+360)%360;
+  const c=(1-Math.abs(2*l-1))*sat,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
+  let q=h<60?[c,x,0]:h<120?[x,c,0]:h<180?[0,c,x]:h<240?[0,x,c]:h<300?[x,0,c]:[c,0,x];
+  return rgbHex((q[0]+m)*255,(q[1]+m)*255,(q[2]+m)*255);
+}
+function coreColor(tube){
+  const [r,g,b]=hexRgb(tube),k=S.heat/100;
+  return rgbHex(r+(255-r)*k,g+(255-g)*k,b+(255-b)*k);
+}
+function neonShadow(tube,st=S.glowStr){
+  const [r,g,b]=hexRgb(tube);
+  const c=a=>`rgba(${r},${g},${b},${Math.min(1,a*st)})`;
+  const parts=[
+    `0 0 ${(S.glowIn*0.35).toFixed(3)}em ${c(1)}`,
+    `0 0 ${S.glowIn.toFixed(3)}em ${c(0.9)}`,
+    `0 0 ${(S.glowOut*0.45).toFixed(3)}em ${c(0.6)}`,
+    `0 0 ${S.glowOut.toFixed(3)}em ${c(0.5)}`,
+  ];
+  if(st>1)parts.push(`0 0 ${S.glowOut.toFixed(3)}em ${c(st-1)}`);
+  return parts.join(',');
+}
+function washBg(tube){
+  // an elliptical gradient sized to the line: no blur, so it costs almost nothing to draw
+  const [r,g,b]=hexRgb(tube),a=S.washStr,p=S.washSoft,st=[];
+  for(let k=0;k<=8;k++){const t=k/8;st.push(`rgba(${r},${g},${b},${(a*Math.pow(1-t,p)).toFixed(3)}) ${Math.round(t*100)}%`);}
+  return `radial-gradient(closest-side, ${st.join(', ')})`;
+}
+function positionWashes(){
+  // each wash sits behind its own line, extended by the wash size (in em of the message type)
+  if(!cur||!cur.washEls)return;
+  const h=S.washSize, v=S.washSize*0.8;
+  cur.lineEls.forEach((lw,i)=>{
+    Object.assign(cur.washEls[i].style,{
+      left:`calc(${lw.offsetLeft}px - ${h}em)`, top:`calc(${lw.offsetTop}px - ${v}em)`,
+      width:`calc(${lw.offsetWidth}px + ${2*h}em)`, height:`calc(${lw.offsetHeight}px + ${2*v}em)`
+    });
+  });
+}
+function applyLook(){
+  if(!cur)return;
+  const n=cur.lineEls.length;
+  cur.lineEls.forEach((el,i)=>{
+    const tx=cur.textEls[i], wa=cur.washEls[i];
+    if(!S.neon){tx.style.color=S.color;tx.style.textShadow='none';wa.style.display='none';return;}
+    const tube=rotateHue(S.color,(cur.hue||0)+(n>1?S.spread*(i/(n-1)-0.5):0));
+    tx.style.color=coreColor(tube);
+    tx.style.textShadow=neonShadow(tube);
+    if(S.washStr>0&&S.washSize>0){
+      wa.style.display='block';
+      wa.style.background=washBg(tube);
+    }else wa.style.display='none';
+  });
+  positionWashes();
+  block.style.color=S.neon?coreColor(S.color):S.color;
+  applyTitle();
+}
+function applyTitle(){
+  const words=smarten(S.tText).replace(/\s+/g,' ').trim().split(' ');
+  const k=Math.round(S.tWords);
+  const lines=[];
+  if(k>0)for(let i=0;i<words.length;i+=k)lines.push(words.slice(i,i+k).join(' '));
+  else lines.push(words.join(' '));
+  titleEl.textContent=lines.join('\n');
+  const glow=S.neon&&S.tGlow&&S.tGlowStr>0;
+  const m=S.margin/100*SH;
+  Object.assign(titleEl.style,{
+    textAlign:S.tAlign==='left'?'left':'center',
+    left:S.tAlign==='left'?m+'px':'0px',
+    right:S.tAlign==='left'?'auto':'0px',
+    fontFamily:`"${S.font}", system-ui, sans-serif`,
+    fontWeight:S.font==='Tilt Neon'?400:Math.round(S.tWeight),
+    fontVariationSettings:fontVar(),
+    fontSize:S.tSize+'px',letterSpacing:S.tTracking+'em',
+    opacity:S.tOpacity,bottom:S.tBottom+'px',
+    color:glow?coreColor(S.tColor):S.tColor,
+    textShadow:glow?neonShadow(S.tColor,S.tGlowStr):'none',
+    display:S.tText.trim()?'block':'none'
+  });
+}
+
+/* ---------- line breaking + fit ---------- */
+const mctx=document.createElement('canvas').getContext('2d');
+
+function layout(text){
+  const words=text.replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
+  const N=words.length;
+  const box=msgBoxRect();
+  if(!N)return {lines:[''],s:10,n:1,N:0,box};
+  mctx.font=`${fontW()} 100px "${S.font}", system-ui, sans-serif`;
+  const tr=S.tracking*100;
+  const sp=mctx.measureText(' ').width+tr;
+  const ws=words.map(w=>mctx.measureText(w).width+tr*[...w].length);
+  const pre=[0];for(let i=0;i<N;i++)pre.push(pre[i]+ws[i]);
+  const W=(i,j)=>pre[j]-pre[i]+(j-i-1)*sp;   // width of words i..j-1 at 100px
+  const L=S.leading, K=Math.max(1,Math.round(S.maxWords));
+  const minW=Math.max(1,Math.min(Math.round(S.minWords),K));   // every line gets at least this many words
+  const minLast=Math.max(minW,(S.widows&&N>=4&&K>=2)?2:1);
+  const oneLineOK=N<=K||N<Math.round(S.minWords);              // messages under the minimum always stay whole
+
+  // Pass 1: for each line count n, the smallest possible widest line (min-max partition).
+  function minimax(n){
+    if(n===1)return oneLineOK?W(0,N):Infinity;
+    let prev=new Float64Array(N+1).fill(Infinity);prev[0]=0;
+    for(let k=1;k<=n;k++){
+      const cur=new Float64Array(N+1).fill(Infinity), last=k===n;
+      for(let j=1;j<=N;j++){
+        if(last&&j!==N)continue;
+        for(let c=last?minLast:minW;c<=K&&c<=j;c++){
+          const i=j-c;if(prev[i]===Infinity)continue;
+          const v=Math.max(prev[i],W(i,j));
+          if(v<cur[j])cur[j]=v;
+        }
+      }
+      prev=cur;
+    }
+    return prev[N];
+  }
+  // Pass 2 (per line count): pick breaks for an even rag at measure C.
+  const shortEnd=/^[\p{L}’']{1,2}$/u;
+  function breaks(n,C){
+  if(n===1)return oneLineOK?{lines:[words.join(' ')],ws:[W(0,N)]}:null;
+  const cost=[],back=[];
+  for(let k=0;k<=n;k++){cost.push(new Float64Array(N+1).fill(Infinity));back.push(new Int32Array(N+1).fill(-1));}
+  cost[0][0]=0;
+  for(let k=1;k<=n;k++){
+    const last=k===n;
+    for(let j=1;j<=N;j++){
+      if(last&&j!==N)continue;
+      for(let c=last?minLast:minW;c<=K&&c<=j;c++){
+        const i=j-c;if(cost[k-1][i]===Infinity)continue;
+        const w=W(i,j);if(w>C*1.0005)break;
+        let v;
+        if(last){v=(S.widows&&w<0.33*C)?Math.pow((0.33*C-w)/C,2)*6:0;}
+        else{const r=(C-w)/C;v=r*r;if(S.widows&&shortEnd.test(words[j-1]))v+=0.25;}
+        v+=cost[k-1][i];
+        if(v<cost[k][j]){cost[k][j]=v;back[k][j]=i;}
+      }
+    }
+  }
+  if(cost[n][N]===Infinity)return null;
+  const lines=[],ws=[];let j=N;
+  for(let k=n;k>0;k--){const i=back[k][j];lines.unshift(words.slice(i,j).join(' '));ws.unshift(W(i,j));j=i;}
+  return {lines,ws};
+  }
+
+  // Try each line count. Score = type size, reduced by how ragged the lines are (Balance slider).
+  let best=null;
+  for(let n=oneLineOK?1:Math.ceil(N/K);n<=N;n++){
+    const hBound=box.h/(n*L);
+    if(best&&hBound<=best.score)break;      // more lines can only score lower from here
+    const M=minimax(n);if(M===Infinity)continue;
+    const s0=Math.min(box.w*100/M,hBound);
+    const r=breaks(n,box.w*100/s0);if(!r)continue;
+    const widest=Math.max(...r.ws);
+    const s=Math.min(box.w*100/widest,hBound);
+    const rag=n>1?r.ws.reduce((a,w)=>a+(1-w/widest),0)/n:0;
+    const score=s*(1-S.balance*rag);
+    if(!best||score>best.score*1.0001)best={lines:r.lines,s,score};
+  }
+  if(!best){ // fallback: greedy
+    const lines=[];let widest=0;
+    for(let i=0;i<N;i+=K){lines.push(words.slice(i,i+K).join(' '));widest=Math.max(widest,W(i,Math.min(N,i+K)));}
+    best={lines,s:Math.min(box.w*100/widest,box.h/(lines.length*L))};
+  }
+  return {lines:best.lines,s:best.s,n:best.lines.length,N,box};
+}
+
+/* ---------- playback ---------- */
+let cur=null, clock=0, lastT=performance.now(), playing=true;
+const clamp=p=>p<0?0:p>1?1:p;
+const ease=p=>0.5-0.5*Math.cos(Math.PI*p);
+const nextGap=()=>S.flickRate>0?-Math.log(1-Math.random())*60/S.flickRate:1e9; // random gap, mean 60/rate s
+
+function placeBox(b){
+  Object.assign(msgBox.style,{left:b.x+'px',top:b.y+'px',width:b.w+'px',height:b.h+'px'});
+}
+function renderBlock(){
+  const lay=cur.lay;
+  block.textContent='';
+  block.className='block al-'+S.align;
+  const washLayer=document.createElement('div');washLayer.className='washes';block.appendChild(washLayer);
+  cur.washEls=lay.lines.map(()=>{const wa=document.createElement('div');wa.className='wash';washLayer.appendChild(wa);return wa;});
+  cur.lineEls=lay.lines.map(t=>{
+    const w=document.createElement('div');w.className='lw';
+    const d=document.createElement('div');d.className='ln';d.textContent=t;
+    w.appendChild(d);block.appendChild(w);return w;
+  });
+  cur.textEls=cur.lineEls.map(w=>w.firstChild);
+  cur.fl=lay.lines.map(()=>({phase:Math.random()*Math.PI*2,f:0.75+Math.random()*0.5,next:clock+nextGap(),end:0,stepEnd:0,level:1,
+    inOff:Math.random()*0.06,outOff:Math.random()*0.06,sEnd:0,sLevel:0,outArmed:false}));
+  placeBox(lay.box);
+  Object.assign(block.style,{fontFamily:`"${S.font}", system-ui, sans-serif`,fontVariationSettings:fontVar(),fontWeight:fontW(),letterSpacing:S.tracking+'em',lineHeight:S.leading,fontSize:lay.s+'px'});
+  applyLook();
+  // Safety pass: correct any drift between canvas measurement and real rendering.
+  const bw=block.offsetWidth,bh=block.offsetHeight;
+  const k=Math.min(1,lay.box.w/bw,lay.box.h/bh);
+  if(k<0.999){lay.s*=k*0.998;block.style.fontSize=lay.s+'px';}
+  positionWashes();
+  drawGuides();
+}
+function relayout(){
+  if(!cur)return;
+  cur.lay=layout(cur.msg.text);
+  renderBlock();resetFx();updateStats();
+}
+function startMessage(msg){
+  const lay=layout(msg.text);
+  const t=clamp((lay.N-SHORT_WORDS)/(LONG_WORDS-SHORT_WORDS));
+  const hold=S.hold*(1+(S.mult-1)*t);
+  cur={msg,lay,start:clock,inDur:S.inMs/1000,hold,outDur:S.outMs/1000,gap:S.gapMs/1000,
+       strikeIn:S.strikeIn?S.strikeMs/1000:0,strikeOut:S.strikeOut?S.strikeMs/1000:0,
+       hue:(Math.random()*2-1)*S.randHue/2};
+  // timeline: fade in (lines strike) → hold → lines stutter → fade out → empty gap → next
+  cur.outStart=cur.start+Math.max(cur.inDur,cur.strikeIn+0.06)+hold;
+  cur.fadeOutStart=cur.outStart+cur.strikeOut;
+  cur.end=cur.fadeOutStart+cur.outDur+cur.gap;
+  cur.T=cur.end-cur.start;
+  lastMsg=msg;
+  renderBlock();resetFx();updateStats();
+}
+function interrupt(){
+  if(!cur)return;
+  if(clock<cur.outStart){
+    cur.outStart=Math.max(clock,cur.start+Math.max(cur.inDur,cur.strikeIn+0.06)); // let an in-progress transition finish first
+    cur.fadeOutStart=cur.outStart+cur.strikeOut;
+    cur.end=cur.fadeOutStart+cur.outDur+cur.gap;
+  }
+}
+function setMask(m){block.style.webkitMaskImage=m;block.style.maskImage=m;}
+function resetFx(){
+  block.style.opacity='';setMask('none');
+  if(cur){cur.lineEls.forEach(el=>el.style.opacity='');cur.washEls.forEach(el=>el.style.opacity='');}
+}
+function lineAlpha(time,dur,idx,n){
+  if(dur<=0)return time>=0?1:0;
+  const fl=n>1?dur*0.55:dur, stg=n>1?(dur-fl)/(n-1):0;
+  return clamp((time-idx*stg)/fl);
+}
+function update(){
+  if(!cur)return;
+  if(clock>=cur.end)startMessage(pickNext());
+  const t=clock-cur.start, to=clock-cur.outStart;
+  const pin=cur.inDur>0?clamp(t/cur.inDur):1;
+  const tf=clock-cur.fadeOutStart;
+  const pout=tf<0?0:(cur.outDur>0?clamp(tf/cur.outDur):1);
+  // Ignition stutter: quick irregular jumps between dark and lit (25 to 95 ms each).
+  const stutter=f=>{
+    if(clock>=f.sEnd){f.sLevel=f.sLevel>0.5?0.03+0.25*Math.random():1;f.sEnd=clock+0.025+Math.random()*0.07;}
+    return f.sLevel;
+  };
+
+  // Flicker: a slow hum, plus rare bursts where the tube stutters on and off in quick irregular steps
+  // (30 to 120 ms each). Each line and its wall wash sit on their own layer, so this is opacity only.
+  const flick=cur.fl.map(f=>{
+    if(!S.neon)return 1;
+    let v=1-S.hum*(0.5-0.5*Math.sin(clock*S.humSpeed*Math.PI*2*f.f+f.phase));
+    if(clock>=f.next&&clock>=f.end){f.end=clock+0.15+Math.random()*0.45;f.next=f.end+nextGap();f.stepEnd=0;f.level=1;}
+    if(clock<f.end){
+      if(clock>=f.stepEnd){
+        f.level=f.level<1?1:1-S.flickDepth*(0.6+0.4*Math.random());
+        f.stepEnd=clock+0.03+Math.random()*0.09;
+      }
+      v*=f.level;
+    }else f.level=1;
+    return v;
+  });
+
+  block.style.opacity=ease(pin)*(1-ease(pout));
+  cur.lineEls.forEach((el,i)=>{
+    const f=cur.fl[i];let ig=1;
+    if(cur.strikeIn&&to<0){                       // way in: each line strikes a beat apart, then holds lit
+      const local=t-f.inOff;
+      ig=local<0?0:local<cur.strikeIn?stutter(f):1;
+    }
+    if(cur.strikeOut&&to>=0){                     // way out: a short stutter, then the fade
+      const local=to-f.outOff;
+      if(local>=0&&local<cur.strikeOut){
+        if(!f.outArmed){f.outArmed=true;f.sLevel=1;f.sEnd=0;}
+        ig=stutter(f);
+      }
+    }
+    el.style.opacity=cur.washEls[i].style.opacity=flick[i]*ig;
+  });
+}
+/* ---------- grain ---------- */
+(function makeGrainTile(){
+  const c=document.createElement('canvas');c.width=c.height=256;
+  const g=c.getContext('2d'),img=g.createImageData(256,256),d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    // triangular-distributed noise around mid grey: finer-looking than flat noise
+    const v=128+((Math.random()+Math.random()-1)*127);
+    d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;
+  }
+  g.putImageData(img,0,0);
+  grainEl.style.backgroundImage=`url(${c.toDataURL()})`;
+})();
+function applyGrain(){
+  grainEl.style.display=S.grain>0?'block':'none';
+  grainEl.style.opacity=S.grain;
+  if(!S.grainAnim)grainEl.style.transform='';
+}
+
+function tick(now){
+  const dt=Math.min(0.1,(now-lastT)/1000);lastT=now;
+  if(playing)clock+=dt;
+  update();
+  if(S.grainAnim&&S.grain>0)grainEl.style.transform=`translate(${Math.floor(Math.random()*256)}px,${Math.floor(Math.random()*256)}px)`;
+  requestAnimationFrame(tick);
+}
+
+/* ---------- guides + stats ---------- */
+function drawGuides(){
+  const on=S.guides;
+  gSafe.style.display=gBox.style.display=on?'block':'none';
+  if(!on||!cur)return;
+  const b=cur.lay.box,m=b.m;
+  Object.assign(gSafe.style,{left:m+'px',top:m+'px',width:(SW-2*m)+'px',height:(SH-2*m)+'px'});
+  Object.assign(gBox.style,{left:b.x+'px',top:b.y+'px',width:b.w+'px',height:b.h+'px'});
+}
+function updateStats(){
+  if(!cur)return;
+  const l=cur.lay;
+  statsEl.textContent=`${l.N} words, ${l.n} lines, ${Math.round(l.s)} px type, ${cur.hold.toFixed(1)} s hold`
+    +(queue.length?`  |  ${queue.length} new waiting`:'')+`  |  ${msgs.length} memories in the pool`
+    +`  |  ${feedStatus()}`;
+}
+function feedStatus(){
+  if(!S.feedOn)return 'feed off';
+  const n=realMsgs().length;
+  const ago=lastOk?Math.round((Date.now()-lastOk)/1000)+' s ago':'not yet';
+  return feedErr?`feed error (${feedErr}), last good ${ago}`:`feed live, ${n} text${n===1?'':'s'}, checked ${ago}`;
+}
+
+/* ---------- controls ---------- */
+$('bPlay').onclick=()=>{playing=!playing;$('bPlay').textContent=playing?'Pause':'Play';};
+$('bNext').onclick=interrupt;
+$('bFs').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else frame.requestFullscreen?.().catch(()=>{});};
+function send(){
+  const v=$('sim').value.trim();if(!v)return;
+  const m={id:'sim'+Date.now(),text:smarten(v),ts:Date.now(),sim:true};
+  msgs.push(m);queue.push(m);$('sim').value='';
+  interrupt();updateStats();
+}
+$('bSend').onclick=send;
+$('sim').addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+document.addEventListener('keydown',e=>{
+  if(e.target.matches('input,select'))return;
+  if(e.key===' '){e.preventDefault();$('bPlay').click();}
+  if(e.key==='ArrowRight')interrupt();
+});
+
+/* ---------- boot ---------- */
+(async function init(){
+  buildPanel();applyTitle();applyGrain();fitFrame();
+  try{
+    await Promise.race([
+      Promise.all([document.fonts.load('500 100px Archivo'),document.fonts.load('400 100px Archivo'),document.fonts.load('400 100px "Tilt Neon"')]),
+      new Promise(r=>setTimeout(r,2500))
+    ]);
+  }catch(e){}
+  await Promise.race([pollNow(),new Promise(r=>setTimeout(r,3000))]);
+  startMessage(pickNext());
+  document.fonts.ready.then(()=>{applyTitle();relayout();});
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
