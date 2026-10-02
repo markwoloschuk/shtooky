@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11.13)</title>
+<title>Texhibit — Memory Wall (v11.14)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji&family=Tilt+Neon&display=swap" rel="stylesheet">
@@ -140,14 +140,14 @@
     <div class="stats" id="stats"></div>
   </main>
   <aside class="panel" id="panel">
-    <div class="ph">Texhibit memory wall, v11.13</div>
+    <div class="ph">Texhibit memory wall, v11.14</div>
     <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips. On a phone: Fullscreen fills the screen with the wall. On the wall, double-tap to pause or resume; long-press to come back here.</div>
   </aside>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const VERSION='v11.13';   // bump with every change: shown in the panel heading and the page title
+const VERSION='v11.14';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -181,7 +181,8 @@ const schema=[
   {id:'heat',label:'Core heat (0 = tube color, 100 = white-hot)',min:0,max:100,step:1,value:95,fmt:v=>v+'%',re:'look'},
   {id:'glowIn',label:'Inner glow (tight, around the tube)',min:0,max:0.3,step:0.005,value:0.26,fmt:v=>(+v).toFixed(3)+' em',re:'look'},
   {id:'glowOut',label:'Halo',min:0,max:1.5,step:0.01,value:0.3,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
-  {id:'haloMax',label:'Halo max size (big text gets a tighter halo)',min:10,max:400,step:5,value:60,fmt:v=>v+' px',re:'look'},
+  {id:'haloFall',label:'Halo falloff (0 = none; 1 = no glow at Max type size)',min:0,max:1,step:0.01,value:0,fmt:v=>(+v).toFixed(2),re:'look'},
+  {id:'washFall',label:'Wash falloff (0 = none; 1 = no wash at Max type size)',min:0,max:1,step:0.01,value:0,fmt:v=>(+v).toFixed(2),re:'look'},
   {id:'glowStr',label:'Glow strength',min:0,max:2,step:0.05,value:1.7,fmt:v=>Math.round(v*100)+'%',re:'look'},
   {id:'washStr',label:'Wall wash strength',min:0,max:1,step:0.01,value:0.7,fmt:v=>Math.round(v*100)+'%',re:'look'},
   {id:'washSize',label:'Wall wash size',min:0,max:3,step:0.05,value:3,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
@@ -522,14 +523,21 @@ function coreColor(tube){
   const [r,g,b]=hexRgb(tube),k=S.heat/100;
   return rgbHex(r+(255-r)*k,g+(255-g)*k,b+(255-b)*k);
 }
+/* Falloff: text at 100px or smaller keeps the full glow; it shrinks steadily with size,
+   reaching (1 - falloff) of its em size at Max type size. Falloff 1 = no glow at Max type size. */
+function fallK(f,px){
+  if(!f||!px)return 1;
+  const t=clamp((px-100)/Math.max(1,S.maxType-100));
+  return Math.max(0,1-f*t);
+}
 function neonShadow(tube,st=S.glowStr,px=0){
   const [r,g,b]=hexRgb(tube);
   const c=a=>`rgba(${r},${g},${b},${Math.min(1,a*st)})`;
-  // halo in em, but never wider than Halo max size (px on the wall): big type gets a relatively tighter halo
-  const out=px>0?Math.min(S.glowOut,S.haloMax/px):S.glowOut;
+  const k=fallK(S.haloFall,px);
+  const inn=S.glowIn*k, out=S.glowOut*k;
   const parts=[
-    `0 0 ${(S.glowIn*0.35).toFixed(3)}em ${c(1)}`,
-    `0 0 ${S.glowIn.toFixed(3)}em ${c(0.9)}`,
+    `0 0 ${(inn*0.35).toFixed(3)}em ${c(1)}`,
+    `0 0 ${inn.toFixed(3)}em ${c(0.9)}`,
     `0 0 ${(out*0.45).toFixed(3)}em ${c(0.6)}`,
     `0 0 ${out.toFixed(3)}em ${c(0.5)}`,
   ];
@@ -545,7 +553,9 @@ function washBg(tube){
 function positionWashes(){
   // each wash sits behind its own line, extended by the wash size (in em of the message type)
   if(!cur||!cur.washEls)return;
-  const h=S.washSize, v=S.washSize*0.8;
+  const ws=S.washSize*fallK(S.washFall,cur.lay.s);
+  if(ws<=0.001)cur.washEls.forEach(w=>w.style.display='none');   // fully fallen off: no wash at all
+  const h=ws, v=ws*0.8;
   cur.lineEls.forEach((lw,i)=>{
     if(cur.offEls){const o=cur.offEls[i];o.style.left=lw.offsetLeft+'px';o.style.top=lw.offsetTop+'px';}
     Object.assign(cur.washEls[i].style,{
