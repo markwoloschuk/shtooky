@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11.10)</title>
+<title>Texhibit — Memory Wall (v11.11)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji&family=Tilt+Neon&display=swap" rel="stylesheet">
@@ -140,14 +140,14 @@
     <div class="stats" id="stats"></div>
   </main>
   <aside class="panel" id="panel">
-    <div class="ph">Texhibit memory wall, v11.10</div>
+    <div class="ph">Texhibit memory wall, v11.11</div>
     <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips. On a phone: Fullscreen fills the screen with the wall. On the wall, double-tap to pause or resume; long-press to come back here.</div>
   </aside>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const VERSION='v11.10';   // bump with every change: shown in the panel heading and the page title
+const VERSION='v11.11';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -161,6 +161,7 @@ const HALF_LIFE_MIN=20;       // recency weighting half-life (minutes)
 const SHORT_WORDS=4, LONG_WORDS=50; // hold ramps from min at SHORT to min×multiplier at LONG
 
 /* ---------- settings ---------- */
+const TOUCH=matchMedia('(pointer: coarse)').matches||navigator.maxTouchPoints>1;   // phones and tablets
 const S={};
 const secs=v=>(+v).toFixed(2)+' s';
 const schema=[
@@ -177,34 +178,37 @@ const schema=[
     options:[['neon','Neon (glow like the letters)'],['color','Color'],['hidden','Hidden']]},
   {g:'Neon'},
   {id:'neon',label:'Neon glow',type:'check',value:true,re:'look'},
-  {id:'heat',label:'Core heat (0 = tube color, 100 = white-hot)',min:0,max:100,step:1,value:76,fmt:v=>v+'%',re:'look'},
-  {id:'glowIn',label:'Inner glow (tight, around the tube)',min:0,max:0.3,step:0.005,value:0.21,fmt:v=>(+v).toFixed(3)+' em',re:'look'},
-  {id:'glowOut',label:'Halo',min:0,max:1.5,step:0.01,value:0.78,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
-  {id:'glowStr',label:'Glow strength',min:0,max:2,step:0.05,value:1.4,fmt:v=>Math.round(v*100)+'%',re:'look'},
-  {id:'washStr',label:'Wall wash strength',min:0,max:1,step:0.01,value:0.35,fmt:v=>Math.round(v*100)+'%',re:'look'},
-  {id:'washSize',label:'Wall wash size',min:0,max:3,step:0.05,value:1,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
-  {id:'washSoft',label:'Wall wash falloff (higher = softer)',min:0.5,max:4,step:0.1,value:2,fmt:v=>(+v).toFixed(1),re:'look'},
-  {id:'spread',label:'Line color spread (hue)',min:-180,max:180,step:1,value:40,fmt:v=>v+'°',re:'look'},
+  {id:'heat',label:'Core heat (0 = tube color, 100 = white-hot)',min:0,max:100,step:1,value:95,fmt:v=>v+'%',re:'look'},
+  {id:'glowIn',label:'Inner glow (tight, around the tube)',min:0,max:0.3,step:0.005,value:0.26,fmt:v=>(+v).toFixed(3)+' em',re:'look'},
+  {id:'glowOut',label:'Halo',min:0,max:1.5,step:0.01,value:0.3,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
+  {id:'glowStr',label:'Glow strength',min:0,max:2,step:0.05,value:1.7,fmt:v=>Math.round(v*100)+'%',re:'look'},
+  {id:'washStr',label:'Wall wash strength',min:0,max:1,step:0.01,value:0.7,fmt:v=>Math.round(v*100)+'%',re:'look'},
+  {id:'washSize',label:'Wall wash size',min:0,max:3,step:0.05,value:3,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
+  {id:'washSoft',label:'Wall wash falloff (higher = softer)',min:0.5,max:4,step:0.1,value:1.6,fmt:v=>(+v).toFixed(1),re:'look'},
+  {id:'spread',label:'Line color spread (hue)',min:-180,max:180,step:1,value:70,fmt:v=>v+'°',re:'look'},
   {id:'offOn',label:'Unlit tubes (dim glass shows when a line flickers off)',type:'check',value:true,re:'look'},
-  {id:'offColor',label:'Unlit tube color',type:'color',value:'#34343a',re:'look'},
+  {id:'offColor',label:'Unlit tube color',type:'color',value:'#474747',re:'look'},
   {id:'randHue',label:'Random hue shift per message',min:0,max:360,step:1,value:360,fmt:v=>'±'+Math.round(v/2)+'°'},
   {g:'Grain'},
-  {id:'grain',label:'Grain amount (hides banding in the glow)',min:0,max:0.6,step:0.01,value:0.08,fmt:v=>Math.round(v*100)+'%',re:'grain'},
-  {id:'grainAnim',label:'Animate grain',type:'check',value:true,re:'grain'},
+  {id:'grain',label:'Grain amount (hides banding in the glow)',min:0,max:0.6,step:0.01,value:0,fmt:v=>Math.round(v*100)+'%',re:'grain'},
+  {id:'grainAnim',label:'Animate grain',type:'check',value:false,re:'grain'},
+  {id:'grainMode',label:'Grain style',type:'select',value:TOUCH?'light':'blend',re:'grain',
+    options:[['blend','Blend (keeps blacks pure; heavy on phones)'],['light','Light (over everything; phone-safe)']]},
   {g:'Flicker'},
-  {id:'hum',label:'Hum (slow brightness sway)',min:0,max:0.4,step:0.005,value:0.045,fmt:v=>Math.round(v*100)+'%'},
-  {id:'humSpeed',label:'Hum speed',min:0.05,max:4,step:0.05,value:0.3,fmt:v=>(+v).toFixed(2)+' Hz'},
+  {id:'hum',label:'Hum (slow brightness sway)',min:0,max:0.4,step:0.005,value:0.1,fmt:v=>Math.round(v*100)+'%'},
+  {id:'humSpeed',label:'Hum speed',min:0.05,max:4,step:0.05,value:0.6,fmt:v=>(+v).toFixed(2)+' Hz'},
   {id:'flickRate',label:'Flicker events per minute',min:0,max:30,step:0.5,value:4.5},
-  {id:'flickDepth',label:'Flicker depth',min:0,max:1,step:0.01,value:0.08,fmt:v=>Math.round(v*100)+'%'},
+  {id:'flickDepth',label:'Flicker depth',min:0,max:1,step:0.01,value:0.07,fmt:v=>Math.round(v*100)+'%'},
   {g:'Layout'},
-  {id:'margin',label:'Safe margin (% of height)',min:0,max:20,step:0.5,value:10,fmt:v=>v+'%',re:'layout'},
+  {id:'margin',label:'Safe margin (% of height)',min:0,max:20,step:0.5,value:20,fmt:v=>v+'%',re:'layout'},
   {id:'vbias',label:'Vertical bias (+ is up)',min:-300,max:300,step:1,value:60,fmt:v=>v+' px',re:'layout'},
-  {id:'align',label:'Alignment',type:'select',value:'left',re:'layout',
+  {id:'align',label:'Alignment',type:'select',value:'center',re:'layout',
     options:[['left','Left'],['center','Center'],['right','Right']]},
   {id:'balance',label:'Balance (0 = biggest type, 100 = most even lines)',min:0,max:1,step:0.01,value:1,fmt:v=>Math.round(v*100)+'%',re:'layout'},
   {id:'maxWords',label:'Max words per line',min:1,max:12,step:1,value:5,re:'layout'},
   {id:'minWords',label:'Min words per line',min:1,max:6,step:1,value:2,re:'layout'},
   {id:'widows',label:'Avoid widows and orphans',type:'check',value:true,re:'layout'},
+  {id:'maxType',label:'Max type size (caps short messages and lone emoji)',min:100,max:900,step:10,value:360,fmt:v=>v+' px',re:'layout'},
   {g:'Footer'},
   {id:'tText',label:'Text',type:'text',value:'Text 415-358-2714 to share memories, jokes, toasts, roasts, hot-takes etc.',re:'title'},
   {id:'tWords',label:'Max words per line (0 = no limit)',min:0,max:12,step:1,value:0,fmt:v=>+v?v:'no limit',re:'title'},
@@ -218,7 +222,7 @@ const schema=[
   {id:'tGlow',label:'Footer glow',type:'check',value:false,re:'title'},
   {id:'tGlowStr',label:'Footer glow strength',min:0,max:2,step:0.05,value:0.6,fmt:v=>Math.round(v*100)+'%',re:'title'},
   {g:'Transitions'},
-  {id:'inMs',label:'Fade in (0 = cut)',min:0,max:1000,step:10,value:160,fmt:v=>v+' ms'},
+  {id:'inMs',label:'Fade in (0 = cut)',min:0,max:1000,step:10,value:150,fmt:v=>v+' ms'},
   {id:'outMs',label:'Fade out (0 = cut)',min:0,max:1000,step:10,value:150,fmt:v=>v+' ms'},
   {id:'gapMs',label:'Gap between messages',min:0,max:2000,step:10,value:500,fmt:v=>v+' ms'},
   {id:'strikeIn',label:'Flicker on the way in',type:'check',value:true},
@@ -228,7 +232,7 @@ const schema=[
   {id:'hold',label:'Min hold',min:1,max:20,step:0.5,value:8,fmt:v=>(+v).toFixed(1)+' s'},
   {id:'mult',label:'Length multiplier',min:1,max:5,step:0.1,value:2.5,fmt:v=>(+v).toFixed(1)+'×'},
   {g:'Performance'},
-  {id:'layers',label:'Separate layers per line (smoother flicker; heavier on phones)',type:'check',value:true,re:'layout'},
+  {id:'layers',label:'Separate layers per line (smoother flicker; can crash phones)',type:'check',value:!TOUCH,re:'layout'},
   {g:'Guides'},
   {id:'guides',label:'Show safe area and message box',type:'check',value:false,re:'guides'},
   {g:'Live feed'},
@@ -665,7 +669,7 @@ function layout(text){
     const s0=Math.min(box.w*100/M,hBound);
     const r=breaks(n,box.w*100/s0);if(!r)continue;
     const widest=Math.max(...r.ws);
-    const s=Math.min(box.w*100/widest,hBound);
+    const s=Math.min(box.w*100/widest,hBound,S.maxType);   // never bigger than Max type size
     const rag=n>1?r.ws.reduce((a,w)=>a+(1-w/widest),0)/n:0;
     const score=s*(1-S.balance*rag);
     if(!best||score>best.score*1.0001)best={lines:r.lines,s,score};
@@ -673,7 +677,7 @@ function layout(text){
   if(!best){ // fallback: greedy
     const lines=[];let widest=0;
     for(let i=0;i<N;i+=K){lines.push(words.slice(i,i+K).join(' '));widest=Math.max(widest,W(i,Math.min(N,i+K)));}
-    best={lines,s:Math.min(box.w*100/widest,box.h/(lines.length*L))};
+    best={lines,s:Math.min(box.w*100/widest,box.h/(lines.length*L),S.maxType)};
   }
   return {lines:best.lines,s:best.s,n:best.lines.length,N,box};
 }
@@ -800,6 +804,7 @@ function update(){
   });
 }
 /* ---------- grain ---------- */
+let GRAIN_BLEND='',GRAIN_LIGHT='';
 (function makeGrainTile(){
   const c=document.createElement('canvas');c.width=c.height=256;
   const g=c.getContext('2d'),img=g.createImageData(256,256),d=img.data;
@@ -809,11 +814,20 @@ function update(){
     d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;
   }
   g.putImageData(img,0,0);
-  grainEl.style.backgroundImage=`url(${c.toDataURL()})`;
+  GRAIN_BLEND=`url(${c.toDataURL()})`;
+  // Light grain: white specks of random strength on transparent, drawn normally (no blending)
+  const c2=document.createElement('canvas');c2.width=c2.height=256;
+  const g2=c2.getContext('2d'),img2=g2.createImageData(256,256),d2=img2.data;
+  for(let i=0;i<d2.length;i+=4){d2[i]=d2[i+1]=d2[i+2]=255;d2[i+3]=Math.abs(Math.random()+Math.random()-1)*255;}
+  g2.putImageData(img2,0,0);
+  GRAIN_LIGHT=`url(${c2.toDataURL()})`;
 })();
 function applyGrain(){
   grainEl.style.display=S.grain>0?'block':'none';
   grainEl.style.opacity=S.grain;
+  const light=S.grainMode==='light';
+  grainEl.style.backgroundImage=light?GRAIN_LIGHT:GRAIN_BLEND;
+  grainEl.style.mixBlendMode=light?'normal':'overlay';
   if(!S.grainAnim)grainEl.style.transform='';
 }
 
