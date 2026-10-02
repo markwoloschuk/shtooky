@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11.12)</title>
+<title>Texhibit — Memory Wall (v11.13)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji&family=Tilt+Neon&display=swap" rel="stylesheet">
@@ -140,14 +140,14 @@
     <div class="stats" id="stats"></div>
   </main>
   <aside class="panel" id="panel">
-    <div class="ph">Texhibit memory wall, v11.12</div>
+    <div class="ph">Texhibit memory wall, v11.13</div>
     <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips. On a phone: Fullscreen fills the screen with the wall. On the wall, double-tap to pause or resume; long-press to come back here.</div>
   </aside>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const VERSION='v11.12';   // bump with every change: shown in the panel heading and the page title
+const VERSION='v11.13';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -181,6 +181,7 @@ const schema=[
   {id:'heat',label:'Core heat (0 = tube color, 100 = white-hot)',min:0,max:100,step:1,value:95,fmt:v=>v+'%',re:'look'},
   {id:'glowIn',label:'Inner glow (tight, around the tube)',min:0,max:0.3,step:0.005,value:0.26,fmt:v=>(+v).toFixed(3)+' em',re:'look'},
   {id:'glowOut',label:'Halo',min:0,max:1.5,step:0.01,value:0.3,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
+  {id:'haloMax',label:'Halo max size (big text gets a tighter halo)',min:10,max:400,step:5,value:60,fmt:v=>v+' px',re:'look'},
   {id:'glowStr',label:'Glow strength',min:0,max:2,step:0.05,value:1.7,fmt:v=>Math.round(v*100)+'%',re:'look'},
   {id:'washStr',label:'Wall wash strength',min:0,max:1,step:0.01,value:0.7,fmt:v=>Math.round(v*100)+'%',re:'look'},
   {id:'washSize',label:'Wall wash size',min:0,max:3,step:0.05,value:3,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
@@ -521,16 +522,18 @@ function coreColor(tube){
   const [r,g,b]=hexRgb(tube),k=S.heat/100;
   return rgbHex(r+(255-r)*k,g+(255-g)*k,b+(255-b)*k);
 }
-function neonShadow(tube,st=S.glowStr){
+function neonShadow(tube,st=S.glowStr,px=0){
   const [r,g,b]=hexRgb(tube);
   const c=a=>`rgba(${r},${g},${b},${Math.min(1,a*st)})`;
+  // halo in em, but never wider than Halo max size (px on the wall): big type gets a relatively tighter halo
+  const out=px>0?Math.min(S.glowOut,S.haloMax/px):S.glowOut;
   const parts=[
     `0 0 ${(S.glowIn*0.35).toFixed(3)}em ${c(1)}`,
     `0 0 ${S.glowIn.toFixed(3)}em ${c(0.9)}`,
-    `0 0 ${(S.glowOut*0.45).toFixed(3)}em ${c(0.6)}`,
-    `0 0 ${S.glowOut.toFixed(3)}em ${c(0.5)}`,
+    `0 0 ${(out*0.45).toFixed(3)}em ${c(0.6)}`,
+    `0 0 ${out.toFixed(3)}em ${c(0.5)}`,
   ];
-  if(st>1)parts.push(`0 0 ${S.glowOut.toFixed(3)}em ${c(st-1)}`);
+  if(st>1)parts.push(`0 0 ${out.toFixed(3)}em ${c(st-1)}`);
   return parts.join(',');
 }
 function washBg(tube){
@@ -559,7 +562,7 @@ function applyLook(){
     if(!S.neon){tx.style.color=S.color;tx.style.textShadow='none';wa.style.display='none';return;}
     const tube=rotateHue(S.color,(cur.hue||0)+(n>1?S.spread*(i/(n-1)-0.5):0));
     tx.style.color=coreColor(tube);
-    tx.style.textShadow=neonShadow(tube);
+    tx.style.textShadow=neonShadow(tube,S.glowStr,cur.lay.s);
     if(S.washStr>0&&S.washSize>0){
       wa.style.display='block';
       wa.style.background=washBg(tube);
@@ -716,7 +719,7 @@ function renderBlock(){
   // Safety pass: correct any drift between canvas measurement and real rendering.
   const bw=block.offsetWidth,bh=block.offsetHeight;
   const k=Math.min(1,lay.box.w/bw,lay.box.h/bh);
-  if(k<0.999){lay.s*=k*0.998;block.style.fontSize=lay.s+'px';}
+  if(k<0.999){lay.s*=k*0.998;block.style.fontSize=lay.s+'px';applyLook();}
   positionWashes();
   drawGuides();
 }
@@ -902,7 +905,7 @@ viewer.addEventListener('touchcancel',()=>clearTimeout(pressTimer));
 
 /* ---------- controls ---------- */
 $('bPlay').onclick=()=>{playing=!playing;$('bPlay').textContent=playing?'Pause':'Play';};
-$('bNext').onclick=interrupt;
+$('bNext').onclick=next;
 $('bFs').onclick=()=>{
   // desktop browsers: real fullscreen of the wall. iPhone Safari has none, so fill the page instead.
   if(document.fullscreenEnabled&&frame.requestFullscreen){
@@ -925,18 +928,24 @@ function simPlay(){
 }
 $('bSend').onclick=()=>sims.length?simStop():simPlay();
 $('sim').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();simPlay();}});
+function jumpTo(m){   // paused: show this message at once, already lit (the clock is frozen, so no transition)
+  startMessage(m);
+  const lead=Math.max(cur.inDur,cur.strikeIn+0.06)+0.01;
+  cur.start-=lead;cur.outStart-=lead;cur.fadeOutStart-=lead;cur.end-=lead;
+}
+function next(){if(playing)interrupt();else jumpTo(pickNext());}
 function prev(){
   if(shownLog.length<2)return;
-  shownLog.pop();                       // the one on screen now
-  const m=shownLog.pop();               // the one before it (comes back onto the shownLog when it plays)
-  if(!pool().includes(m))return;
-  queue.unshift(m);interrupt();
+  const now=shownLog.pop();             // the one on screen now
+  const m=shownLog.pop();               // the one before it (comes back onto shownLog when it plays)
+  if(!pool().includes(m)){shownLog.push(m,now);return;}
+  if(playing){queue.unshift(m);interrupt();}else jumpTo(m);
 }
 $('bPrev').onclick=prev;
 document.addEventListener('keydown',e=>{
   if(e.target.matches('input,select'))return;
   if(e.key===' '){e.preventDefault();$('bPlay').click();}
-  if(e.key==='ArrowRight')interrupt();
+  if(e.key==='ArrowRight')next();
   if(e.key==='ArrowLeft')prev();
 });
 
