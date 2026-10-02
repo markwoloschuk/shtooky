@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11.18)</title>
+<title>Texhibit — Memory Wall (v11.19)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji&family=Tilt+Neon&display=swap" rel="stylesheet">
@@ -140,14 +140,14 @@
     <div class="stats" id="stats"></div>
   </main>
   <aside class="panel" id="panel">
-    <div class="ph">Texhibit memory wall, v11.18</div>
+    <div class="ph">Texhibit memory wall, v11.19</div>
     <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips. On a phone: Fullscreen fills the screen with the wall. On the wall, double-tap to pause or resume; long-press to come back here.</div>
   </aside>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const VERSION='v11.18';   // bump with every change: shown in the panel heading and the page title
+const VERSION='v11.19';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -190,7 +190,8 @@ const schema=[
   {id:'spread',label:'Line color spread (hue)',min:-180,max:180,step:1,value:60,fmt:v=>v+'°',re:'look'},
   {id:'offOn',label:'Unlit tubes (dim glass shows when a line flickers off)',type:'check',value:true,re:'look'},
   {id:'offColor',label:'Unlit tube color',type:'color',value:'#5c5c5c',re:'look'},
-  {id:'offFade',label:'Unlit tube fade (before the color strikes on, after it goes out)',min:0,max:1000,step:10,value:200,fmt:v=>v+' ms'},
+  {id:'offFadeIn',label:'Unlit tube fade in (before the color strikes on)',min:0,max:1000,step:10,value:200,fmt:v=>v+' ms'},
+  {id:'offFadeOut',label:'Unlit tube fade out (after the color goes out)',min:0,max:1000,step:10,value:200,fmt:v=>v+' ms'},
   {id:'randHue',label:'Random hue shift per message',min:0,max:360,step:1,value:360,fmt:v=>'±'+Math.round(v/2)+'°'},
   {id:'lumBal',label:'Brightness balance (0 = raw colors; 1 = every hue equally bright)',min:0,max:1,step:0.01,value:0.85,fmt:v=>(+v).toFixed(2),re:'look'},
   {g:'Grain'},
@@ -231,7 +232,8 @@ const schema=[
   {id:'gapMs',label:'Gap between messages',min:0,max:2000,step:10,value:500,fmt:v=>v+' ms'},
   {id:'strikeIn',label:'Flicker on the way in',type:'check',value:true},
   {id:'strikeOut',label:'Flicker on the way out',type:'check',value:true},
-  {id:'strikeMs',label:'In/out flicker length',min:50,max:1000,step:10,value:110,fmt:v=>v+' ms'},
+  {id:'strikeMin',label:'In/out flicker length, shortest (each message picks at random)',min:20,max:1000,step:10,value:50,fmt:v=>v+' ms'},
+  {id:'strikeMax',label:'In/out flicker length, longest',min:20,max:1000,step:10,value:250,fmt:v=>v+' ms'},
   {g:'Hold'},
   {id:'hold',label:'Min hold',min:1,max:20,step:0.5,value:8,fmt:v=>(+v).toFixed(1)+' s'},
   {id:'mult',label:'Length multiplier',min:1,max:5,step:0.1,value:2.5,fmt:v=>(+v).toFixed(1)+'×'},
@@ -777,6 +779,8 @@ function relayout(){
   cur.lay=layout(shown(cur.msg.text));
   renderBlock();resetFx();updateStats();
 }
+// in/out flicker length: a fresh random pick between the two sliders, separately for the way in and the way out
+const strikeLen=()=>{const a=Math.min(S.strikeMin,S.strikeMax),b=Math.max(S.strikeMin,S.strikeMax);return (a+Math.random()*(b-a))/1000;};
 let waitingFor=null;   // next message, held back until its emoji glyphs have loaded
 function startMessage(msg){
   waitingFor=null;
@@ -785,16 +789,17 @@ function startMessage(msg){
   const t=clamp((lay.N-SHORT_WORDS)/(LONG_WORDS-SHORT_WORDS));
   const hold=msg.empty?1:S.hold*(1+(S.mult-1)*t);
   cur={msg,lay,start:clock,inDur:msg.empty?0:S.inMs/1000,hold,outDur:msg.empty?0:S.outMs/1000,gap:msg.empty?0:S.gapMs/1000,
-       strikeIn:(S.strikeIn&&!msg.empty)?S.strikeMs/1000:0,strikeOut:(S.strikeOut&&!msg.empty)?S.strikeMs/1000:0,
+       strikeIn:(S.strikeIn&&!msg.empty)?strikeLen():0,strikeOut:(S.strikeOut&&!msg.empty)?strikeLen():0,
        hue:(Math.random()*2-1)*S.randHue/2};
   // timeline: unlit tubes fade in → colour fades in (lines strike) → hold → lines stutter → colour fades out
   //           → unlit tubes fade out → empty gap → next
-  cur.F=(!msg.empty&&S.neon&&S.offOn)?S.offFade/1000:0;
-  cur.litStart=cur.start+cur.F;
+  const unlit=!msg.empty&&S.neon&&S.offOn;
+  cur.Fin=unlit?S.offFadeIn/1000:0;cur.Fout=unlit?S.offFadeOut/1000:0;
+  cur.litStart=cur.start+cur.Fin;
   cur.outStart=cur.litStart+Math.max(cur.inDur,cur.strikeIn+0.06)+hold;
   cur.fadeOutStart=cur.outStart+cur.strikeOut;
   cur.litEnd=cur.fadeOutStart+cur.outDur;
-  cur.end=cur.litEnd+cur.F+cur.gap;
+  cur.end=cur.litEnd+cur.Fout+cur.gap;
   cur.T=cur.end-cur.start;
   lastMsg=msg;
   if(!msg.empty){shownLog.push(msg);if(shownLog.length>60)shownLog.shift();}
@@ -806,7 +811,7 @@ function interrupt(){
     cur.outStart=Math.max(clock,cur.litStart+Math.max(cur.inDur,cur.strikeIn+0.06)); // let an in-progress transition finish first
     cur.fadeOutStart=cur.outStart+cur.strikeOut;
     cur.litEnd=cur.fadeOutStart+cur.outDur;
-    cur.end=cur.litEnd+cur.F+cur.gap;
+    cur.end=cur.litEnd+cur.Fout+cur.gap;
   }
 }
 function setMask(m){block.style.webkitMaskImage=m;block.style.maskImage=m;}
@@ -861,8 +866,10 @@ function update(){
   const litA=ease(pin)*(1-ease(pout));
   block.style.opacity='';
   if(cur.offLayer){
-    const F=cur.F;
-    const offA=F>0?ease(clock<cur.litStart?clamp((clock-cur.start)/F):clock>=cur.litEnd?1-clamp((clock-cur.litEnd)/F):1):litA;
+    // fade in ahead of the colour (or with it, if 0); fade out after the colour (or with it, if 0)
+    const inA=cur.Fin>0?ease(clamp((clock-cur.start)/cur.Fin)):ease(pin);
+    const outA=cur.Fout>0?(clock>=cur.litEnd?1-ease(clamp((clock-cur.litEnd)/cur.Fout)):1):1-ease(pout);
+    const offA=Math.min(inA,outA);
     cur.offLayer.style.opacity=offA;
   }
   cur.lineEls.forEach((el,i)=>{
@@ -1002,7 +1009,7 @@ $('bSend').onclick=()=>sims.length?simStop():simPlay();
 $('sim').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();simPlay();}});
 function jumpTo(m){   // paused: show this message at once, already lit (the clock is frozen, so no transition)
   startMessage(m);
-  const lead=cur.F+Math.max(cur.inDur,cur.strikeIn+0.06)+0.01;
+  const lead=cur.Fin+Math.max(cur.inDur,cur.strikeIn+0.06)+0.01;
   cur.start-=lead;cur.litStart-=lead;cur.outStart-=lead;cur.fadeOutStart-=lead;cur.litEnd-=lead;cur.end-=lead;
 }
 function next(){if(playing)interrupt();else jumpTo(pickNext());}
