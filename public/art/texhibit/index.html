@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11.14)</title>
+<title>Texhibit — Memory Wall (v11.16)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji&family=Tilt+Neon&display=swap" rel="stylesheet">
@@ -140,14 +140,14 @@
     <div class="stats" id="stats"></div>
   </main>
   <aside class="panel" id="panel">
-    <div class="ph">Texhibit memory wall, v11.14</div>
+    <div class="ph">Texhibit memory wall, v11.16</div>
     <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips. On a phone: Fullscreen fills the screen with the wall. On the wall, double-tap to pause or resume; long-press to come back here.</div>
   </aside>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const VERSION='v11.14';   // bump with every change: shown in the panel heading and the page title
+const VERSION='v11.16';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -191,6 +191,7 @@ const schema=[
   {id:'offOn',label:'Unlit tubes (dim glass shows when a line flickers off)',type:'check',value:true,re:'look'},
   {id:'offColor',label:'Unlit tube color',type:'color',value:'#474747',re:'look'},
   {id:'randHue',label:'Random hue shift per message',min:0,max:360,step:1,value:360,fmt:v=>'±'+Math.round(v/2)+'°'},
+  {id:'lumBal',label:'Brightness balance (0 = raw colors; 1 = every hue equally bright)',min:0,max:1,step:0.01,value:0.75,fmt:v=>(+v).toFixed(2),re:'look'},
   {g:'Grain'},
   {id:'grain',label:'Grain amount (hides banding in the glow)',min:0,max:0.6,step:0.01,value:0,fmt:v=>Math.round(v*100)+'%',re:'grain'},
   {id:'grainAnim',label:'Animate grain',type:'check',value:false,re:'grain'},
@@ -386,6 +387,7 @@ const SAMPLES=[
 ];
 const now0=Date.now();
 const sampleMsgs=SAMPLES.map((text,i)=>({id:'sample'+i,text:smarten(text),ts:now0-(10+Math.random()*140)*60000,sample:true}));
+setTimeout(()=>sampleMsgs.forEach(m=>prefetch(m)),0);
 const sims=[];                 // texts typed into the Simulate box
 const shownLog=[];             // messages shown, oldest first (for Prev)
 const queue=[];                // new arrivals, played next
@@ -412,9 +414,15 @@ function pickNext(){
   for(let i=0;i<cand.length;i++){r-=w[i];if(r<=0)return cand[i];}
   return cand[cand.length-1];
 }
+/* The emoji font arrives in chunks. Fetch what a message needs as soon as it arrives,
+   and never start a message before its glyphs are loaded (otherwise it re-lays itself out mid-hold). */
+const fontSpec=()=>`400 100px ${fontStack()}`;
+function fontsReady(m){try{return m.empty||document.fonts.check(fontSpec(),shown(m.text)||'a');}catch(e){return true;}}
+function prefetch(m){try{if(m&&!m.empty)document.fonts.load(fontSpec(),shown(m.text)||'a').catch(()=>{});}catch(e){}}
 function addReal(m,announce){
   if(seen.has(m.id))return;
   seen.set(m.id,m);
+  prefetch(m);
   if(announce&&!S.samples&&passGate(m)){
     queue.push(m);                      // new arrivals play next (after the current one finishes)
     if(cur&&cur.msg.empty)interrupt();  // dark wall: show it right away
@@ -482,6 +490,7 @@ function fitFrame(){
 }
 new ResizeObserver(fitFrame).observe(viewer);
 new ResizeObserver(fitFrame).observe(frame);
+const seatRO=new ResizeObserver(()=>{if(cur&&!cur.msg.empty)positionWashes();});   // re-seats tubes + washes if a line resizes
 document.addEventListener('fullscreenchange',fitFrame);
 
 /* ---------- message box ---------- */
@@ -518,6 +527,34 @@ function rotateHue(hex,deg){
   const c=(1-Math.abs(2*l-1))*sat,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
   let q=h<60?[c,x,0]:h<120?[x,c,0]:h<180?[0,c,x]:h<240?[0,x,c]:h<300?[x,0,c]:[c,0,x];
   return rgbHex((q[0]+m)*255,(q[1]+m)*255,(q[2]+m)*255);
+}
+/* Brightness balance: rotate the hue in OKLCH (a perceptual colour space), keeping the tube colour's
+   perceived lightness, so yellow-green doesn't blaze and blue doesn't sink. Out-of-gamut colours lose
+   a little saturation rather than change brightness. Blended with the plain HSL rotation by lumBal. */
+const toLin=c=>{c/=255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+const fromLin=c=>(c<=0.0031308?12.92*c:1.055*Math.pow(c,1/2.4)-0.055)*255;
+function hexToOklab(hex){
+  const [r,g,b]=hexRgb(hex).map(toLin);
+  const l=Math.cbrt(0.4122214708*r+0.5363325363*g+0.0514459929*b),
+        m=Math.cbrt(0.2119034982*r+0.6806995451*g+0.1073969566*b),
+        s=Math.cbrt(0.0883024619*r+0.2817188376*g+0.6299787005*b);
+  return [0.2104542553*l+0.7936177850*m-0.0040720468*s,1.9779984951*l-2.4285922050*m+0.4505937099*s,0.0259040371*l+0.7827717662*m-0.8086757660*s];
+}
+function oklabToLin(L,a,b){
+  const l=(L+0.3963377774*a+0.2158037573*b)**3, m=(L-0.1055613458*a-0.0638541728*b)**3, s=(L-0.0894841775*a-1.2914855480*b)**3;
+  return [4.0767416621*l-3.3077115913*m+0.2309699292*s,-1.2684380046*l+2.6097574011*m-0.3413193965*s,-0.0041960863*l-0.7034186147*m+1.7076147010*s];
+}
+function evenHue(hex,deg){
+  const [L,a,b]=hexToOklab(hex);let C=Math.hypot(a,b);const h=Math.atan2(b,a)+deg*Math.PI/180;
+  const inGamut=c=>oklabToLin(L,c*Math.cos(h),c*Math.sin(h)).every(x=>x>=-1e-4&&x<=1+1e-4);
+  if(!inGamut(C)){let lo=0,hi=C;for(let i=0;i<20;i++){const mid=(lo+hi)/2;if(inGamut(mid))lo=mid;else hi=mid;}C=lo;}
+  return rgbHex(...oklabToLin(L,C*Math.cos(h),C*Math.sin(h)).map(x=>fromLin(Math.max(0,Math.min(1,x)))));
+}
+function tubeColor(hex,deg){
+  const raw=rotateHue(hex,deg),k=S.lumBal;
+  if(!k)return raw;
+  const ev=evenHue(hex,deg);if(k>=1)return ev;
+  const A=hexRgb(raw),B=hexRgb(ev);return rgbHex(...A.map((x,i)=>x+(B[i]-x)*k));
 }
 function coreColor(tube){
   const [r,g,b]=hexRgb(tube),k=S.heat/100;
@@ -570,7 +607,7 @@ function applyLook(){
   cur.lineEls.forEach((el,i)=>{
     const tx=cur.textEls[i], wa=cur.washEls[i];
     if(!S.neon){tx.style.color=S.color;tx.style.textShadow='none';wa.style.display='none';return;}
-    const tube=rotateHue(S.color,(cur.hue||0)+(n>1?S.spread*(i/(n-1)-0.5):0));
+    const tube=tubeColor(S.color,(cur.hue||0)+(n>1?S.spread*(i/(n-1)-0.5):0));
     tx.style.color=coreColor(tube);
     tx.style.textShadow=neonShadow(tube,S.glowStr,cur.lay.s);
     if(S.washStr>0&&S.washSize>0){
@@ -721,6 +758,7 @@ function renderBlock(){
     w.appendChild(d);block.appendChild(w);return w;
   });
   cur.textEls=cur.lineEls.map(w=>w.firstChild);
+  seatRO.disconnect();seatRO.observe(block);cur.lineEls.forEach(el=>seatRO.observe(el));
   cur.fl=lay.lines.map(()=>({phase:Math.random()*Math.PI*2,f:0.75+Math.random()*0.5,next:clock+nextGap(),end:0,stepEnd:0,level:1,
     inOff:Math.random()*0.06,outOff:Math.random()*0.06,sEnd:0,sLevel:0,outArmed:false}));
   placeBox(lay.box);
@@ -738,7 +776,9 @@ function relayout(){
   cur.lay=layout(shown(cur.msg.text));
   renderBlock();resetFx();updateStats();
 }
+let waitingFor=null;   // next message, held back until its emoji glyphs have loaded
 function startMessage(msg){
+  waitingFor=null;
   if(!msg.empty&&!shown(msg.text))msg=Object.assign({},EMPTY,{id:'blank'});   // emoji-only text with emoji hidden: skip it
   const lay=layout(shown(msg.text));
   const t=clamp((lay.N-SHORT_WORDS)/(LONG_WORDS-SHORT_WORDS));
@@ -775,7 +815,16 @@ function lineAlpha(time,dur,idx,n){
 }
 function update(){
   if(!cur)return;
-  if(clock>=cur.end)startMessage(pickNext());
+  if(clock>=cur.end&&!waitingFor){
+    const m=pickNext();
+    if(fontsReady(m))startMessage(m);
+    else{
+      waitingFor=m;
+      const go=()=>{if(waitingFor===m){waitingFor=null;startMessage(m);}};
+      document.fonts.load(fontSpec(),shown(m.text)||'a').then(go,go);
+      setTimeout(go,1500);
+    }
+  }
   const t=clock-cur.start, to=clock-cur.outStart;
   const pin=cur.inDur>0?clamp(t/cur.inDur):1;
   const tf=clock-cur.fadeOutStart;
@@ -933,7 +982,7 @@ function simPlay(){
   const v=$('sim').value.trim();if(!v)return;
   if(sims.length)simStop();
   const m={id:'sim'+Date.now(),text:smarten(v),ts:Date.now(),sim:true};
-  sims.push(m);queue.push(m);interrupt();
+  prefetch(m);sims.push(m);queue.push(m);interrupt();
   $('bSend').textContent='STOP';$('bSend').classList.add('on');updateStats();
 }
 $('bSend').onclick=()=>sims.length?simStop():simPlay();
