@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11.16)</title>
+<title>Texhibit — Memory Wall (v11.18)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji&family=Tilt+Neon&display=swap" rel="stylesheet">
@@ -140,14 +140,14 @@
     <div class="stats" id="stats"></div>
   </main>
   <aside class="panel" id="panel">
-    <div class="ph">Texhibit memory wall, v11.16</div>
+    <div class="ph">Texhibit memory wall, v11.18</div>
     <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips. On a phone: Fullscreen fills the screen with the wall. On the wall, double-tap to pause or resume; long-press to come back here.</div>
   </aside>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const VERSION='v11.16';   // bump with every change: shown in the panel heading and the page title
+const VERSION='v11.18';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -178,20 +178,21 @@ const schema=[
     options:[['neon','Neon (glow like the letters)'],['color','Color'],['hidden','Hidden']]},
   {g:'Neon'},
   {id:'neon',label:'Neon glow',type:'check',value:true,re:'look'},
-  {id:'heat',label:'Core heat (0 = tube color, 100 = white-hot)',min:0,max:100,step:1,value:95,fmt:v=>v+'%',re:'look'},
+  {id:'heat',label:'Core heat (0 = tube color, 100 = white-hot)',min:0,max:100,step:1,value:85,fmt:v=>v+'%',re:'look'},
   {id:'glowIn',label:'Inner glow (tight, around the tube)',min:0,max:0.3,step:0.005,value:0.26,fmt:v=>(+v).toFixed(3)+' em',re:'look'},
-  {id:'glowOut',label:'Halo',min:0,max:1.5,step:0.01,value:0.3,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
-  {id:'haloFall',label:'Halo falloff (0 = none; 1 = no glow at Max type size)',min:0,max:1,step:0.01,value:0,fmt:v=>(+v).toFixed(2),re:'look'},
-  {id:'washFall',label:'Wash falloff (0 = none; 1 = no wash at Max type size)',min:0,max:1,step:0.01,value:0,fmt:v=>(+v).toFixed(2),re:'look'},
+  {id:'glowOut',label:'Halo',min:0,max:1.5,step:0.01,value:0.36,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
+  {id:'haloFall',label:'Halo falloff (0 = none; 1 = no glow at Max type size)',min:0,max:1,step:0.01,value:0.55,fmt:v=>(+v).toFixed(2),re:'look'},
+  {id:'washFall',label:'Wash falloff (0 = none; 1 = no wash at Max type size)',min:0,max:1,step:0.01,value:0.6,fmt:v=>(+v).toFixed(2),re:'look'},
   {id:'glowStr',label:'Glow strength',min:0,max:2,step:0.05,value:1.7,fmt:v=>Math.round(v*100)+'%',re:'look'},
-  {id:'washStr',label:'Wall wash strength',min:0,max:1,step:0.01,value:0.7,fmt:v=>Math.round(v*100)+'%',re:'look'},
-  {id:'washSize',label:'Wall wash size',min:0,max:3,step:0.05,value:3,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
+  {id:'washStr',label:'Wall wash strength',min:0,max:1,step:0.01,value:0.65,fmt:v=>Math.round(v*100)+'%',re:'look'},
+  {id:'washSize',label:'Wall wash size',min:0,max:3,step:0.05,value:2.6,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
   {id:'washSoft',label:'Wall wash falloff (higher = softer)',min:0.5,max:4,step:0.1,value:1.6,fmt:v=>(+v).toFixed(1),re:'look'},
-  {id:'spread',label:'Line color spread (hue)',min:-180,max:180,step:1,value:70,fmt:v=>v+'°',re:'look'},
+  {id:'spread',label:'Line color spread (hue)',min:-180,max:180,step:1,value:60,fmt:v=>v+'°',re:'look'},
   {id:'offOn',label:'Unlit tubes (dim glass shows when a line flickers off)',type:'check',value:true,re:'look'},
-  {id:'offColor',label:'Unlit tube color',type:'color',value:'#474747',re:'look'},
+  {id:'offColor',label:'Unlit tube color',type:'color',value:'#5c5c5c',re:'look'},
+  {id:'offFade',label:'Unlit tube fade (before the color strikes on, after it goes out)',min:0,max:1000,step:10,value:200,fmt:v=>v+' ms'},
   {id:'randHue',label:'Random hue shift per message',min:0,max:360,step:1,value:360,fmt:v=>'±'+Math.round(v/2)+'°'},
-  {id:'lumBal',label:'Brightness balance (0 = raw colors; 1 = every hue equally bright)',min:0,max:1,step:0.01,value:0.75,fmt:v=>(+v).toFixed(2),re:'look'},
+  {id:'lumBal',label:'Brightness balance (0 = raw colors; 1 = every hue equally bright)',min:0,max:1,step:0.01,value:0.85,fmt:v=>(+v).toFixed(2),re:'look'},
   {g:'Grain'},
   {id:'grain',label:'Grain amount (hides banding in the glow)',min:0,max:0.6,step:0.01,value:0,fmt:v=>Math.round(v*100)+'%',re:'grain'},
   {id:'grainAnim',label:'Animate grain',type:'check',value:false,re:'grain'},
@@ -199,7 +200,7 @@ const schema=[
     options:[['blend','Blend (keeps blacks pure; heavy on phones)'],['light','Light (over everything; phone-safe)']]},
   {g:'Flicker'},
   {id:'hum',label:'Hum (slow brightness sway)',min:0,max:0.4,step:0.005,value:0.1,fmt:v=>Math.round(v*100)+'%'},
-  {id:'humSpeed',label:'Hum speed',min:0.05,max:4,step:0.05,value:0.6,fmt:v=>(+v).toFixed(2)+' Hz'},
+  {id:'humSpeed',label:'Hum speed',min:0.05,max:4,step:0.05,value:0.5,fmt:v=>(+v).toFixed(2)+' Hz'},
   {id:'flickRate',label:'Flicker events per minute',min:0,max:30,step:0.5,value:4.5},
   {id:'flickDepth',label:'Flicker depth',min:0,max:1,step:0.01,value:0.07,fmt:v=>Math.round(v*100)+'%'},
   {g:'Layout'},
@@ -211,7 +212,7 @@ const schema=[
   {id:'maxWords',label:'Max words per line',min:1,max:12,step:1,value:5,re:'layout'},
   {id:'minWords',label:'Min words per line',min:1,max:6,step:1,value:2,re:'layout'},
   {id:'widows',label:'Avoid widows and orphans',type:'check',value:true,re:'layout'},
-  {id:'maxType',label:'Max type size (caps short messages and lone emoji)',min:100,max:900,step:10,value:360,fmt:v=>v+' px',re:'layout'},
+  {id:'maxType',label:'Max type size (caps short messages and lone emoji)',min:100,max:900,step:10,value:350,fmt:v=>v+' px',re:'layout'},
   {g:'Footer'},
   {id:'tText',label:'Text',type:'text',value:'Text 415-358-2714 to share memories, jokes, toasts, roasts, hot-takes etc.',re:'title'},
   {id:'tWords',label:'Max words per line (0 = no limit)',min:0,max:12,step:1,value:0,fmt:v=>+v?v:'no limit',re:'title'},
@@ -222,8 +223,8 @@ const schema=[
   {id:'tColor',label:'Color',type:'color',value:'#ffffff',re:'title'},
   {id:'tOpacity',label:'Opacity',min:0,max:1,step:0.01,value:1,fmt:v=>Math.round(v*100)+'%',re:'title'},
   {id:'tBottom',label:'Distance from bottom',min:0,max:300,step:1,value:56,fmt:v=>v+' px',re:'title'},
-  {id:'tGlow',label:'Footer glow',type:'check',value:false,re:'title'},
-  {id:'tGlowStr',label:'Footer glow strength',min:0,max:2,step:0.05,value:0.6,fmt:v=>Math.round(v*100)+'%',re:'title'},
+  {id:'tGlow',label:'Footer glow',type:'check',value:true,re:'title'},
+  {id:'tGlowStr',label:'Footer glow strength',min:0,max:2,step:0.05,value:0.4,fmt:v=>Math.round(v*100)+'%',re:'title'},
   {g:'Transitions'},
   {id:'inMs',label:'Fade in (0 = cut)',min:0,max:1000,step:10,value:150,fmt:v=>v+' ms'},
   {id:'outMs',label:'Fade out (0 = cut)',min:0,max:1000,step:10,value:150,fmt:v=>v+' ms'},
@@ -750,7 +751,7 @@ function renderBlock(){
   block.className='block al-'+S.align+(S.layers?'':' flat');
   const washLayer=document.createElement('div');washLayer.className='washes';block.appendChild(washLayer);
   cur.washEls=lay.lines.map(()=>{const wa=document.createElement('div');wa.className='wash';washLayer.appendChild(wa);return wa;});
-  const offLayer=document.createElement('div');offLayer.className='offs';block.appendChild(offLayer);
+  const offLayer=document.createElement('div');offLayer.className='offs';block.appendChild(offLayer);cur.offLayer=offLayer;
   cur.offEls=lay.lines.map(t=>{const o=document.createElement('div');o.className='off';o.textContent=t;offLayer.appendChild(o);return o;});
   cur.lineEls=lay.lines.map(t=>{
     const w=document.createElement('div');w.className='lw';
@@ -786,10 +787,14 @@ function startMessage(msg){
   cur={msg,lay,start:clock,inDur:msg.empty?0:S.inMs/1000,hold,outDur:msg.empty?0:S.outMs/1000,gap:msg.empty?0:S.gapMs/1000,
        strikeIn:(S.strikeIn&&!msg.empty)?S.strikeMs/1000:0,strikeOut:(S.strikeOut&&!msg.empty)?S.strikeMs/1000:0,
        hue:(Math.random()*2-1)*S.randHue/2};
-  // timeline: fade in (lines strike) → hold → lines stutter → fade out → empty gap → next
-  cur.outStart=cur.start+Math.max(cur.inDur,cur.strikeIn+0.06)+hold;
+  // timeline: unlit tubes fade in → colour fades in (lines strike) → hold → lines stutter → colour fades out
+  //           → unlit tubes fade out → empty gap → next
+  cur.F=(!msg.empty&&S.neon&&S.offOn)?S.offFade/1000:0;
+  cur.litStart=cur.start+cur.F;
+  cur.outStart=cur.litStart+Math.max(cur.inDur,cur.strikeIn+0.06)+hold;
   cur.fadeOutStart=cur.outStart+cur.strikeOut;
-  cur.end=cur.fadeOutStart+cur.outDur+cur.gap;
+  cur.litEnd=cur.fadeOutStart+cur.outDur;
+  cur.end=cur.litEnd+cur.F+cur.gap;
   cur.T=cur.end-cur.start;
   lastMsg=msg;
   if(!msg.empty){shownLog.push(msg);if(shownLog.length>60)shownLog.shift();}
@@ -798,15 +803,16 @@ function startMessage(msg){
 function interrupt(){
   if(!cur)return;
   if(clock<cur.outStart){
-    cur.outStart=Math.max(clock,cur.start+Math.max(cur.inDur,cur.strikeIn+0.06)); // let an in-progress transition finish first
+    cur.outStart=Math.max(clock,cur.litStart+Math.max(cur.inDur,cur.strikeIn+0.06)); // let an in-progress transition finish first
     cur.fadeOutStart=cur.outStart+cur.strikeOut;
-    cur.end=cur.fadeOutStart+cur.outDur+cur.gap;
+    cur.litEnd=cur.fadeOutStart+cur.outDur;
+    cur.end=cur.litEnd+cur.F+cur.gap;
   }
 }
 function setMask(m){block.style.webkitMaskImage=m;block.style.maskImage=m;}
 function resetFx(){
   block.style.opacity='';setMask('none');
-  if(cur){cur.lineEls.forEach(el=>el.style.opacity='');cur.washEls.forEach(el=>el.style.opacity='');}
+  if(cur){cur.lineEls.forEach(el=>el.style.opacity='');cur.washEls.forEach(el=>el.style.opacity='');if(cur.offLayer)cur.offLayer.style.opacity='';}
 }
 function lineAlpha(time,dur,idx,n){
   if(dur<=0)return time>=0?1:0;
@@ -825,7 +831,7 @@ function update(){
       setTimeout(go,1500);
     }
   }
-  const t=clock-cur.start, to=clock-cur.outStart;
+  const t=clock-cur.litStart, to=clock-cur.outStart;
   const pin=cur.inDur>0?clamp(t/cur.inDur):1;
   const tf=clock-cur.fadeOutStart;
   const pout=tf<0?0:(cur.outDur>0?clamp(tf/cur.outDur):1);
@@ -851,7 +857,14 @@ function update(){
     return v;
   });
 
-  block.style.opacity=ease(pin)*(1-ease(pout));
+  // the colour (lines + washes) fades on its own; the unlit tubes have their own, slightly longer fade
+  const litA=ease(pin)*(1-ease(pout));
+  block.style.opacity='';
+  if(cur.offLayer){
+    const F=cur.F;
+    const offA=F>0?ease(clock<cur.litStart?clamp((clock-cur.start)/F):clock>=cur.litEnd?1-clamp((clock-cur.litEnd)/F):1):litA;
+    cur.offLayer.style.opacity=offA;
+  }
   cur.lineEls.forEach((el,i)=>{
     const f=cur.fl[i];let ig=1;
     if(cur.strikeIn&&to<0){                       // way in: each line strikes a beat apart, then holds lit
@@ -865,7 +878,7 @@ function update(){
         ig=stutter(f);
       }
     }
-    el.style.opacity=cur.washEls[i].style.opacity=flick[i]*ig;
+    el.style.opacity=cur.washEls[i].style.opacity=litA*flick[i]*ig;
   });
 }
 /* ---------- grain ---------- */
@@ -989,8 +1002,8 @@ $('bSend').onclick=()=>sims.length?simStop():simPlay();
 $('sim').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();simPlay();}});
 function jumpTo(m){   // paused: show this message at once, already lit (the clock is frozen, so no transition)
   startMessage(m);
-  const lead=Math.max(cur.inDur,cur.strikeIn+0.06)+0.01;
-  cur.start-=lead;cur.outStart-=lead;cur.fadeOutStart-=lead;cur.end-=lead;
+  const lead=cur.F+Math.max(cur.inDur,cur.strikeIn+0.06)+0.01;
+  cur.start-=lead;cur.litStart-=lead;cur.outStart-=lead;cur.fadeOutStart-=lead;cur.litEnd-=lead;cur.end-=lead;
 }
 function next(){if(playing)interrupt();else jumpTo(pickNext());}
 function prev(){
