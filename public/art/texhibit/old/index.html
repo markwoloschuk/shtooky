@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Texhibit">
+<meta name="theme-color" content="#000000">
+<title>Texhibit — Memory Wall (v11.19)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Emoji&family=Tilt+Neon&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ui-bg:#1c1d20; --ui-panel:#232428; --ui-line:#34363c;
+    --ui-text:#e3e4e7; --ui-dim:#9a9ea7; --ui-accent:#8cc4ff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ui-bg);color:var(--ui-text);
+    font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .app{display:grid;grid-template-columns:minmax(0,1fr) 320px;height:100vh}
+  .main{display:flex;flex-direction:column;min-width:0;padding:20px;gap:10px}
+  .viewer{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+  .frame{position:relative;background:#000;overflow:hidden;box-shadow:0 0 0 1px var(--ui-line)}
+  .stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;background:#000;overflow:hidden}
+  .msgBox{position:absolute;display:flex;align-items:center;justify-content:center}
+  .drift{flex:none}
+  .block{position:relative;font-family:"Tilt Neon",system-ui,sans-serif;white-space:nowrap;text-align:left;width:max-content;will-change:opacity}
+  .title{position:absolute;left:0;right:0;text-align:center;line-height:1.2;
+    font-family:"Tilt Neon",system-ui,sans-serif;white-space:pre}
+  .block .lw{position:relative;width:max-content;will-change:opacity}   /* one layer per line: flicker never repaints */
+  .block.al-left .lw{margin-right:auto}
+  .block.al-center .lw{margin-left:auto;margin-right:auto}
+  .block.al-right .lw{margin-left:auto}
+  .block .washes{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}   /* all washes, beneath all text */
+  .block .wash{position:absolute;pointer-events:none;will-change:opacity}
+  .block.flat .lw,.block.flat .wash{will-change:auto}   /* Separate layers off: lighter on phone memory */
+  .block .offs{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}    /* unlit tubes: under the lit text */
+  .block .off{position:absolute;white-space:nowrap}
+  .simrow{display:flex;gap:8px;margin:0 0 10px}
+  .simrow input{flex:1;min-width:0;background:var(--ui-bg);color:var(--ui-text);border:1px solid var(--ui-line);
+    border-radius:5px;padding:6px 8px;font:inherit}
+  .simrow button{background:var(--ui-bg);color:var(--ui-text);border:1px solid var(--ui-line);border-radius:5px;
+    padding:6px 14px;font:inherit;font-weight:600;letter-spacing:.04em;cursor:pointer}
+  .simrow button.on{border-color:var(--ui-accent);color:var(--ui-accent)}
+  .block .ln{position:relative;display:block}
+  .grain{position:absolute;left:-256px;top:-256px;width:2432px;height:1592px;pointer-events:none;
+    mix-blend-mode:overlay;will-change:transform;background-repeat:repeat}
+  .guide{position:absolute;border:2px dashed rgba(255,90,90,.55);pointer-events:none;display:none}
+  .guide.box{border-color:rgba(120,190,255,.6)}
+
+  .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .bar button{background:var(--ui-panel);color:var(--ui-text);border:1px solid var(--ui-line);
+    border-radius:6px;padding:7px 12px;font:inherit;cursor:pointer}
+  .bar button:hover{border-color:#50535b}
+  .bar input{flex:1;min-width:200px;background:var(--ui-panel);color:var(--ui-text);
+    border:1px solid var(--ui-line);border-radius:6px;padding:7px 10px;font:inherit}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ui-accent);outline-offset:1px}
+  .stats{color:var(--ui-dim);font-variant-numeric:tabular-nums;min-height:1.4em}
+
+  .panel{background:var(--ui-panel);border-left:1px solid var(--ui-line);overflow-y:auto;padding:16px 18px 40px}
+  .panel .ph{font-weight:600;font-size:14px;margin-bottom:4px}
+  .panel .sub{color:var(--ui-dim);margin-bottom:10px}
+  .grp{border-top:1px solid var(--ui-line);margin-top:12px}
+  .grp>button{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;
+    width:100%;padding:12px 0 8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--ui-accent)}
+  .grp>button:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px}
+  .grp>button::after{content:"▾";color:var(--ui-dim);transition:transform .15s}
+  .grp.closed>button::after{transform:rotate(-90deg)}
+  .grp.closed>.body{display:none}
+  .row{display:block;margin:0 0 10px}
+  .row .top{display:flex;justify-content:space-between;gap:8px;margin-bottom:3px}
+  .row .val{color:var(--ui-dim);font-variant-numeric:tabular-nums}
+  .row input[type=range]{width:100%;accent-color:var(--ui-accent)}
+  .pbtn{display:block;width:100%;margin:0 0 8px;padding:6px 8px;background:var(--ui-bg);color:var(--ui-text);
+    border:1px solid var(--ui-line);border-radius:5px;font:inherit;cursor:pointer}
+  .pbtn:hover{border-color:var(--ui-accent)}
+  .row input[type=text],.row input[type=datetime-local],.row select{width:100%;background:var(--ui-bg);color:var(--ui-text);
+    border:1px solid var(--ui-line);border-radius:5px;padding:6px 8px;font:inherit}
+  .row input[type=color]{width:100%;height:28px;border:1px solid var(--ui-line);border-radius:5px;background:none;padding:2px}
+  .row.check{display:flex;gap:8px;align-items:center;cursor:pointer}
+  .row.check input{accent-color:var(--ui-accent)}
+
+  @media (max-width:900px){
+    .app{display:block;height:auto}
+    .viewer{height:56vw;flex:none}
+    .panel{border-left:0;border-top:1px solid var(--ui-line)}
+    /* phones: iOS zooms into any control with text under 16px, and nothing may stick out sideways */
+    html,body{overflow-x:hidden}
+    .panel,.bar,.stats,.bar input,.bar button,.pbtn,.row select,.row input[type=text],.row input[type=datetime-local]{font-size:16px}
+    .bar input{min-width:0}
+    .viewer{height:min(56vw,45vh)}     /* the preview never fills the whole screen */
+    .simrow input,.simrow button{font-size:16px}
+  }
+  /* phones held upright: the preview and buttons stay pinned at the top; the settings scroll underneath */
+  @media (max-width:900px) and (orientation:portrait){
+    .main{position:sticky;top:0;z-index:5;background:var(--ui-bg);
+      padding-top:max(12px,env(safe-area-inset-top));padding-bottom:12px;border-bottom:1px solid var(--ui-line)}
+    .stats{font-size:13px}
+  }
+  /* the wall owns its gestures: no zoom, no text selection, no callout menu on long-press */
+  .viewer{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  html.wall .viewer{touch-action:none}
+
+  /* ---------- wall-only view (phones: the Fullscreen button, or landscape in show mode) ----------
+     The wall alone, filling the screen. Double-tap the wall to come back to the settings. */
+  html.show,html.wall{touch-action:manipulation;-webkit-text-size-adjust:100%}
+  html.wall,html.wall body{background:#000;overflow:hidden;height:100%}
+  html.wall .app{display:block;height:100vh;height:100dvh}
+  html.wall .main{padding:0;height:100%;gap:0}
+  html.wall .viewer{height:100%;flex:none}
+  html.wall .frame{box-shadow:none}
+  html.wall .bar,html.wall .stats,html.wall .panel{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="main">
+    <div class="viewer" id="viewer">
+      <div class="frame" id="frame">
+        <div class="stage" id="stage">
+          <div class="msgBox" id="msgBox"><div class="drift" id="drift"><div class="block" id="block"></div></div></div>
+          <div class="title" id="title"></div>
+          <div class="grain" id="grain"></div>
+          <div class="guide" id="gSafe"></div>
+          <div class="guide box" id="gBox"></div>
+        </div>
+      </div>
+    </div>
+    <div class="bar">
+      <button id="bPrev">Prev</button>
+      <button id="bPlay">Pause</button>
+      <button id="bNext">Next</button>
+      <button id="bFs">Fullscreen</button>
+      <input id="sim" placeholder="Type a test message">
+      <button id="bSend">PLAY</button>
+    </div>
+    <div class="stats" id="stats"></div>
+  </main>
+  <aside class="panel" id="panel">
+    <div class="ph">Texhibit memory wall, v11.19</div>
+    <div class="sub">Stage renders at 1920×1080 and scales to fit. Space pauses, → skips. On a phone: Fullscreen fills the screen with the wall. On the wall, double-tap to pause or resume; long-press to come back here.</div>
+  </aside>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const VERSION='v11.19';   // bump with every change: shown in the panel heading and the page title
+
+/* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
+const SHOW=new URLSearchParams(location.search).has('show')
+  ||matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+if(SHOW)document.documentElement.classList.add('show');
+const stage=$('stage'), frame=$('frame'), viewer=$('viewer'), msgBox=$('msgBox'),
+      drift=$('drift'), block=$('block'), titleEl=$('title'), gSafe=$('gSafe'),
+      gBox=$('gBox'), statsEl=$('stats'), panel=$('panel'), grainEl=$('grain');
+let SW=1920; const SH=1080;   // SW widens in the wall-only view to match a wide screen (phones)
+const HALF_LIFE_MIN=20;       // recency weighting half-life (minutes)
+const SHORT_WORDS=4, LONG_WORDS=50; // hold ramps from min at SHORT to min×multiplier at LONG
+
+/* ---------- settings ---------- */
+const TOUCH=matchMedia('(pointer: coarse)').matches||navigator.maxTouchPoints>1;   // phones and tablets
+const S={};
+const secs=v=>(+v).toFixed(2)+' s';
+const schema=[
+  {g:'Settings'},
+  {id:'copyBtn',label:'Copy settings',type:'button',action:e=>copySettings(e.currentTarget)},
+  {id:'resetBtn',label:'Reset all settings to defaults',type:'button',action:()=>resetSettings()},
+  {g:'Simulate a text'},
+  {id:'simRow',type:'sim'},
+  {g:'Message type'},
+  {id:'tracking',label:'Tracking',min:-0.1,max:0.2,step:0.005,value:0,fmt:v=>(+v).toFixed(3)+' em',re:'layout'},
+  {id:'leading',label:'Leading',min:0.75,max:1.6,step:0.01,value:1.1,fmt:v=>(+v).toFixed(2),re:'layout'},
+  {id:'color',label:'Color (tube color when neon is on)',type:'color',value:'#ff2d95',re:'look'},
+  {id:'emoji',label:'Emoji',type:'select',value:'neon',re:'font',
+    options:[['neon','Neon (glow like the letters)'],['color','Color'],['hidden','Hidden']]},
+  {g:'Neon'},
+  {id:'neon',label:'Neon glow',type:'check',value:true,re:'look'},
+  {id:'heat',label:'Core heat (0 = tube color, 100 = white-hot)',min:0,max:100,step:1,value:85,fmt:v=>v+'%',re:'look'},
+  {id:'glowIn',label:'Inner glow (tight, around the tube)',min:0,max:0.3,step:0.005,value:0.26,fmt:v=>(+v).toFixed(3)+' em',re:'look'},
+  {id:'glowOut',label:'Halo',min:0,max:1.5,step:0.01,value:0.36,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
+  {id:'haloFall',label:'Halo falloff (0 = none; 1 = no glow at Max type size)',min:0,max:1,step:0.01,value:0.55,fmt:v=>(+v).toFixed(2),re:'look'},
+  {id:'washFall',label:'Wash falloff (0 = none; 1 = no wash at Max type size)',min:0,max:1,step:0.01,value:0.6,fmt:v=>(+v).toFixed(2),re:'look'},
+  {id:'glowStr',label:'Glow strength',min:0,max:2,step:0.05,value:1.7,fmt:v=>Math.round(v*100)+'%',re:'look'},
+  {id:'washStr',label:'Wall wash strength',min:0,max:1,step:0.01,value:0.65,fmt:v=>Math.round(v*100)+'%',re:'look'},
+  {id:'washSize',label:'Wall wash size',min:0,max:3,step:0.05,value:2.6,fmt:v=>(+v).toFixed(2)+' em',re:'look'},
+  {id:'washSoft',label:'Wall wash falloff (higher = softer)',min:0.5,max:4,step:0.1,value:1.6,fmt:v=>(+v).toFixed(1),re:'look'},
+  {id:'spread',label:'Line color spread (hue)',min:-180,max:180,step:1,value:60,fmt:v=>v+'°',re:'look'},
+  {id:'offOn',label:'Unlit tubes (dim glass shows when a line flickers off)',type:'check',value:true,re:'look'},
+  {id:'offColor',label:'Unlit tube color',type:'color',value:'#5c5c5c',re:'look'},
+  {id:'offFadeIn',label:'Unlit tube fade in (before the color strikes on)',min:0,max:1000,step:10,value:200,fmt:v=>v+' ms'},
+  {id:'offFadeOut',label:'Unlit tube fade out (after the color goes out)',min:0,max:1000,step:10,value:200,fmt:v=>v+' ms'},
+  {id:'randHue',label:'Random hue shift per message',min:0,max:360,step:1,value:360,fmt:v=>'±'+Math.round(v/2)+'°'},
+  {id:'lumBal',label:'Brightness balance (0 = raw colors; 1 = every hue equally bright)',min:0,max:1,step:0.01,value:0.85,fmt:v=>(+v).toFixed(2),re:'look'},
+  {g:'Grain'},
+  {id:'grain',label:'Grain amount (hides banding in the glow)',min:0,max:0.6,step:0.01,value:0,fmt:v=>Math.round(v*100)+'%',re:'grain'},
+  {id:'grainAnim',label:'Animate grain',type:'check',value:false,re:'grain'},
+  {id:'grainMode',label:'Grain style',type:'select',value:TOUCH?'light':'blend',re:'grain',
+    options:[['blend','Blend (keeps blacks pure; heavy on phones)'],['light','Light (over everything; phone-safe)']]},
+  {g:'Flicker'},
+  {id:'hum',label:'Hum (slow brightness sway)',min:0,max:0.4,step:0.005,value:0.1,fmt:v=>Math.round(v*100)+'%'},
+  {id:'humSpeed',label:'Hum speed',min:0.05,max:4,step:0.05,value:0.5,fmt:v=>(+v).toFixed(2)+' Hz'},
+  {id:'flickRate',label:'Flicker events per minute',min:0,max:30,step:0.5,value:4.5},
+  {id:'flickDepth',label:'Flicker depth',min:0,max:1,step:0.01,value:0.07,fmt:v=>Math.round(v*100)+'%'},
+  {g:'Layout'},
+  {id:'margin',label:'Safe margin (% of height)',min:0,max:20,step:0.5,value:20,fmt:v=>v+'%',re:'layout'},
+  {id:'vbias',label:'Vertical bias (+ is up)',min:-300,max:300,step:1,value:60,fmt:v=>v+' px',re:'layout'},
+  {id:'align',label:'Alignment',type:'select',value:'center',re:'layout',
+    options:[['left','Left'],['center','Center'],['right','Right']]},
+  {id:'balance',label:'Balance (0 = biggest type, 100 = most even lines)',min:0,max:1,step:0.01,value:1,fmt:v=>Math.round(v*100)+'%',re:'layout'},
+  {id:'maxWords',label:'Max words per line',min:1,max:12,step:1,value:5,re:'layout'},
+  {id:'minWords',label:'Min words per line',min:1,max:6,step:1,value:2,re:'layout'},
+  {id:'widows',label:'Avoid widows and orphans',type:'check',value:true,re:'layout'},
+  {id:'maxType',label:'Max type size (caps short messages and lone emoji)',min:100,max:900,step:10,value:350,fmt:v=>v+' px',re:'layout'},
+  {g:'Footer'},
+  {id:'tText',label:'Text',type:'text',value:'Text 415-358-2714 to share memories, jokes, toasts, roasts, hot-takes etc.',re:'title'},
+  {id:'tWords',label:'Max words per line (0 = no limit)',min:0,max:12,step:1,value:0,fmt:v=>+v?v:'no limit',re:'title'},
+  {id:'tAlign',label:'Alignment',type:'select',value:'center',re:'title',
+    options:[['center','Centred'],['left','Left (at the safe margin)']]},
+  {id:'tSize',label:'Size',min:12,max:96,step:1,value:42,fmt:v=>v+' px',re:'title'},
+  {id:'tTracking',label:'Tracking',min:-0.1,max:0.3,step:0.005,value:0.065,fmt:v=>(+v).toFixed(3)+' em',re:'title'},
+  {id:'tColor',label:'Color',type:'color',value:'#ffffff',re:'title'},
+  {id:'tOpacity',label:'Opacity',min:0,max:1,step:0.01,value:1,fmt:v=>Math.round(v*100)+'%',re:'title'},
+  {id:'tBottom',label:'Distance from bottom',min:0,max:300,step:1,value:56,fmt:v=>v+' px',re:'title'},
+  {id:'tGlow',label:'Footer glow',type:'check',value:true,re:'title'},
+  {id:'tGlowStr',label:'Footer glow strength',min:0,max:2,step:0.05,value:0.4,fmt:v=>Math.round(v*100)+'%',re:'title'},
+  {g:'Transitions'},
+  {id:'inMs',label:'Fade in (0 = cut)',min:0,max:1000,step:10,value:150,fmt:v=>v+' ms'},
+  {id:'outMs',label:'Fade out (0 = cut)',min:0,max:1000,step:10,value:150,fmt:v=>v+' ms'},
+  {id:'gapMs',label:'Gap between messages',min:0,max:2000,step:10,value:500,fmt:v=>v+' ms'},
+  {id:'strikeIn',label:'Flicker on the way in',type:'check',value:true},
+  {id:'strikeOut',label:'Flicker on the way out',type:'check',value:true},
+  {id:'strikeMin',label:'In/out flicker length, shortest (each message picks at random)',min:20,max:1000,step:10,value:50,fmt:v=>v+' ms'},
+  {id:'strikeMax',label:'In/out flicker length, longest',min:20,max:1000,step:10,value:250,fmt:v=>v+' ms'},
+  {g:'Hold'},
+  {id:'hold',label:'Min hold',min:1,max:20,step:0.5,value:8,fmt:v=>(+v).toFixed(1)+' s'},
+  {id:'mult',label:'Length multiplier',min:1,max:5,step:0.1,value:2.5,fmt:v=>(+v).toFixed(1)+'×'},
+  {g:'Performance'},
+  {id:'layers',label:'Separate layers per line (smoother flicker; can crash phones)',type:'check',value:!TOUCH,re:'layout'},
+  {g:'Guides'},
+  {id:'guides',label:'Show safe area and message box',type:'check',value:false,re:'guides'},
+  {g:'Live feed'},
+  {id:'feedOn',label:'Pull texts from Twilio',type:'check',value:true,re:'feed'},
+  {id:'feedUrl',label:'Feed address',type:'text',value:'https://memory-wall-1750.twil.io/messages?token=cheetoburrito',re:'feed'},
+  {id:'pollSec',label:'Check every',min:2,max:30,step:1,value:5,fmt:v=>v+' s'},
+  {id:'samples',label:'Demo: show sample messages only',type:'check',value:false,re:'pool'},
+  {id:'gateOn',label:'Only show texts sent after this time',type:'check',value:true,re:'pool'},
+  {id:'cutoff',label:'Show texts sent after',type:'datetime-local',value:'2026-10-02T15:00',re:'pool'},
+  {id:'freshBtn',label:'Start fresh from now',type:'button',action:()=>startFresh()},
+];
+
+function buildPanel(){
+  let body=panel;
+  for(const it of schema){
+    if(it.g){
+      const sec=document.createElement('section');sec.className='grp';
+      const btn=document.createElement('button');btn.type='button';btn.textContent=it.g;btn.setAttribute('aria-expanded','true');
+      body=document.createElement('div');body.className='body';
+      btn.onclick=()=>{const c=sec.classList.toggle('closed');btn.setAttribute('aria-expanded',String(!c));};
+      sec.append(btn,body);panel.appendChild(sec);continue;
+    }
+    const type=it.type||'range';
+    if(type==='sim'){   // the Simulate box lives in the panel: type a text, PLAY puts it on the wall, STOP takes it off
+      const wrap=document.createElement('div');wrap.className='simrow';
+      wrap.append($('sim'),$('bSend'));body.appendChild(wrap);continue;
+    }
+    if(type==='button'){
+      const b=document.createElement('button');b.type='button';b.className='pbtn';b.textContent=it.label;
+      b.onclick=it.action;body.appendChild(b);continue;
+    }
+    let v=it.value;
+    if(it.id in saved){
+      const x=saved[it.id];
+      if(type==='range'&&typeof x==='number')v=Math.min(it.max,Math.max(it.min,x));
+      else if(type==='check'&&typeof x==='boolean')v=x;
+      else if(type==='select'&&it.options.some(o=>o[0]===x))v=x;
+      else if(typeof x==='string'&&type!=='range'&&type!=='check'&&type!=='select')v=x;
+    }
+    S[it.id]=v;
+    const row=document.createElement('label');
+    let input;
+    if(type==='check'){
+      row.className='row check';
+      input=document.createElement('input');input.type='checkbox';input.checked=v;input.dataset.id=it.id;
+      const t=document.createElement('span');t.textContent=it.label;
+      row.append(input,t);
+      input.addEventListener('change',()=>{S[it.id]=input.checked;queueChange(it.re);});
+    }else{
+      row.className='row';
+      const top=document.createElement('div');top.className='top';
+      const name=document.createElement('span');name.textContent=it.label;
+      const val=document.createElement('span');val.className='val';
+      top.append(name,val);
+      const fmt=it.fmt||(v=>v);
+      if(type==='select'){
+        input=document.createElement('select');
+        for(const [v,l] of it.options){const o=document.createElement('option');o.value=v;o.textContent=l;input.appendChild(o);}
+        input.value=v;
+      }else{
+        input=document.createElement('input');input.type=type;
+        if(type==='range'){input.min=it.min;input.max=it.max;input.step=it.step;val.textContent=fmt(v);}
+        input.value=v;
+      }
+      input.dataset.id=it.id;
+      row.append(top,input);
+      input.addEventListener('input',()=>{
+        S[it.id]=(type==='range')?parseFloat(input.value):input.value;
+        if(type==='range')val.textContent=fmt(S[it.id]);
+        queueChange(it.re);
+      });
+    }
+    body.appendChild(row);
+  }
+}
+
+/* ---------- saved settings ---------- */
+const STORE='mbMemoryWall.settings';
+let saved={};
+try{saved=JSON.parse(localStorage.getItem(STORE)||'{}')||{};}catch(e){saved={};}
+let saveTimer=null;
+function saveSoon(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{try{localStorage.setItem(STORE,JSON.stringify(S));}catch(e){}},300);
+}
+function copySettings(btn){
+  const txt=JSON.stringify(S,null,1);
+  const done=ok=>{const t=btn.textContent;btn.textContent=ok?'Copied — paste it to Claude':'Copy failed';setTimeout(()=>btn.textContent=t,2000);};
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(txt).then(()=>done(true),()=>fallback());}
+  else fallback();
+  function fallback(){
+    const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy');}catch(e){}
+    ta.remove();done(ok);
+  }
+}
+function resetSettings(){
+  if(!confirm('Reset every setting to the built-in defaults?'))return;
+  try{localStorage.removeItem(STORE);}catch(e){}
+  location.reload();
+}
+
+/* Slider drags fire dozens of events a second; apply them at most once per frame. */
+let pendingRe=new Set(), changeQueued=false;
+function queueChange(re){
+  saveSoon();
+  if(re)pendingRe.add(re);
+  if(changeQueued)return;
+  changeQueued=true;
+  requestAnimationFrame(()=>{changeQueued=false;const set=pendingRe;pendingRe=new Set();for(const r of set)onChange(r);});
+}
+
+function onChange(re){
+  if(re==='font'){applyTitle();relayout();document.fonts.load(`${fontW()} 100px ${fontStack()}`,'Aa😘❤️').then(()=>{applyTitle();relayout();}).catch(()=>{});}
+  else if(re==='layout')relayout();
+  else if(re==='look')applyLook();
+  else if(re==='title'){applyTitle();relayout();}
+  else if(re==='guides')drawGuides();
+  else if(re==='grain')applyGrain();
+  else if(re==='fx')resetFx();
+  else if(re==='pool')rebuildPool();
+  else if(re==='feed'){feedFails=0;pollNow();}
+}
+
+/* ---------- typographic quotes ---------- */
+function smarten(t){
+  return String(t)
+    .replace(/(^|\s)'(?=\d\d(s|\b))/g,'$1\u2019')                   // ’90s
+    .replace(/(^|[\s(\[{\u2014\u2013\u2018-])"/g,'$1\u201C')       // opening double
+    .replace(/"/g,'\u201D')                                           // closing double
+    .replace(/(^|[\s(\[{\u2014\u2013\u201C-])'/g,'$1\u2018')       // opening single
+    .replace(/'/g,'\u2019');                                          // apostrophe / closing single
+}
+
+/* ---------- sample memories (only shown when the Demo toggle is on) ---------- */
+const SAMPLES=[
+  'So glad we’re all here ❤️',
+  'Cheers to tonight!',
+  'Love you all 😘',
+  'Dance floor. Now.',
+  'To old friends and new ones.',
+  'Remember when we all ended up in the kitchen at 2am? Same time next year.',
+  'I came for the snacks and stayed for you people ❤️',
+  'Hi Mom! 😘',
+  'Somebody tell the host this is a great party.',
+  'Best. Night. Ever.',
+  'Every time this crew gets together something ridiculous happens, and it turns into the story we tell for years. Here’s to whatever tonight becomes.',
+  'Your words, up in lights.',
+];
+const now0=Date.now();
+const sampleMsgs=SAMPLES.map((text,i)=>({id:'sample'+i,text:smarten(text),ts:now0-(10+Math.random()*140)*60000,sample:true}));
+setTimeout(()=>sampleMsgs.forEach(m=>prefetch(m)),0);
+const sims=[];                 // texts typed into the Simulate box
+const shownLog=[];             // messages shown, oldest first (for Prev)
+const queue=[];                // new arrivals, played next
+const EMPTY={id:'empty',text:'',empty:true,ts:0};   // nothing to show yet: the wall stays dark (footer only)
+let lastMsg=null;
+
+/* ---------- live feed (Twilio function) ---------- */
+const seen=new Map();          // every real text ever fetched, by Twilio id
+let feedPrimed=false, feedFails=0, lastOk=0, feedErr='', pollTimer=null;
+const cutoffMs=()=>S.cutoff?new Date(S.cutoff).getTime():0;
+const passGate=m=>!S.gateOn||m.ts>=cutoffMs();
+const realMsgs=()=>[...seen.values()].filter(passGate);
+// what the wall draws from: samples only in demo mode, otherwise real texts (past the gate) plus simulated ones
+const pool=()=>S.samples?sampleMsgs:realMsgs().concat(sims);
+
+function pickNext(){
+  while(queue.length){const m=queue.shift();if(pool().includes(m))return m;}
+  const all=pool();
+  if(!all.length)return EMPTY;
+  const cand=all.length>1?all.filter(m=>m!==lastMsg):all;
+  const now=Date.now();
+  const w=cand.map(m=>0.15+Math.pow(0.5,(now-m.ts)/(HALF_LIFE_MIN*60000)));
+  let r=Math.random()*w.reduce((a,b)=>a+b,0);
+  for(let i=0;i<cand.length;i++){r-=w[i];if(r<=0)return cand[i];}
+  return cand[cand.length-1];
+}
+/* The emoji font arrives in chunks. Fetch what a message needs as soon as it arrives,
+   and never start a message before its glyphs are loaded (otherwise it re-lays itself out mid-hold). */
+const fontSpec=()=>`400 100px ${fontStack()}`;
+function fontsReady(m){try{return m.empty||document.fonts.check(fontSpec(),shown(m.text)||'a');}catch(e){return true;}}
+function prefetch(m){try{if(m&&!m.empty)document.fonts.load(fontSpec(),shown(m.text)||'a').catch(()=>{});}catch(e){}}
+function addReal(m,announce){
+  if(seen.has(m.id))return;
+  seen.set(m.id,m);
+  prefetch(m);
+  if(announce&&!S.samples&&passGate(m)){
+    queue.push(m);                      // new arrivals play next (after the current one finishes)
+    if(cur&&cur.msg.empty)interrupt();  // dark wall: show it right away
+  }
+}
+function rebuildPool(){
+  for(let i=queue.length-1;i>=0;i--)if(!pool().includes(queue[i]))queue.splice(i,1);
+  if(cur&&!cur.msg.empty&&!pool().includes(cur.msg))interrupt();   // current message no longer belongs: move on
+  if(cur&&cur.msg.empty&&pool().length)interrupt();                   // something to show now
+  updateStats();
+}
+function pad(n){return String(n).padStart(2,'0');}
+function localStamp(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+function syncUI(id){
+  const el=panel.querySelector(`[data-id="${id}"]`);if(!el)return;
+  if(el.type==='checkbox')el.checked=!!S[id];else el.value=S[id];
+}
+function startFresh(){
+  S.cutoff=localStamp(new Date());S.gateOn=true;syncUI('cutoff');syncUI('gateOn');saveSoon();rebuildPool();
+}
+
+async function pollNow(){
+  clearTimeout(pollTimer);
+  if(S.feedOn&&S.feedUrl.trim()){
+    const ac=new AbortController(),to=setTimeout(()=>ac.abort(),8000);
+    try{
+      const r=await fetch(S.feedUrl.trim(),{cache:'no-store',signal:ac.signal});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+      for(const x of (j.messages||[])){
+        if(seen.has(x.id))continue;
+        addReal({id:x.id,text:smarten(x.text),ts:new Date(x.at).getTime()},feedPrimed);   // the backlog on first load joins the pool quietly
+      }
+      feedPrimed=true;feedFails=0;lastOk=Date.now();feedErr='';
+    }catch(e){
+      feedFails++;feedErr=e.name==='AbortError'?'timed out':(e.message||String(e));
+    }finally{clearTimeout(to);}
+  }
+  updateStats();
+  // back off gently if it keeps failing, so a dropped connection doesn't hammer the network
+  const wait=S.pollSec*1000*Math.min(6,1+feedFails);
+  pollTimer=setTimeout(pollNow,wait);
+}
+
+/* ---------- viewer sizing (16:9, stage scaled to fit) ---------- */
+function fitFrame(){
+  if(document.fullscreenElement!==frame){
+    const vw=viewer.clientWidth,vh=viewer.clientHeight;
+    // wall-only view on a screen wider than 16:9: widen the stage to the screen's shape, so there are no side bars
+    const wallOn=document.documentElement.classList.contains('wall');
+    // phones: the settings preview uses the same wide shape as the full-screen wall, so it matches the TV
+    const screenAspect=Math.max(screen.width,screen.height)/Math.max(1,Math.min(screen.width,screen.height));
+    const want=(wallOn&&vh>0)?Math.max(1920,Math.round(SH*vw/vh))
+              :TOUCH?Math.max(1920,Math.round(SH*screenAspect)):1920;
+    if(want!==SW){
+      SW=want;stage.style.width=SW+'px';grainEl.style.width=(SW+512)+'px';
+      if(cur){applyTitle();relayout();}
+    }
+    const a=SW/SH, w=Math.min(vw,vh*a);
+    frame.style.width=w+'px';frame.style.height=(w/a)+'px';
+  }
+  const fw=frame.clientWidth,fh=frame.clientHeight;
+  const k=Math.min(fw/SW,fh/SH);
+  stage.style.transform=`translate(${(fw-SW*k)/2}px,${(fh-SH*k)/2}px) scale(${k})`;
+}
+new ResizeObserver(fitFrame).observe(viewer);
+new ResizeObserver(fitFrame).observe(frame);
+const seatRO=new ResizeObserver(()=>{if(cur&&!cur.msg.empty)positionWashes();});   // re-seats tubes + washes if a line resizes
+document.addEventListener('fullscreenchange',fitFrame);
+
+/* ---------- message box ---------- */
+function msgBoxRect(){
+  const m=S.margin/100*SH;
+  let bottom=SH-m;
+  if(S.tText.trim()){
+    const titleTop=SH-S.tBottom-titleEl.offsetHeight;
+    bottom=Math.min(bottom,titleTop-m*0.5);
+  }
+  return {x:m,y:m-S.vbias,w:SW-2*m,h:Math.max(60,bottom-m),m};
+}
+
+/* ---------- look: typeface, neon glow, footer ---------- */
+const FONT='Tilt Neon';   // the only typeface (Archivo removed in v11.5)
+const fontW=()=>400;
+const fontVar=()=>'normal';
+// Emoji: Neon draws them with the monochrome Noto Emoji font so they take the tube colour and glow
+const fontStack=()=>S.emoji==='neon'?'"Tilt Neon", "Noto Emoji", system-ui, sans-serif':'"Tilt Neon", system-ui, sans-serif';
+const EMOJI_RE=/(?:\p{Regional_Indicator}{2}|[#*0-9]\uFE0F?\u20E3|\p{Extended_Pictographic}(?:\uFE0F|[\u{1F3FB}-\u{1F3FF}])?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|[\u{1F3FB}-\u{1F3FF}])?)*)/gu;
+const shown=t=>S.emoji==='hidden'?t.replace(EMOJI_RE,'').replace(/\s+/g,' ').trim()
+  :S.emoji==='neon'?t.replace(/\uFE0F(?!\u200D)/g,'')   // drop the "show in colour" marker (❤️) so the outline font is used
+  :t;
+function hexRgb(h){const n=parseInt(h.slice(1),16);return [n>>16&255,n>>8&255,n&255];}
+function rgbHex(r,g,b){return '#'+[r,g,b].map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('');}
+function rotateHue(hex,deg){
+  if(!deg)return hex;
+  let [r,g,b]=hexRgb(hex).map(v=>v/255);
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,l=(mx+mn)/2;
+  if(d===0)return hex;
+  const sat=d/(1-Math.abs(2*l-1));
+  let h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;
+  h=((h*60+deg)%360+360)%360;
+  const c=(1-Math.abs(2*l-1))*sat,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
+  let q=h<60?[c,x,0]:h<120?[x,c,0]:h<180?[0,c,x]:h<240?[0,x,c]:h<300?[x,0,c]:[c,0,x];
+  return rgbHex((q[0]+m)*255,(q[1]+m)*255,(q[2]+m)*255);
+}
+/* Brightness balance: rotate the hue in OKLCH (a perceptual colour space), keeping the tube colour's
+   perceived lightness, so yellow-green doesn't blaze and blue doesn't sink. Out-of-gamut colours lose
+   a little saturation rather than change brightness. Blended with the plain HSL rotation by lumBal. */
+const toLin=c=>{c/=255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+const fromLin=c=>(c<=0.0031308?12.92*c:1.055*Math.pow(c,1/2.4)-0.055)*255;
+function hexToOklab(hex){
+  const [r,g,b]=hexRgb(hex).map(toLin);
+  const l=Math.cbrt(0.4122214708*r+0.5363325363*g+0.0514459929*b),
+        m=Math.cbrt(0.2119034982*r+0.6806995451*g+0.1073969566*b),
+        s=Math.cbrt(0.0883024619*r+0.2817188376*g+0.6299787005*b);
+  return [0.2104542553*l+0.7936177850*m-0.0040720468*s,1.9779984951*l-2.4285922050*m+0.4505937099*s,0.0259040371*l+0.7827717662*m-0.8086757660*s];
+}
+function oklabToLin(L,a,b){
+  const l=(L+0.3963377774*a+0.2158037573*b)**3, m=(L-0.1055613458*a-0.0638541728*b)**3, s=(L-0.0894841775*a-1.2914855480*b)**3;
+  return [4.0767416621*l-3.3077115913*m+0.2309699292*s,-1.2684380046*l+2.6097574011*m-0.3413193965*s,-0.0041960863*l-0.7034186147*m+1.7076147010*s];
+}
+function evenHue(hex,deg){
+  const [L,a,b]=hexToOklab(hex);let C=Math.hypot(a,b);const h=Math.atan2(b,a)+deg*Math.PI/180;
+  const inGamut=c=>oklabToLin(L,c*Math.cos(h),c*Math.sin(h)).every(x=>x>=-1e-4&&x<=1+1e-4);
+  if(!inGamut(C)){let lo=0,hi=C;for(let i=0;i<20;i++){const mid=(lo+hi)/2;if(inGamut(mid))lo=mid;else hi=mid;}C=lo;}
+  return rgbHex(...oklabToLin(L,C*Math.cos(h),C*Math.sin(h)).map(x=>fromLin(Math.max(0,Math.min(1,x)))));
+}
+function tubeColor(hex,deg){
+  const raw=rotateHue(hex,deg),k=S.lumBal;
+  if(!k)return raw;
+  const ev=evenHue(hex,deg);if(k>=1)return ev;
+  const A=hexRgb(raw),B=hexRgb(ev);return rgbHex(...A.map((x,i)=>x+(B[i]-x)*k));
+}
+function coreColor(tube){
+  const [r,g,b]=hexRgb(tube),k=S.heat/100;
+  return rgbHex(r+(255-r)*k,g+(255-g)*k,b+(255-b)*k);
+}
+/* Falloff: text at 100px or smaller keeps the full glow; it shrinks steadily with size,
+   reaching (1 - falloff) of its em size at Max type size. Falloff 1 = no glow at Max type size. */
+function fallK(f,px){
+  if(!f||!px)return 1;
+  const t=clamp((px-100)/Math.max(1,S.maxType-100));
+  return Math.max(0,1-f*t);
+}
+function neonShadow(tube,st=S.glowStr,px=0){
+  const [r,g,b]=hexRgb(tube);
+  const c=a=>`rgba(${r},${g},${b},${Math.min(1,a*st)})`;
+  const k=fallK(S.haloFall,px);
+  const inn=S.glowIn*k, out=S.glowOut*k;
+  const parts=[
+    `0 0 ${(inn*0.35).toFixed(3)}em ${c(1)}`,
+    `0 0 ${inn.toFixed(3)}em ${c(0.9)}`,
+    `0 0 ${(out*0.45).toFixed(3)}em ${c(0.6)}`,
+    `0 0 ${out.toFixed(3)}em ${c(0.5)}`,
+  ];
+  if(st>1)parts.push(`0 0 ${out.toFixed(3)}em ${c(st-1)}`);
+  return parts.join(',');
+}
+function washBg(tube){
+  // an elliptical gradient sized to the line: no blur, so it costs almost nothing to draw
+  const [r,g,b]=hexRgb(tube),a=S.washStr,p=S.washSoft,st=[];
+  for(let k=0;k<=8;k++){const t=k/8;st.push(`rgba(${r},${g},${b},${(a*Math.pow(1-t,p)).toFixed(3)}) ${Math.round(t*100)}%`);}
+  return `radial-gradient(closest-side, ${st.join(', ')})`;
+}
+function positionWashes(){
+  // each wash sits behind its own line, extended by the wash size (in em of the message type)
+  if(!cur||!cur.washEls)return;
+  const ws=S.washSize*fallK(S.washFall,cur.lay.s);
+  if(ws<=0.001)cur.washEls.forEach(w=>w.style.display='none');   // fully fallen off: no wash at all
+  const h=ws, v=ws*0.8;
+  cur.lineEls.forEach((lw,i)=>{
+    if(cur.offEls){const o=cur.offEls[i];o.style.left=lw.offsetLeft+'px';o.style.top=lw.offsetTop+'px';}
+    Object.assign(cur.washEls[i].style,{
+      left:`calc(${lw.offsetLeft}px - ${h}em)`, top:`calc(${lw.offsetTop}px - ${v}em)`,
+      width:`calc(${lw.offsetWidth}px + ${2*h}em)`, height:`calc(${lw.offsetHeight}px + ${2*v}em)`
+    });
+  });
+}
+function applyLook(){
+  if(!cur)return;
+  const n=cur.lineEls.length;
+  cur.lineEls.forEach((el,i)=>{
+    const tx=cur.textEls[i], wa=cur.washEls[i];
+    if(!S.neon){tx.style.color=S.color;tx.style.textShadow='none';wa.style.display='none';return;}
+    const tube=tubeColor(S.color,(cur.hue||0)+(n>1?S.spread*(i/(n-1)-0.5):0));
+    tx.style.color=coreColor(tube);
+    tx.style.textShadow=neonShadow(tube,S.glowStr,cur.lay.s);
+    if(S.washStr>0&&S.washSize>0){
+      wa.style.display='block';
+      wa.style.background=washBg(tube);
+    }else wa.style.display='none';
+  });
+  const offShow=S.neon&&S.offOn;
+  (cur.offEls||[]).forEach(o=>{
+    o.style.display=offShow?'block':'none';o.style.color=S.offColor;
+    o.style.filter=S.emoji==='color'?'grayscale(1) brightness(0.35)':'none';   // colour emoji go dark too
+  });
+  positionWashes();
+  block.style.color=S.neon?coreColor(S.color):S.color;
+  applyTitle();
+}
+function applyTitle(){
+  const words=smarten(S.tText).replace(/\s+/g,' ').trim().split(' ');
+  const k=Math.round(S.tWords);
+  const lines=[];
+  if(k>0)for(let i=0;i<words.length;i+=k)lines.push(words.slice(i,i+k).join(' '));
+  else lines.push(words.join(' '));
+  titleEl.textContent=lines.join('\n');
+  const glow=S.neon&&S.tGlow&&S.tGlowStr>0;
+  const m=S.margin/100*SH;
+  Object.assign(titleEl.style,{
+    textAlign:S.tAlign==='left'?'left':'center',
+    left:S.tAlign==='left'?m+'px':'0px',
+    right:S.tAlign==='left'?'auto':'0px',
+    fontFamily:fontStack(),
+    fontWeight:400,
+    fontVariationSettings:fontVar(),
+    fontSize:S.tSize+'px',letterSpacing:S.tTracking+'em',
+    opacity:S.tOpacity,bottom:S.tBottom+'px',
+    color:glow?coreColor(S.tColor):S.tColor,
+    textShadow:glow?neonShadow(S.tColor,S.tGlowStr):'none',
+    display:S.tText.trim()?'block':'none'
+  });
+}
+
+/* ---------- line breaking + fit ---------- */
+const mctx=document.createElement('canvas').getContext('2d');
+
+function layout(text){
+  const words=text.replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
+  const N=words.length;
+  const box=msgBoxRect();
+  if(!N)return {lines:[],s:10,n:0,N:0,box};
+  mctx.font=`${fontW()} 100px ${fontStack()}`;
+  const tr=S.tracking*100;
+  const sp=mctx.measureText(' ').width+tr;
+  const ws=words.map(w=>mctx.measureText(w).width+tr*[...w].length);
+  const pre=[0];for(let i=0;i<N;i++)pre.push(pre[i]+ws[i]);
+  const W=(i,j)=>pre[j]-pre[i]+(j-i-1)*sp;   // width of words i..j-1 at 100px
+  const L=S.leading, K=Math.max(1,Math.round(S.maxWords));
+  const minW=Math.max(1,Math.min(Math.round(S.minWords),K));   // every line gets at least this many words
+  const minLast=Math.max(minW,(S.widows&&N>=4&&K>=2)?2:1);
+  const oneLineOK=N<=K||N<Math.round(S.minWords);              // messages under the minimum always stay whole
+
+  // Pass 1: for each line count n, the smallest possible widest line (min-max partition).
+  function minimax(n){
+    if(n===1)return oneLineOK?W(0,N):Infinity;
+    let prev=new Float64Array(N+1).fill(Infinity);prev[0]=0;
+    for(let k=1;k<=n;k++){
+      const cur=new Float64Array(N+1).fill(Infinity), last=k===n;
+      for(let j=1;j<=N;j++){
+        if(last&&j!==N)continue;
+        for(let c=last?minLast:minW;c<=K&&c<=j;c++){
+          const i=j-c;if(prev[i]===Infinity)continue;
+          const v=Math.max(prev[i],W(i,j));
+          if(v<cur[j])cur[j]=v;
+        }
+      }
+      prev=cur;
+    }
+    return prev[N];
+  }
+  // Pass 2 (per line count): pick breaks for an even rag at measure C.
+  const shortEnd=/^[\p{L}’']{1,2}$/u;
+  function breaks(n,C){
+  if(n===1)return oneLineOK?{lines:[words.join(' ')],ws:[W(0,N)]}:null;
+  const cost=[],back=[];
+  for(let k=0;k<=n;k++){cost.push(new Float64Array(N+1).fill(Infinity));back.push(new Int32Array(N+1).fill(-1));}
+  cost[0][0]=0;
+  for(let k=1;k<=n;k++){
+    const last=k===n;
+    for(let j=1;j<=N;j++){
+      if(last&&j!==N)continue;
+      for(let c=last?minLast:minW;c<=K&&c<=j;c++){
+        const i=j-c;if(cost[k-1][i]===Infinity)continue;
+        const w=W(i,j);if(w>C*1.0005)break;
+        let v;
+        if(last){v=(S.widows&&w<0.33*C)?Math.pow((0.33*C-w)/C,2)*6:0;}
+        else{const r=(C-w)/C;v=r*r;if(S.widows&&shortEnd.test(words[j-1]))v+=0.25;}
+        v+=cost[k-1][i];
+        if(v<cost[k][j]){cost[k][j]=v;back[k][j]=i;}
+      }
+    }
+  }
+  if(cost[n][N]===Infinity)return null;
+  const lines=[],ws=[];let j=N;
+  for(let k=n;k>0;k--){const i=back[k][j];lines.unshift(words.slice(i,j).join(' '));ws.unshift(W(i,j));j=i;}
+  return {lines,ws};
+  }
+
+  // Try each line count. Score = type size, reduced by how ragged the lines are (Balance slider).
+  let best=null;
+  for(let n=oneLineOK?1:Math.ceil(N/K);n<=N;n++){
+    const hBound=box.h/(n*L);
+    if(best&&hBound<=best.score)break;      // more lines can only score lower from here
+    const M=minimax(n);if(M===Infinity)continue;
+    const s0=Math.min(box.w*100/M,hBound);
+    const r=breaks(n,box.w*100/s0);if(!r)continue;
+    const widest=Math.max(...r.ws);
+    const s=Math.min(box.w*100/widest,hBound,S.maxType);   // never bigger than Max type size
+    const rag=n>1?r.ws.reduce((a,w)=>a+(1-w/widest),0)/n:0;
+    const score=s*(1-S.balance*rag);
+    if(!best||score>best.score*1.0001)best={lines:r.lines,s,score};
+  }
+  if(!best){ // fallback: greedy
+    const lines=[];let widest=0;
+    for(let i=0;i<N;i+=K){lines.push(words.slice(i,i+K).join(' '));widest=Math.max(widest,W(i,Math.min(N,i+K)));}
+    best={lines,s:Math.min(box.w*100/widest,box.h/(lines.length*L),S.maxType)};
+  }
+  return {lines:best.lines,s:best.s,n:best.lines.length,N,box};
+}
+
+/* ---------- playback ---------- */
+let cur=null, clock=0, lastT=performance.now(), playing=true;
+const clamp=p=>p<0?0:p>1?1:p;
+const ease=p=>0.5-0.5*Math.cos(Math.PI*p);
+const nextGap=()=>S.flickRate>0?-Math.log(1-Math.random())*60/S.flickRate:1e9; // random gap, mean 60/rate s
+
+function placeBox(b){
+  Object.assign(msgBox.style,{left:b.x+'px',top:b.y+'px',width:b.w+'px',height:b.h+'px'});
+}
+function renderBlock(){
+  const lay=cur.lay;
+  block.textContent='';
+  block.className='block al-'+S.align+(S.layers?'':' flat');
+  const washLayer=document.createElement('div');washLayer.className='washes';block.appendChild(washLayer);
+  cur.washEls=lay.lines.map(()=>{const wa=document.createElement('div');wa.className='wash';washLayer.appendChild(wa);return wa;});
+  const offLayer=document.createElement('div');offLayer.className='offs';block.appendChild(offLayer);cur.offLayer=offLayer;
+  cur.offEls=lay.lines.map(t=>{const o=document.createElement('div');o.className='off';o.textContent=t;offLayer.appendChild(o);return o;});
+  cur.lineEls=lay.lines.map(t=>{
+    const w=document.createElement('div');w.className='lw';
+    const d=document.createElement('div');d.className='ln';d.textContent=t;
+    w.appendChild(d);block.appendChild(w);return w;
+  });
+  cur.textEls=cur.lineEls.map(w=>w.firstChild);
+  seatRO.disconnect();seatRO.observe(block);cur.lineEls.forEach(el=>seatRO.observe(el));
+  cur.fl=lay.lines.map(()=>({phase:Math.random()*Math.PI*2,f:0.75+Math.random()*0.5,next:clock+nextGap(),end:0,stepEnd:0,level:1,
+    inOff:Math.random()*0.06,outOff:Math.random()*0.06,sEnd:0,sLevel:0,outArmed:false}));
+  placeBox(lay.box);
+  Object.assign(block.style,{fontFamily:fontStack(),fontVariationSettings:fontVar(),fontWeight:fontW(),letterSpacing:S.tracking+'em',lineHeight:S.leading,fontSize:lay.s+'px'});
+  applyLook();
+  // Safety pass: correct any drift between canvas measurement and real rendering.
+  const bw=block.offsetWidth,bh=block.offsetHeight;
+  const k=Math.min(1,lay.box.w/bw,lay.box.h/bh);
+  if(k<0.999){lay.s*=k*0.998;block.style.fontSize=lay.s+'px';applyLook();}
+  positionWashes();
+  drawGuides();
+}
+function relayout(){
+  if(!cur)return;
+  cur.lay=layout(shown(cur.msg.text));
+  renderBlock();resetFx();updateStats();
+}
+// in/out flicker length: a fresh random pick between the two sliders, separately for the way in and the way out
+const strikeLen=()=>{const a=Math.min(S.strikeMin,S.strikeMax),b=Math.max(S.strikeMin,S.strikeMax);return (a+Math.random()*(b-a))/1000;};
+let waitingFor=null;   // next message, held back until its emoji glyphs have loaded
+function startMessage(msg){
+  waitingFor=null;
+  if(!msg.empty&&!shown(msg.text))msg=Object.assign({},EMPTY,{id:'blank'});   // emoji-only text with emoji hidden: skip it
+  const lay=layout(shown(msg.text));
+  const t=clamp((lay.N-SHORT_WORDS)/(LONG_WORDS-SHORT_WORDS));
+  const hold=msg.empty?1:S.hold*(1+(S.mult-1)*t);
+  cur={msg,lay,start:clock,inDur:msg.empty?0:S.inMs/1000,hold,outDur:msg.empty?0:S.outMs/1000,gap:msg.empty?0:S.gapMs/1000,
+       strikeIn:(S.strikeIn&&!msg.empty)?strikeLen():0,strikeOut:(S.strikeOut&&!msg.empty)?strikeLen():0,
+       hue:(Math.random()*2-1)*S.randHue/2};
+  // timeline: unlit tubes fade in → colour fades in (lines strike) → hold → lines stutter → colour fades out
+  //           → unlit tubes fade out → empty gap → next
+  const unlit=!msg.empty&&S.neon&&S.offOn;
+  cur.Fin=unlit?S.offFadeIn/1000:0;cur.Fout=unlit?S.offFadeOut/1000:0;
+  cur.litStart=cur.start+cur.Fin;
+  cur.outStart=cur.litStart+Math.max(cur.inDur,cur.strikeIn+0.06)+hold;
+  cur.fadeOutStart=cur.outStart+cur.strikeOut;
+  cur.litEnd=cur.fadeOutStart+cur.outDur;
+  cur.end=cur.litEnd+cur.Fout+cur.gap;
+  cur.T=cur.end-cur.start;
+  lastMsg=msg;
+  if(!msg.empty){shownLog.push(msg);if(shownLog.length>60)shownLog.shift();}
+  renderBlock();resetFx();updateStats();
+}
+function interrupt(){
+  if(!cur)return;
+  if(clock<cur.outStart){
+    cur.outStart=Math.max(clock,cur.litStart+Math.max(cur.inDur,cur.strikeIn+0.06)); // let an in-progress transition finish first
+    cur.fadeOutStart=cur.outStart+cur.strikeOut;
+    cur.litEnd=cur.fadeOutStart+cur.outDur;
+    cur.end=cur.litEnd+cur.Fout+cur.gap;
+  }
+}
+function setMask(m){block.style.webkitMaskImage=m;block.style.maskImage=m;}
+function resetFx(){
+  block.style.opacity='';setMask('none');
+  if(cur){cur.lineEls.forEach(el=>el.style.opacity='');cur.washEls.forEach(el=>el.style.opacity='');if(cur.offLayer)cur.offLayer.style.opacity='';}
+}
+function lineAlpha(time,dur,idx,n){
+  if(dur<=0)return time>=0?1:0;
+  const fl=n>1?dur*0.55:dur, stg=n>1?(dur-fl)/(n-1):0;
+  return clamp((time-idx*stg)/fl);
+}
+function update(){
+  if(!cur)return;
+  if(clock>=cur.end&&!waitingFor){
+    const m=pickNext();
+    if(fontsReady(m))startMessage(m);
+    else{
+      waitingFor=m;
+      const go=()=>{if(waitingFor===m){waitingFor=null;startMessage(m);}};
+      document.fonts.load(fontSpec(),shown(m.text)||'a').then(go,go);
+      setTimeout(go,1500);
+    }
+  }
+  const t=clock-cur.litStart, to=clock-cur.outStart;
+  const pin=cur.inDur>0?clamp(t/cur.inDur):1;
+  const tf=clock-cur.fadeOutStart;
+  const pout=tf<0?0:(cur.outDur>0?clamp(tf/cur.outDur):1);
+  // Ignition stutter: quick irregular jumps between dark and lit (25 to 95 ms each).
+  const stutter=f=>{
+    if(clock>=f.sEnd){f.sLevel=f.sLevel>0.5?0.03+0.25*Math.random():1;f.sEnd=clock+0.025+Math.random()*0.07;}
+    return f.sLevel;
+  };
+
+  // Flicker: a slow hum, plus rare bursts where the tube stutters on and off in quick irregular steps
+  // (30 to 120 ms each). Each line and its wall wash sit on their own layer, so this is opacity only.
+  const flick=cur.fl.map(f=>{
+    if(!S.neon)return 1;
+    let v=1-S.hum*(0.5-0.5*Math.sin(clock*S.humSpeed*Math.PI*2*f.f+f.phase));
+    if(clock>=f.next&&clock>=f.end){f.end=clock+0.15+Math.random()*0.45;f.next=f.end+nextGap();f.stepEnd=0;f.level=1;}
+    if(clock<f.end){
+      if(clock>=f.stepEnd){
+        f.level=f.level<1?1:1-S.flickDepth*(0.6+0.4*Math.random());
+        f.stepEnd=clock+0.03+Math.random()*0.09;
+      }
+      v*=f.level;
+    }else f.level=1;
+    return v;
+  });
+
+  // the colour (lines + washes) fades on its own; the unlit tubes have their own, slightly longer fade
+  const litA=ease(pin)*(1-ease(pout));
+  block.style.opacity='';
+  if(cur.offLayer){
+    // fade in ahead of the colour (or with it, if 0); fade out after the colour (or with it, if 0)
+    const inA=cur.Fin>0?ease(clamp((clock-cur.start)/cur.Fin)):ease(pin);
+    const outA=cur.Fout>0?(clock>=cur.litEnd?1-ease(clamp((clock-cur.litEnd)/cur.Fout)):1):1-ease(pout);
+    const offA=Math.min(inA,outA);
+    cur.offLayer.style.opacity=offA;
+  }
+  cur.lineEls.forEach((el,i)=>{
+    const f=cur.fl[i];let ig=1;
+    if(cur.strikeIn&&to<0){                       // way in: each line strikes a beat apart, then holds lit
+      const local=t-f.inOff;
+      ig=local<0?0:local<cur.strikeIn?stutter(f):1;
+    }
+    if(cur.strikeOut&&to>=0){                     // way out: a short stutter, then the fade
+      const local=to-f.outOff;
+      if(local>=0&&local<cur.strikeOut){
+        if(!f.outArmed){f.outArmed=true;f.sLevel=1;f.sEnd=0;}
+        ig=stutter(f);
+      }
+    }
+    el.style.opacity=cur.washEls[i].style.opacity=litA*flick[i]*ig;
+  });
+}
+/* ---------- grain ---------- */
+let GRAIN_BLEND='',GRAIN_LIGHT='';
+(function makeGrainTile(){
+  const c=document.createElement('canvas');c.width=c.height=256;
+  const g=c.getContext('2d'),img=g.createImageData(256,256),d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    // triangular-distributed noise around mid grey: finer-looking than flat noise
+    const v=128+((Math.random()+Math.random()-1)*127);
+    d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;
+  }
+  g.putImageData(img,0,0);
+  GRAIN_BLEND=`url(${c.toDataURL()})`;
+  // Light grain: white specks of random strength on transparent, drawn normally (no blending)
+  const c2=document.createElement('canvas');c2.width=c2.height=256;
+  const g2=c2.getContext('2d'),img2=g2.createImageData(256,256),d2=img2.data;
+  for(let i=0;i<d2.length;i+=4){d2[i]=d2[i+1]=d2[i+2]=255;d2[i+3]=Math.abs(Math.random()+Math.random()-1)*255;}
+  g2.putImageData(img2,0,0);
+  GRAIN_LIGHT=`url(${c2.toDataURL()})`;
+})();
+function applyGrain(){
+  grainEl.style.display=S.grain>0?'block':'none';
+  grainEl.style.opacity=S.grain;
+  const light=S.grainMode==='light';
+  grainEl.style.backgroundImage=light?GRAIN_LIGHT:GRAIN_BLEND;
+  grainEl.style.mixBlendMode=light?'normal':'overlay';
+  if(!S.grainAnim)grainEl.style.transform='';
+}
+
+function tick(now){
+  const dt=Math.min(0.1,(now-lastT)/1000);lastT=now;
+  if(playing)clock+=dt;
+  update();
+  if(S.grainAnim&&S.grain>0)grainEl.style.transform=`translate(${Math.floor(Math.random()*256)}px,${Math.floor(Math.random()*256)}px)`;
+  requestAnimationFrame(tick);
+}
+
+/* ---------- guides + stats ---------- */
+function drawGuides(){
+  const on=S.guides;
+  gSafe.style.display=gBox.style.display=on?'block':'none';
+  if(!on||!cur)return;
+  const b=cur.lay.box,m=b.m;
+  Object.assign(gSafe.style,{left:m+'px',top:m+'px',width:(SW-2*m)+'px',height:(SH-2*m)+'px'});
+  Object.assign(gBox.style,{left:b.x+'px',top:b.y+'px',width:b.w+'px',height:b.h+'px'});
+}
+function updateStats(){
+  if(!cur)return;
+  const l=cur.lay;
+  statsEl.textContent=`${l.N} words, ${l.n} lines, ${Math.round(l.s)} px type, ${cur.hold.toFixed(1)} s hold`
+    +(queue.length?`  |  ${queue.length} new waiting`:'')+`  |  ${pool().length} ${S.samples?'samples (demo)':'memories'} in the pool`
+    +`  |  ${feedStatus()}`;
+}
+function feedStatus(){
+  if(!S.feedOn)return 'feed off';
+  const n=realMsgs().length;
+  const ago=lastOk?Math.round((Date.now()-lastOk)/1000)+' s ago':'not yet';
+  return feedErr?`feed error (${feedErr}), last good ${ago}`:`feed live, ${n} text${n===1?'':'s'}, checked ${ago}`;
+}
+
+/* ---------- wall-only view ---------- */
+function setWall(on){
+  document.documentElement.classList.toggle('wall',on);
+  window.scrollTo(0,0);
+  requestAnimationFrame(fitFrame);
+}
+if(SHOW){   // show mode: landscape = wall, portrait = settings (a double-tap or the button can override)
+  const land=matchMedia('(orientation: landscape)');
+  setWall(land.matches);
+  land.addEventListener('change',e=>setWall(e.matches));
+}
+/* Touch gestures on the wall (phones and tablets):
+   double-tap = pause / resume in place;  long-press = switch between the wall and the settings */
+const LONG_MS=600, MOVE_PX=12, DOUBLE_MS=350;
+let lastTap=0, lastX=0, lastY=0, pressTimer=null, pressFired=false, sx=0, sy=0;
+viewer.addEventListener('touchstart',e=>{
+  if(e.touches.length>1){clearTimeout(pressTimer);return;}
+  const t=e.touches[0];sx=t.clientX;sy=t.clientY;pressFired=false;
+  clearTimeout(pressTimer);
+  pressTimer=setTimeout(()=>{pressFired=true;lastTap=0;setWall(!document.documentElement.classList.contains('wall'));},LONG_MS);
+},{passive:true});
+viewer.addEventListener('touchmove',e=>{
+  const t=e.touches[0];
+  if(Math.hypot(t.clientX-sx,t.clientY-sy)>MOVE_PX)clearTimeout(pressTimer);
+},{passive:true});
+viewer.addEventListener('touchend',e=>{
+  clearTimeout(pressTimer);
+  e.preventDefault();                       // no zoom, no synthetic click
+  if(pressFired){pressFired=false;return;}
+  const now=Date.now();
+  if(now-lastTap<DOUBLE_MS&&Math.hypot(sx-lastX,sy-lastY)<40){lastTap=0;$('bPlay').click();}
+  else{lastTap=now;lastX=sx;lastY=sy;}
+},{passive:false});
+viewer.addEventListener('touchcancel',()=>clearTimeout(pressTimer));
+
+/* ---------- controls ---------- */
+$('bPlay').onclick=()=>{playing=!playing;$('bPlay').textContent=playing?'Pause':'Play';};
+$('bNext').onclick=next;
+$('bFs').onclick=()=>{
+  // desktop browsers: real fullscreen of the wall. iPhone Safari has none, so fill the page instead.
+  if(document.fullscreenEnabled&&frame.requestFullscreen){
+    if(document.fullscreenElement)document.exitFullscreen();else frame.requestFullscreen().catch(()=>setWall(true));
+  }else setWall(true);
+};
+function simStop(){
+  sims.length=0;
+  for(let i=queue.length-1;i>=0;i--)if(queue[i].sim)queue.splice(i,1);
+  for(let i=shownLog.length-1;i>=0;i--)if(shownLog[i].sim)shownLog.splice(i,1);
+  if(cur&&cur.msg.sim)interrupt();
+  $('bSend').textContent='PLAY';$('bSend').classList.remove('on');updateStats();
+}
+function simPlay(){
+  const v=$('sim').value.trim();if(!v)return;
+  if(sims.length)simStop();
+  const m={id:'sim'+Date.now(),text:smarten(v),ts:Date.now(),sim:true};
+  prefetch(m);sims.push(m);queue.push(m);interrupt();
+  $('bSend').textContent='STOP';$('bSend').classList.add('on');updateStats();
+}
+$('bSend').onclick=()=>sims.length?simStop():simPlay();
+$('sim').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();simPlay();}});
+function jumpTo(m){   // paused: show this message at once, already lit (the clock is frozen, so no transition)
+  startMessage(m);
+  const lead=cur.Fin+Math.max(cur.inDur,cur.strikeIn+0.06)+0.01;
+  cur.start-=lead;cur.litStart-=lead;cur.outStart-=lead;cur.fadeOutStart-=lead;cur.litEnd-=lead;cur.end-=lead;
+}
+function next(){if(playing)interrupt();else jumpTo(pickNext());}
+function prev(){
+  if(shownLog.length<2)return;
+  const now=shownLog.pop();             // the one on screen now
+  const m=shownLog.pop();               // the one before it (comes back onto shownLog when it plays)
+  if(!pool().includes(m)){shownLog.push(m,now);return;}
+  if(playing){queue.unshift(m);interrupt();}else jumpTo(m);
+}
+$('bPrev').onclick=prev;
+document.addEventListener('keydown',e=>{
+  if(e.target.matches('input,select'))return;
+  if(e.key===' '){e.preventDefault();$('bPlay').click();}
+  if(e.key==='ArrowRight')next();
+  if(e.key==='ArrowLeft')prev();
+});
+
+/* ---------- keep the screen awake (best effort: still set Auto-Lock to Never on the phone) ---------- */
+let wakeLock=null;
+async function keepAwake(){
+  try{if('wakeLock' in navigator&&document.visibilityState==='visible'&&!wakeLock)
+    {wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null;});}}catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')keepAwake();});
+document.addEventListener('touchend',keepAwake,{once:true});
+document.addEventListener('click',keepAwake,{once:true});
+
+/* ---------- boot ---------- */
+(async function init(){
+  document.title='Texhibit — Memory Wall ('+VERSION+')';
+  document.querySelector('.panel .ph').textContent='Texhibit memory wall, '+VERSION+(SHOW?' (show mode)':'');
+  buildPanel();
+  const qAfter=new URLSearchParams(location.search).get('after');
+  if(qAfter&&!isNaN(new Date(qAfter).getTime())){S.cutoff=qAfter.slice(0,16);S.gateOn=true;syncUI('cutoff');syncUI('gateOn');}
+  // URL overrides for testing, this visit only: ?set=grainAnim:0,grain:0,offOn:0,emoji:color
+  const qSet=new URLSearchParams(location.search).get('set');
+  if(qSet)for(const pair of qSet.split(',')){
+    const i=pair.indexOf(':');if(i<1)continue;
+    const k=pair.slice(0,i).trim(),v=pair.slice(i+1).trim();
+    if(!(k in S))continue;
+    S[k]=typeof S[k]==='boolean'?(v==='1'||v==='true'||v==='on'):typeof S[k]==='number'?parseFloat(v):v;
+    syncUI(k);
+  }
+  applyTitle();applyGrain();fitFrame();keepAwake();
+  try{
+    await Promise.race([
+      document.fonts.load('400 100px "Tilt Neon"'),document.fonts.load('400 100px "Noto Emoji"','😘❤️'),
+      new Promise(r=>setTimeout(r,2500))
+    ]);
+  }catch(e){}
+  await Promise.race([pollNow(),new Promise(r=>setTimeout(r,3000))]);
+  startMessage(pickNext());
+  document.fonts.ready.then(()=>{applyTitle();relayout();});
+  document.fonts.addEventListener('loadingdone',()=>{if(cur&&!cur.msg.empty)relayout();});
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
