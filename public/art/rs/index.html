@@ -1,0 +1,364 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Noodle Necklace Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: sticky scale-board preview on top, scrolling build cards, fixed message bar at the bottom */
+:root{
+  --bg:#f2f0f5;--panel:#ffffff;--ink:#1c1922;--muted:#6a6475;--line:#dcd7e3;--soft:#ece8f1;
+  --accent:#d63d8f;--accent-ink:#ffffff;--ok:#2f8a4e;--warn:#b5551c;
+  --f-ui:"Bricolage Grotesque",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-bead:"Archivo Black","Arial Black",Impact,ui-sans-serif,sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --bar-h:84px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141118;--panel:#1f1b26;--ink:#f3eff8;--muted:#a69fb3;--line:#383244;--soft:#2a2533;--accent:#f06bb3;--accent-ink:#1a0d14;--ok:#62c483;--warn:#f0a066;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141118;--panel:#1f1b26;--ink:#f3eff8;--muted:#a69fb3;--line:#383244;--soft:#2a2533;--accent:#f06bb3;--accent-ink:#1a0d14;--ok:#62c483;--warn:#f0a066;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-ui);font-size:15px;line-height:1.45;padding-inline:0;padding-block:0 calc(var(--bar-h) + env(safe-area-inset-bottom,0px) + 16px)}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px}
+.stage{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px 8px}
+.sheet{position:relative;height:min(46dvh,520px);min-height:260px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.sheet svg{display:block;width:100%;height:100%}
+.sheet .tag{position:absolute;top:10px;left:12px;font:800 13px/1 var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:#1c1922}
+.sheet .zoom{position:absolute;top:8px;right:8px}
+.over{position:absolute;left:8px;right:8px;bottom:8px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.88);border:1px solid #e3dfe8;border-radius:10px;padding:6px 10px;color:#1c1922}
+.over label{font-size:13px;white-space:nowrap}
+.over input{flex:1;min-width:0;accent-color:#1c1922}
+.over output{font:600 13px var(--f-num);min-width:44px;text-align:right}
+.fitnote{position:absolute;top:36px;left:12px;right:12px;font-size:12.5px;font-weight:600;color:#a3401a;background:#fff3ea;border:1px solid #f3c9ad;border-radius:8px;padding:6px 8px}
+main.wrap{display:grid;gap:12px;padding-block:6px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:12px}
+.card h2{margin:0;font:800 13px/1 var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hint{font-size:13px;color:var(--muted);margin:0}
+input[type=text]{flex:1;min-width:0;font:20px var(--f-bead);letter-spacing:.06em;text-transform:uppercase;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+input[type=text]:focus{outline:none;border-color:var(--accent)}
+button{font:600 14px var(--f-ui);color:var(--ink);background:var(--soft);border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn-main{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:800;padding:13px;width:100%;font-size:16px}
+.heart{font:20px var(--f-bead);padding:8px 14px}
+.chips{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.chip{display:grid;justify-items:center;gap:4px;padding:8px 2px 6px;font-size:11.5px;font-weight:600;position:relative;background:transparent;border-color:transparent}
+.chip .sw{width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(0,0,0,.18)}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--soft)}
+.chip .n{position:absolute;top:3px;right:6px;font:600 11px var(--f-num);background:var(--ink);color:var(--panel);border-radius:9px;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px}
+.pats{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:8px;align-items:stretch}
+.pat{display:grid;gap:4px;justify-items:center;padding:6px 4px;background:#ffffff;border-color:var(--line);color:#1c1922}
+.pat svg{width:100%;aspect-ratio:1;max-width:120px}
+.pat span{font-size:12px;font-weight:600}
+.pat[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.refresh{display:grid;place-items:center;gap:2px;font-size:12px;padding:6px 10px}
+.refresh b{font-size:22px;line-height:1}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--soft);border-radius:10px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;padding:8px}
+.seg button[aria-pressed="true"]{background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.ctl{display:grid;gap:6px}
+.ctl .lab{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.ctl output{font:600 13px var(--f-num)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.stats{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font:600 12px var(--f-num);background:var(--soft);border-radius:999px;padding:4px 9px}
+.pill.ok{color:var(--ok)} .pill.warn{color:var(--warn)}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px}
+.switch input{width:44px;height:26px;accent-color:var(--accent)}
+.spc{display:flex;flex-wrap:wrap;gap:8px}
+.spc button{width:34px;height:34px;border-radius:50%;padding:0;border:2px solid transparent;box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.18)}
+.spc button[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 3px var(--panel)}
+.parts{display:grid;gap:0}
+.parts .li{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;min-width:0}
+.parts .li:last-child{border-bottom:0}
+.parts .dot{width:22px;height:22px;border-radius:5px;border:1px solid rgba(0,0,0,.18)}
+.parts .dot.round{border-radius:50%}
+.parts .q{font:600 15px var(--f-num);text-align:right;white-space:nowrap}
+.parts small{display:block;color:var(--muted);font-size:12px}
+.tally{font:600 13px var(--f-num);color:var(--muted);overflow-wrap:anywhere}
+.msgbar{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--panel);border-top:1px solid var(--line);padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));padding-inline:16px;min-height:var(--bar-h);display:grid;place-items:center;cursor:text}
+.msgbar span{display:inline-block;white-space:nowrap;font-family:var(--f-bead);line-height:1;letter-spacing:.04em;color:var(--ink)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="stage wrap">
+  <div class="sheet" id="sheet">
+    <svg id="fig" role="img" aria-label="Necklace preview on a person"></svg>
+    <div class="tag">Noodle Necklace</div>
+    <button class="zoom" id="zoom" type="button">Zoom in</button>
+    <div class="fitnote" id="fitnote" hidden></div>
+    <div class="over">
+      <label for="height">Person</label>
+      <input id="height" type="range" min="42" max="84" step="1" value="68">
+      <output id="heightOut">5′8″</output>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="card" aria-labelledby="h-msg">
+    <h2 id="h-msg">Your message</h2>
+    <div class="row">
+      <input id="msg" type="text" value="SILLY" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Message">
+      <button class="heart" id="addHeart" type="button" aria-label="Add a heart">♥</button>
+    </div>
+    <p class="hint">Letters A–Z, numbers 0–9, # $ &amp; and ♥.</p>
+  </section>
+
+  <section class="card" aria-labelledby="h-col">
+    <h2 id="h-col">Noodle colors</h2>
+    <p class="hint">Tap the colors you like. The order you tap sets the repeat.</p>
+    <div class="chips" id="chips"></div>
+    <div class="pats" id="pats"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-size">
+    <h2 id="h-size">Size</h2>
+    <div class="seg" role="group" aria-label="Letter disc size">
+      <button type="button" id="d2">2″ discs · 1.6″ noodle</button>
+      <button type="button" id="d3">3″ discs · 2.5″ noodle</button>
+    </div>
+    <div class="ctl">
+      <div class="lab"><label for="len">Necklace length</label><output id="lenOut"></output></div>
+      <input id="len" type="range" min="24" max="90" step="1" value="54">
+    </div>
+    <div class="ctl">
+      <div class="lab"><label for="ratio">Bead width</label><output id="ratioOut"></output></div>
+      <input id="ratio" type="range" min="0.4" max="1.4" step="0.05" value="0.8">
+    </div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-sp">
+    <h2 id="h-sp">Word spacers</h2>
+    <div class="switch"><label for="spOn">Put a round bead between words</label><input id="spOn" type="checkbox" checked></div>
+    <div class="ctl" id="spCtl">
+      <div class="lab"><label for="spScale">Spacer size</label><output id="spOut"></output></div>
+      <input id="spScale" type="range" min="0.4" max="1" step="0.05" value="0.75">
+    </div>
+    <div class="spc" id="spc" role="group" aria-label="Spacer color"></div>
+  </section>
+
+  <button class="btn-main" id="finalize" type="button">Finalize · show parts list</button>
+
+  <section class="card" id="partsCard" aria-labelledby="h-parts" hidden>
+    <h2 id="h-parts">Parts list</h2>
+    <div class="parts" id="parts"></div>
+    <div class="ctl">
+      <div class="lab"><label for="extra">Extra string for tying</label><output id="extraOut"></output></div>
+      <input id="extra" type="range" min="0" max="36" step="1" value="12">
+    </div>
+    <button type="button" id="copy">Copy parts list</button>
+    <p class="hint" id="copyNote"></p>
+  </section>
+</main>
+
+<div class="msgbar" id="msgbar" aria-hidden="true"><span id="banner">SILLY</span></div>
+
+<script>
+(function(){
+const NS="http://www.w3.org/2000/svg";
+const NOODLES=[
+ {k:"black",n:"Black",c:"#2b2a2e"},{k:"blue",n:"Blue",c:"#4597d3"},{k:"teal",n:"Teal",c:"#58b4ae"},
+ {k:"green",n:"Green",c:"#6abf69"},{k:"yellow",n:"Yellow",c:"#e9e54d"},{k:"orange",n:"Orange",c:"#ef975c"},
+ {k:"red",n:"Red",c:"#e7392f"},{k:"pink",n:"Pink",c:"#e04f9e"},{k:"purple",n:"Purple",c:"#9e72b0"},
+ {k:"white",n:"White",c:"#f4f3ef"}];
+const SPACERS=[{k:"slate",n:"Dark grey",c:"#4a4a50"}].concat(NOODLES);
+const COL=Object.fromEntries(SPACERS.map(o=>[o.k,o]));
+const NOODLE_LEN=52;
+const S={msg:"SILLY",colors:["pink","purple","blue"],pat:0,seed:7,disc:3,len:54,ratio:0.8,spOn:true,spScale:0.75,spColor:"slate",height:68,extra:12,zoom:false,final:false};
+
+const BODY=[[0,0],[2.6,0.4],[3.9,1.8],[4.3,4],[4.2,6.5],[3.7,8.3],[2.8,9.6],[2.5,11.2],[3.2,12.6],[6.2,13.6],[8.4,14.4],[9.3,16.2],[9.5,19],[9.6,24],[10,30],[10.2,35],[9.8,38.5],[10.1,41],[9.6,43.5],[8.6,44],[7.8,42.5],[8,38.8],[7.5,33],[7.1,26],[6.8,21],[6.3,21.5],[6.2,25],[5.8,29],[6.4,33],[6.5,37],[5.9,44],[5,50],[5.3,55],[4.8,61],[3.9,66.5],[4.6,68.6],[4,69.6],[1.5,69.7],[1.1,68.5],[1.4,66],[1,60],[1.4,52],[1,45],[0.5,38],[0,36.5]];
+const FULL=BODY.concat(BODY.slice(1,-1).reverse().map(([x,y])=>[-x,y]));
+
+const $=id=>document.getElementById(id);
+function el(n,a,p){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+function rng(seed){let a=seed>>>0;return function(){a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
+function ftin(i){const r=Math.round(i);return Math.floor(r/12)+"′"+(r%12)+"″";}
+function inch(v){return (Math.round(v*10)/10).toFixed(1).replace(/\.0$/,"")+"″";}
+function clean(s){return s.toUpperCase().replace(/<3/g,"♥").replace(/[^A-Z0-9#$& ♥]/g,"").replace(/ {2,}/g," ");}
+
+function geom(){
+  const D=S.disc, H=D===3?2.5:1.6, w=+(H*S.ratio).toFixed(2), sp=D*S.spScale;
+  const items=[];
+  for(const ch of [...S.msg.trim()]){
+    if(ch===" "){ if(S.spOn&&items.length&&items[items.length-1].t!=="s") items.push({t:"s",len:sp}); }
+    else items.push({t:"L",ch,len:D});
+  }
+  while(items.length&&items[items.length-1].t==="s") items.pop();
+  const textLen=items.reduce((a,b)=>a+b.len,0);
+  const n=Math.max(0,Math.round((S.len-textLen)/w));
+  const total=textLen+n*w;
+  const R=total/(2*Math.PI);
+  return {D,H,w,sp,items,textLen,n,total,R};
+}
+
+function patterns(n){
+  const sel=S.colors.length?S.colors:["white"], m=sel.length, out=[];
+  out.push(Array.from({length:n},(_,k)=>sel[k%m]));
+  { const r=rng(S.seed*31+1), order=sel.slice().sort(()=>r()-0.5), half=Math.ceil(n/2), seq=[]; let ci=0;
+    while(seq.length<half){const run=1+Math.floor(r()*2);for(let i=0;i<run&&seq.length<half;i++)seq.push(order[ci%m]);ci++;}
+    out.push(Array.from({length:n},(_,k)=>seq[Math.min(k,n-1-k)])); }
+  { const r=rng(S.seed*57+3), a=[];
+    for(let k=0;k<n;k++){ if(m===1){a.push(sel[0]);continue;}
+      let c,tries=0; do{c=sel[Math.floor(r()*m)];tries++;}while(tries<40&&(c===a[k-1]||(k===n-1&&m>2&&c===a[0])));
+      a.push(c);}
+    out.push(a); }
+  return out;
+}
+
+function drawRing(g,G,pal,cx,cy,hide){
+  const {D,H,w,sp,items,textLen,n,R}=G, ro=R+H/2, ri=Math.max(0.1,R-H/2);
+  const P=(r,a)=>(cx+r*Math.cos(a)).toFixed(3)+","+(cy+r*Math.sin(a)).toFixed(3);
+  const startR=Math.PI/2-textLen/(2*R);
+  for(let k=0;k<n;k++){
+    const th=startR-(k+0.5)*w/R, a0=th-w/(2*R), a1=th+w/(2*R), mx=cx+R*Math.cos(th), my=cy+R*Math.sin(th);
+    if(hide&&hide(mx,my))continue;
+    el("path",{d:`M${P(ro,a0)}A${ro},${ro} 0 0 1 ${P(ro,a1)}L${P(ri,a1)}A${ri},${ri} 0 0 0 ${P(ri,a0)}Z`,fill:COL[pal[k]].c,stroke:"#ffffff","stroke-width":1,"vector-effect":"non-scaling-stroke"},g);
+    if(pal[k]==="white") el("path",{d:`M${P(ro,a0)}A${ro},${ro} 0 0 1 ${P(ro,a1)}M${P(ri,a1)}A${ri},${ri} 0 0 0 ${P(ri,a0)}`,fill:"none",stroke:"#c9c6cf","stroke-width":0.8,"vector-effect":"non-scaling-stroke"},g);
+  }
+  let s=Math.PI/2+textLen/(2*R);
+  const fs=D===3?2.5:1.5, cap=fs*0.72;
+  for(const it of items){
+    const th=s-it.len/(2*R); s-=it.len/R;
+    const x=cx+R*Math.cos(th), y=cy+R*Math.sin(th);
+    if(hide&&hide(x,y))continue;
+    if(it.t==="s"){
+      const r=it.len/2;
+      el("circle",{cx:x,cy:y,r,fill:COL[S.spColor].c,stroke:"rgba(0,0,0,.35)","stroke-width":0.8,"vector-effect":"non-scaling-stroke"},g);
+      el("circle",{cx:x-r*0.32,cy:y-r*0.32,r:r*0.28,fill:"#ffffff",opacity:0.35},g);
+    } else {
+      el("circle",{cx:x,cy:y,r:D/2,fill:"#ffffff",stroke:"#111111","stroke-width":1.3,"vector-effect":"non-scaling-stroke"},g);
+      const deg=(th-Math.PI/2)*180/Math.PI;
+      const t=el("text",{x:0,y:cap/2,"text-anchor":"middle",transform:`translate(${x.toFixed(3)} ${y.toFixed(3)}) rotate(${deg.toFixed(2)})`,"font-size":fs,"font-family":"Archivo Black, Arial Black, sans-serif",fill:"#111111"},g);
+      t.textContent=it.ch;
+    }
+  }
+}
+
+function render(){
+  const G=geom(), pats=patterns(G.n), pal=pats[S.pat];
+  const svg=$("fig"); svg.innerHTML="";
+  const h=S.height, k=h/70, cw=svg.clientWidth||360, ch=svg.clientHeight||400;
+  const ringCy=-h+8.5*k+G.R;
+  let vbH,vy,vx,vbW;
+  if(S.zoom){ vbH=Math.max(G.R*2+G.D*2+10,26); vy=ringCy-vbH*0.48; }
+  else { vbH=Math.max(96,h+16); vy=-vbH+5; }
+  vbW=vbH*cw/ch; vx=-vbW/2;
+  svg.setAttribute("viewBox",`${vx} ${vy} ${vbW} ${vbH}`);
+  const grid=el("g",{stroke:"#cfcfd4","stroke-width":1,"stroke-dasharray":"4 3","vector-effect":"non-scaling-stroke"},svg);
+  for(let x=Math.ceil(vx/12)*12;x<=vx+vbW;x+=12) el("line",{x1:x,y1:Math.max(vy,-96),x2:x,y2:0,"vector-effect":"non-scaling-stroke"},grid);
+  for(let y=-96;y<0;y+=12) if(y>=vy) el("line",{x1:vx,y1:y,x2:vx+vbW,y2:y,"vector-effect":"non-scaling-stroke"},grid);
+  el("line",{x1:vx,y1:0,x2:vx+vbW,y2:0,stroke:"#111111","stroke-width":1.2,"vector-effect":"non-scaling-stroke"},svg);
+  const pts=FULL.map(([x,y])=>[x*k,-h+y*k]), n=pts.length;
+  let d=`M${pts[0]}`;
+  for(let i=0;i<n;i++){const a=pts[(i-1+n)%n],b=pts[i],c=pts[(i+1)%n],e=pts[(i+2)%n];
+    d+=`C${b[0]+(c[0]-a[0])/6},${b[1]+(c[1]-a[1])/6} ${c[0]-(e[0]-b[0])/6},${c[1]-(e[1]-b[1])/6} ${c[0]},${c[1]}`;}
+  el("path",{d:d+"Z",fill:"#ffffff",stroke:"#111111","stroke-width":2.6,"stroke-linejoin":"round","vector-effect":"non-scaling-stroke"},svg);
+  const g=el("g",{},svg);
+  drawRing(g,G,pal,0,ringCy,(x,y)=>Math.abs(x)<4*k&&y<-h+13.5*k);
+
+  const inner=2*G.R-G.H, need=9*k, fits=inner>=need, fn=$("fitnote");
+  fn.hidden=fits; if(!fits) fn.textContent=`Too small to slip over a head. Inside opening is ${inch(inner)}; aim for at least ${inch(need)}. Make it longer.`;
+
+  renderPats(G,pats); renderStats(G,fits,inner); renderParts(G,pal); fitBanner();
+}
+
+function renderPats(G,pats){
+  const box=$("pats"); box.innerHTML="";
+  ["Repeat","Mirror","Scatter"].forEach((name,i)=>{
+    const b=document.createElement("button"); b.type="button"; b.className="pat"; b.setAttribute("aria-pressed",S.pat===i);
+    b.setAttribute("aria-label",name+" pattern");
+    const s=el("svg",{},b), ext=G.R+Math.max(G.H,G.D)/2+0.6;
+    s.setAttribute("viewBox",`${-ext} ${-ext} ${ext*2} ${ext*2}`);
+    drawRing(s,G,pats[i],0,0,null);
+    const sp=document.createElement("span"); sp.textContent=name; b.appendChild(sp);
+    b.onclick=()=>{S.pat=i;render();};
+    box.appendChild(b);
+  });
+  const r=document.createElement("button"); r.type="button"; r.className="refresh"; r.innerHTML="<b aria-hidden='true'>↻</b>New mix";
+  r.onclick=()=>{S.seed++;render();}; box.appendChild(r);
+}
+
+function renderStats(G,fits,inner){
+  $("lenOut").textContent=`${inch(G.total)} around (${ftin(G.total)})`;
+  $("ratioOut").textContent=`${inch(G.w)} wide · ${G.H}″ tall`;
+  $("spOut").textContent=`${Math.round(S.spScale*100)}% · ${inch(G.D*S.spScale)} ball`;
+  $("heightOut").textContent=ftin(S.height);
+  $("extraOut").textContent=inch(S.extra);
+  const letters=G.items.filter(i=>i.t==="L").length, sp=G.items.length-letters;
+  const seg=G.n?(360*G.w/G.total):0;
+  const st=$("stats"); st.innerHTML="";
+  const add=(t,c)=>{const p=document.createElement("span");p.className="pill"+(c?" "+c:"");p.textContent=t;st.appendChild(p);};
+  add(`${G.n} beads`); add(`${letters} letters`); if(sp) add(`${sp} spacers`);
+  add(`${inch(2*G.R+G.H)} across`);
+  add(seg>18?`${seg.toFixed(0)}° per bead · blocky`:`${seg.toFixed(0)}° per bead · smooth`,seg>18?"warn":"ok");
+  add(fits?"fits over head":"too tight",fits?"ok":"warn");
+}
+
+function renderParts(G,pal){
+  const box=$("parts"); box.innerHTML="";
+  const counts={}; pal.forEach(c=>counts[c]=(counts[c]||0)+1);
+  const per=Math.max(1,Math.floor(NOODLE_LEN/G.w));
+  const line=(dot,round,label,sub,q)=>{const d=document.createElement("div");d.className="li";
+    d.innerHTML=`<span class="dot${round?" round":""}" style="background:${dot}"></span><div>${label}${sub?`<small>${sub}</small>`:""}</div><span class="q">${q}</span>`;box.appendChild(d);};
+  NOODLES.forEach(o=>{ if(counts[o.k]) line(o.c,false,`${o.n} noodle beads`,`${inch(G.w)} slices · about ${Math.ceil(counts[o.k]/per)} noodle${Math.ceil(counts[o.k]/per)>1?"s":""} (${NOODLE_LEN}″ each)`,`×${counts[o.k]}`);});
+  const L=G.items.filter(i=>i.t==="L"), tally={}; L.forEach(i=>tally[i.ch]=(tally[i.ch]||0)+1);
+  const tl=Object.entries(tally).map(([c,q])=>`${c}×${q}`).join("  ");
+  line("#ffffff",true,`White letter discs (${G.D}″)`,`<span class="tally">${tl||"none"}</span>`,`×${L.length}`);
+  const spn=G.items.length-L.length;
+  if(spn) line(COL[S.spColor].c,true,`${COL[S.spColor].n} spacer balls`,`${inch(G.sp)} across`,`×${spn}`);
+  const str=G.total+S.extra;
+  line("transparent",false,"String",`${inch(G.total)} necklace + ${inch(S.extra)} for the knot`,`${inch(str)} · ${ftin(str)}`);
+  S._copy=[`NOODLE NECKLACE — "${S.msg.trim()}"`,`${inch(G.total)} around, ${G.D}" discs, ${inch(G.w)} beads`,
+    ...NOODLES.filter(o=>counts[o.k]).map(o=>`${o.n} noodle beads: ${counts[o.k]}`),
+    `Letter discs (${G.D}"): ${L.length}  [${tl}]`, spn?`${COL[S.spColor].n} spacer balls (${inch(G.sp)}): ${spn}`:null,
+    `String: ${inch(str)} (${ftin(str)})`].filter(Boolean).join("\n");
+}
+
+function fitBanner(){
+  const b=$("banner"), bar=$("msgbar"); b.textContent=S.msg.trim()||"TYPE A MESSAGE";
+  b.style.fontSize="100px"; const w=b.scrollWidth||1, avail=bar.clientWidth-32;
+  b.style.fontSize=Math.max(16,Math.min(64,100*avail/w))+"px";
+}
+
+function buildChips(){
+  const box=$("chips"); box.innerHTML="";
+  NOODLES.forEach(o=>{
+    const b=document.createElement("button"); b.type="button"; b.className="chip";
+    const idx=S.colors.indexOf(o.k); b.setAttribute("aria-pressed",idx>=0);
+    b.innerHTML=`<span class="sw" style="background:${o.c}"></span>${o.n}${idx>=0?`<span class="n">${idx+1}</span>`:""}`;
+    b.onclick=()=>{const i=S.colors.indexOf(o.k);
+      if(i>=0){ if(S.colors.length>1) S.colors.splice(i,1); } else S.colors.push(o.k);
+      buildChips(); render();};
+    box.appendChild(b);
+  });
+  const sp=$("spc"); sp.innerHTML="";
+  SPACERS.forEach(o=>{const b=document.createElement("button");b.type="button";b.style.background=o.c;b.title=o.n;b.setAttribute("aria-label",o.n+" spacer");
+    b.setAttribute("aria-pressed",S.spColor===o.k);b.onclick=()=>{S.spColor=o.k;buildChips();render();};sp.appendChild(b);});
+}
+
+function syncDisc(){$("d2").setAttribute("aria-pressed",S.disc===2);$("d3").setAttribute("aria-pressed",S.disc===3);}
+
+$("msg").addEventListener("input",e=>{const v=clean(e.target.value);if(v!==e.target.value)e.target.value=v;S.msg=v;render();});
+$("addHeart").onclick=()=>{const m=$("msg");if(m.value.length<24){m.value+="♥";S.msg=m.value;render();}m.focus();};
+$("msgbar").onclick=()=>$("msg").focus();
+$("d2").onclick=()=>{S.disc=2;if(S.len>60)S.len=40,$("len").value=40;syncDisc();render();};
+$("d3").onclick=()=>{S.disc=3;syncDisc();render();};
+$("len").oninput=e=>{S.len=+e.target.value;render();};
+$("ratio").oninput=e=>{S.ratio=+e.target.value;render();};
+$("spOn").onchange=e=>{S.spOn=e.target.checked;$("spCtl").hidden=!S.spOn;$("spc").hidden=!S.spOn;render();};
+$("spScale").oninput=e=>{S.spScale=+e.target.value;render();};
+$("height").oninput=e=>{S.height=+e.target.value;render();};
+$("extra").oninput=e=>{S.extra=+e.target.value;render();};
+$("zoom").onclick=()=>{S.zoom=!S.zoom;$("zoom").textContent=S.zoom?"Full body":"Zoom in";render();};
+$("finalize").onclick=()=>{S.final=true;$("partsCard").hidden=false;render();$("partsCard").scrollIntoView({behavior:"smooth",block:"start"});};
+$("copy").onclick=()=>{const t=S._copy||"";
+  const done=()=>{$("copyNote").textContent="Copied.";};
+  try{navigator.clipboard.writeText(t).then(done,()=>{$("copyNote").textContent=t;});}catch(e){$("copyNote").textContent=t;}};
+window.addEventListener("resize",render);
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(render);
+buildChips(); syncDisc(); render();
+})();
+</script>
+
+</body></html>
