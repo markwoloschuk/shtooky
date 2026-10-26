@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Texhibit — Leopard test (L8)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat+Brush&display=swap" rel="stylesheet">
+<style>
+  :root{--ui-bg:#1c1d20;--ui-panel:#232428;--ui-line:#34363c;--ui-text:#e3e4e7;--ui-dim:#9a9ea7;--ui-accent:#8cc4ff}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ui-bg);color:var(--ui-text);font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .app{display:grid;grid-template-columns:minmax(0,1fr) 330px;height:100vh}
+  .main{display:flex;flex-direction:column;min-width:0;padding:20px;gap:10px}
+  .viewer{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+  .frame{position:relative;overflow:hidden;background:#000;box-shadow:0 0 0 1px var(--ui-line)}
+  .stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden}
+  /* layer order, bottom to top: color (the stage itself) → scrolling print → vignette → messages → footer → guides */
+  #print{position:absolute;left:0;top:0;will-change:transform}
+  #gBox{position:absolute;border:2px dashed rgba(120,190,255,.7);pointer-events:none;display:none}
+  #vig{position:absolute;inset:0;pointer-events:none}
+  .spr{position:absolute;left:0;top:0;will-change:transform,opacity;opacity:0}
+  #footer{position:absolute;left:0;right:0;text-align:center;font-family:"Caveat Brush",cursive;line-height:1.15;white-space:pre-line;padding:0 4%}
+  #gSafe{position:absolute;border:2px dashed rgba(255,90,90,.7);pointer-events:none;display:none}
+  .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .bar button,.pbtn{background:var(--ui-panel);color:var(--ui-text);border:1px solid var(--ui-line);border-radius:6px;padding:7px 12px;font:inherit;cursor:pointer}
+  .bar input{flex:1;min-width:200px;background:var(--ui-panel);color:var(--ui-text);border:1px solid var(--ui-line);border-radius:6px;padding:7px 10px;font:inherit}
+  .panel{background:var(--ui-panel);border-left:1px solid var(--ui-line);overflow-y:auto;padding:16px 18px 40px}
+  .ph{font-weight:600;font-size:14px;margin-bottom:4px}
+  .sub{color:var(--ui-dim);margin-bottom:6px}
+  .grp{border-top:1px solid var(--ui-line);margin-top:12px}
+  .grp>button{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;width:100%;
+    padding:12px 0 8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--ui-accent)}
+  .grp>button::after{content:"▾";color:var(--ui-dim);transition:transform .15s}
+  .grp.closed>button::after{transform:rotate(-90deg)}
+  .grp.closed>.body{display:none}
+  .row{display:block;margin:0 0 10px}
+  .row .top{display:flex;justify-content:space-between;gap:8px;margin-bottom:3px}
+  .row .val{color:var(--ui-dim);font-variant-numeric:tabular-nums}
+  .row input[type=range]{width:100%;accent-color:var(--ui-accent)}
+  .row select,.row input[type=text]{width:100%;background:var(--ui-bg);color:var(--ui-text);border:1px solid var(--ui-line);border-radius:5px;padding:6px 8px;font:inherit}
+  .row.check{display:flex;gap:8px;align-items:center;cursor:pointer}
+  .row.check input{accent-color:var(--ui-accent)}
+  .pbtn{display:block;width:100%;margin:0 0 8px;background:var(--ui-bg)}
+  .master{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:4px 0 6px}
+  .master label{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ui-dim);font-size:11px}
+  .master input{width:100%;height:34px;border:1px solid var(--ui-line);border-radius:6px;background:none;padding:2px;cursor:pointer}
+  .picks{display:flex;gap:6px}
+  .picks button{flex:1;height:26px;border-radius:5px;border:2px solid transparent;box-shadow:0 0 0 1px var(--ui-line) inset;cursor:pointer;padding:0;
+    font:600 10px system-ui;color:rgba(0,0,0,.45)}
+  .picks button.on{border-color:var(--ui-accent)}
+  .picks.multi button{opacity:.35}
+  .picks.multi button.on{opacity:1}
+  .copybox{display:none;margin:0 0 10px}
+  .copybox.show{display:block}
+  .copybox p{margin:0 0 6px;color:var(--ui-dim)}
+  .copybox textarea{width:100%;height:160px;background:var(--ui-bg);color:var(--ui-text);border:1px solid var(--ui-accent);border-radius:5px;
+    padding:6px 8px;font:11px/1.35 ui-monospace,Menlo,monospace;resize:vertical}
+  .hide{display:none!important}
+  @media (max-width:900px){
+    .app{display:block;height:auto}
+    html,body{overflow-x:hidden}
+    .main{position:sticky;top:0;z-index:5;background:var(--ui-bg);padding-top:max(12px,env(safe-area-inset-top));border-bottom:1px solid var(--ui-line)}
+    .viewer{height:min(56vw,45vh);flex:none}
+    .panel{border-left:0}
+    .panel,.bar input,.bar button,.pbtn,.row select,.row input[type=text]{font-size:16px}
+    .bar input{min-width:0}
+  }
+  html.wall,html.wall body{background:#000;overflow:hidden}
+  html.wall .app{display:block;height:100vh;height:100dvh}
+  html.wall .main{position:static;padding:0;height:100%;border:0}
+  html.wall .viewer{height:100%}
+  html.wall .frame{box-shadow:none}
+  html.wall .bar,html.wall .panel{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="main">
+    <div class="viewer" id="viewer">
+      <div class="frame" id="frame">
+        <div class="stage" id="stage">
+          <canvas id="print"></canvas>
+          <div id="vig"></div>
+          <canvas class="spr" id="sprA"></canvas>
+          <canvas class="spr" id="sprB"></canvas>
+          <div id="footer"></div>
+          <div id="gSafe"></div>
+          <div id="gBox"></div>
+        </div>
+      </div>
+    </div>
+    <div class="bar">
+      <button id="bPlay">Pause</button>
+      <button id="bNext">Next</button>
+      <button id="bFs">Fullscreen</button>
+      <input id="sim" placeholder="Type a test message, then Enter">
+    </div>
+  </main>
+  <aside class="panel" id="panel">
+    <div class="ph">Leopard look test, L8</div>
+    <div class="sub">The Saturday direction: a scrolling print over a slowly shifting color, navy text with a white outline, fades with a gap. Colors point at the six master swatches. Settings are saved in this browser. On the full-screen wall, tap to come back.</div>
+  </aside>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const SH=1080, WIDTHS={'16:9':1920,'4:3':1440,'phone':2333};
+const SHORT_WORDS=4, LONG_WORDS=50;   // hold ramps from min at SHORT to min×multiplier at LONG (as in the party file)
+let SW=1920;
+const stage=$('stage'),frame=$('frame'),viewer=$('viewer'),printEl=$('print'),vig=$('vig'),footer=$('footer'),gSafe=$('gSafe'),gBox=$('gBox'),panel=$('panel');
+
+/* ---------- settings ---------- */
+const DEFAULTS={   // Mark's tuned settings from L7 (Oct 5), plus the new type controls
+  pal:['#E8A24C','#141A33','#1E8FD8','#E8248C','#FFFFFF','#6B3F1D'],   // yellow-tan, navy, blue, pink, white, brown
+  aspect:'16:9',
+  // background color cycle
+  cycle:[0,2,3],colorHold:20,colorBlend:10,blendPath:'nogreen',
+  // print
+  printOn:true,spotC:1,accC:4,accPct:35,printOpacity:79,size:140,density:1.75,scroll:55,tileH:1.5,seed:7,
+  // vignette
+  vigOn:true,vigC:1,vigStr:46,vigSize:54,
+  // text look
+  textC:1,outline:10,outlineC:4,shOn:true,shC:1,shOpacity:20,shBlur:41,shY:36,
+  // type and layout (the neon version's controls)
+  tracking:0,leading:1.05,align:'center',balance:1,maxWords:5,minWords:2,widows:true,
+  maxType:350,margin:25,vbias:50,
+  // motion
+  inMs:700,outMs:700,gapMs:600,driftZoom:10,driftUp:0,
+  // hold
+  hold:8,mult:2.5,
+  // footer
+  ftOn:true,ftText:'Text 415-358-2714 to share memories, jokes, toasts, hot-takes etc.',
+  ftSize:60,ftC:4,ftOutline:3,ftOutlineC:1,ftOpacity:100,ftBottom:56,
+  guides:false,
+};
+const STORE='texhibit.leopard.L7';
+let S=JSON.parse(JSON.stringify(DEFAULTS));
+try{const sv=JSON.parse(localStorage.getItem(STORE)||'null');if(sv)for(const k in DEFAULTS)if(k in sv&&typeof sv[k]===typeof DEFAULTS[k])S[k]=sv[k];}catch(e){}
+if(!Array.isArray(S.pal)||S.pal.length!==6)S.pal=DEFAULTS.pal.slice();
+if(!Array.isArray(S.cycle))S.cycle=DEFAULTS.cycle.slice();
+let saveT=null;
+function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(STORE,JSON.stringify(S));}catch(e){}},300);}
+const col=i=>S.pal[i];
+function rgba(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
+
+/* sample messages: invented, covering the hard cases (lone emoji, long, ALL CAPS, typed line break) */
+const SAMPLES=[
+  'Happy birthday, gorgeous! 🎂','ROAR 🐆','🎉','Spots and all ❤️','Dance floor. Now.',
+  'Remember when we got lost on the way to Tahoe and ended up at that diner with the pie? Best detour ever.',
+  'HBD!!!','Cheers to another trip around the sun ☀️','Somebody tell the birthday star they’re iconic',
+  'Roses are red,\nleopards have spots…','LOVE YOU MADLY',
+];
+
+/* ---------- color: blends through OKLCH so mixes stay bright instead of going muddy ---------- */
+function hexRgb(h){const n=parseInt(h.slice(1),16);return [n>>16&255,n>>8&255,n&255];}
+const toLin=c=>{c/=255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);};
+const toSrgb=c=>255*(c<=0.0031308?12.92*c:1.055*Math.pow(c,1/2.4)-0.055);
+function hexOklab(h){
+  const [r,g,b]=hexRgb(h).map(toLin);
+  const l=Math.cbrt(0.4122214708*r+0.5363325363*g+0.0514459929*b),m=Math.cbrt(0.2119034982*r+0.6806995451*g+0.1073969566*b),s=Math.cbrt(0.0883024619*r+0.2817188376*g+0.6299787005*b);
+  return [0.2104542553*l+0.7936177850*m-0.0040720468*s,1.9779984951*l-2.4285922050*m+0.4505937099*s,0.0259040371*l+0.7827717662*m-0.8086757660*s];
+}
+function oklabRgbLin(L,a,b){
+  const l=(L+0.3963377774*a+0.2158037573*b)**3,m=(L-0.1055613458*a-0.0638541728*b)**3,s=(L-0.0894841775*a-1.2914855480*b)**3;
+  return [4.0767416621*l-3.3077115913*m+0.2309699292*s,-1.2684380046*l+2.6097574011*m-0.3413193965*s,-0.0041960863*l-0.7034186147*m+1.7076147010*s];
+}
+// back to a CSS color; if the mix falls outside what a screen can show, pull the chroma in until it fits
+function lchCss(L,C,h){
+  for(let i=0;i<20;i++){
+    const rgb=oklabRgbLin(L,C*Math.cos(h),C*Math.sin(h));
+    if(rgb.every(v=>v>=-0.0005&&v<=1.0005)||i===19)return `rgb(${rgb.map(v=>Math.round(Math.min(255,Math.max(0,toSrgb(Math.min(1,Math.max(0,v))))))).join(',')})`;
+    C*=0.93;
+  }
+}
+function mixColor(h1,h2,t){
+  const [L1,a1,b1]=hexOklab(h1),[L2,a2,b2]=hexOklab(h2);
+  if(S.blendPath==='straight'){const rgb=oklabRgbLin(L1+(L2-L1)*t,a1+(a2-a1)*t,b1+(b2-b1)*t);return `rgb(${rgb.map(v=>Math.round(toSrgb(Math.min(1,Math.max(0,v))))).join(',')})`;}
+  const C1=Math.hypot(a1,b1),C2=Math.hypot(a2,b2);let H1=Math.atan2(b1,a1),H2=Math.atan2(b2,a2);
+  let dh=H2-H1;if(dh>Math.PI)dh-=2*Math.PI;if(dh<-Math.PI)dh+=2*Math.PI;
+  if(C1<0.02)H1=H2;if(C2<0.02)dh=0;                       // greys have no hue to travel from or to
+  // skip the greens: if the short way round passes through them, go the long way instead
+  if(S.blendPath==='nogreen'&&dh!==0){
+    const G1=2.2,G2=3.1;   // roughly 125°–180° in OKLCH: the greens
+    const hits=d=>{for(let k=1;k<20;k++){let h=(H1+d*k/20)%(2*Math.PI);if(h<0)h+=2*Math.PI;if(h>G1&&h<G2)return true;}return false;};
+    if(hits(dh))dh=dh>0?dh-2*Math.PI:dh+2*Math.PI;
+  }
+  return lchCss(L1+(L2-L1)*t,C1+(C2-C1)*t,H1+dh*t);
+}
+const sine=x=>-(Math.cos(Math.PI*x)-1)/2;
+function bgColorAt(secs){
+  const c=S.cycle.filter(i=>i>=0&&i<6);
+  if(!c.length)return col(0);
+  if(c.length===1)return col(c[0]);
+  const per=S.colorHold+S.colorBlend,tot=per*c.length,t=((secs%tot)+tot)%tot,i=Math.floor(t/per),loc=t-i*per;
+  if(loc<S.colorHold||S.colorBlend<=0)return col(c[i]);
+  return mixColor(col(c[i]),col(c[(i+1)%c.length]),sine((loc-S.colorHold)/S.colorBlend));
+}
+
+/* ---------- print shapes ---------- */
+function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function smooth(ctx,pts){
+  const n=pts.length,mid=(p,q)=>[(p[0]+q[0])/2,(p[1]+q[1])/2];
+  const m=mid(pts[n-1],pts[0]);ctx.beginPath();ctx.moveTo(m[0],m[1]);
+  for(let i=0;i<n;i++){const p=pts[i],mm=mid(p,pts[(i+1)%n]);ctx.quadraticCurveTo(p[0],p[1],mm[0],mm[1]);}
+  ctx.closePath();ctx.fill();
+}
+function blob(ctx,cx,cy,rx,ry,rot,R,n=9,jit=0.25){
+  const c=Math.cos(rot),s=Math.sin(rot),step=Math.PI*2/n,a0=R()*step,pts=[];
+  for(let i=0;i<n;i++){
+    const a=a0+i*step+(R()-.5)*step*0.5,k=1+(R()*2-1)*jit,x=Math.cos(a)*rx*k,y=Math.sin(a)*ry*k;
+    pts.push([cx+x*c-y*s,cy+x*s+y*c]);
+  }
+  smooth(ctx,pts);
+}
+function band(ctx,x,y,rr,th,a1,a2,R){
+  const m=7,outer=[],inner=[],w1=R()*6,w2=R()*6;
+  for(let i=0;i<=m;i++){
+    const u=i/m,a=a1+(a2-a1)*u,tp=0.45+0.55*Math.sin(Math.PI*u),
+          o=th*tp*(1+0.18*Math.sin(u*5+w1)),n=th*tp*(1+0.18*Math.sin(u*4+w2));
+    outer.push([x+Math.cos(a)*(rr+o),y+Math.sin(a)*(rr+o)]);
+    inner.unshift([x+Math.cos(a)*(rr-n*0.8),y+Math.sin(a)*(rr-n*0.8)]);
+  }
+  const cap=a=>[x+Math.cos(a)*rr,y+Math.sin(a)*rr],d=th*0.55/rr;
+  smooth(ctx,[cap(a1-d),...outer,cap(a2+d),...inner]);
+}
+// one spot: a solid blob, or a broken ring of 2–4 pieces, sometimes around an accent center.
+// The same random draws always happen in the same order, so a spot can be drawn twice identically.
+function rosette(ctx,x,y,r,R){
+  const solid=R()<0.22,hasA=R()<S.accPct/100;
+  if(solid){ctx.fillStyle=col(S.spotC);blob(ctx,x,y,r*(0.45+R()*0.3),r*(0.38+R()*0.25),R()*Math.PI,R,8,0.3);return;}
+  const r1=R()*Math.PI;
+  if(hasA){ctx.fillStyle=col(S.accC);blob(ctx,x,y,r*0.66,r*0.56,r1,R,9,0.2);}
+  ctx.fillStyle=col(S.spotC);
+  const k=2+Math.floor(R()*3),a0=R()*Math.PI*2,span=Math.PI*2/k;
+  for(let j=0;j<k;j++){
+    const a=a0+j*span+(R()-.5)*span*0.15,arc=span*(0.72+R()*0.18),rr=r*(0.72+R()*0.1),th=r*(0.3+R()*0.14);
+    band(ctx,x,y,rr,th,a-arc/2,a+arc/2,R);
+  }
+}
+
+/* ---------- the scrolling print ----------
+   A tile about 1.5 screens tall is drawn once with the spots only (transparent between them), so the
+   shifting color behind shows through. Spots near the top or bottom edge are drawn again on the
+   opposite edge, so the tile repeats without a seam. It's stored once as an image and repeated down a
+   strip; scrolling just slides the strip, and nothing is redrawn while it moves. */
+let tileH=0;
+const mk=()=>document.createElement('canvas');
+function buildPrint(){
+  printEl.style.display=S.printOn&&S.printOpacity>0?'':'none';
+  if(!S.printOn||S.printOpacity<=0){tileH=0;printEl.width=printEl.height=0;return;}
+  const sp0=S.size*2.05/Math.sqrt(S.density);
+  let rows=Math.max(2,Math.round(SH*S.tileH/(sp0*0.87)));if(rows%2)rows++;   // even rows, so the staggered grid wraps
+  const rowH=Math.round(SH*S.tileH/rows),H=rows*rowH,sp=sp0;
+  const lay=mk();lay.width=SW;lay.height=H;const l=lay.getContext('2d');
+  const R=rng(S.seed),reach=S.size*1.6;
+  for(let row=0;row<rows;row++){
+    const y=row*rowH+rowH/2;
+    for(let x=-sp+(row%2?sp/2:0);x<SW+sp;x+=sp){
+      const s=(R()*4294967296)>>>0,px=x+(R()-.5)*sp*0.5,py=y+(R()-.5)*rowH*0.5,r=S.size*(0.7+R()*0.6);
+      for(const dy of [0,-H,H]){
+        const yy=py+dy;if(yy<-reach||yy>H+reach)continue;
+        rosette(l,px,yy,r,rng(s));
+      }
+    }
+  }
+  // the strip: one tile plus one screen's worth repeated below it, so sliding up by a whole tile loops seamlessly.
+  // The spots go down at the chosen opacity as one layer, so overlapping pieces don't stack darker.
+  printEl.width=SW;printEl.height=H+SH;printEl.style.width=SW+'px';printEl.style.height=(H+SH)+'px';
+  const g=printEl.getContext('2d');g.clearRect(0,0,SW,H+SH);
+  g.globalAlpha=S.printOpacity/100;
+  for(let y=0;y<H+SH;y+=H)g.drawImage(lay,0,y);
+  g.globalAlpha=1;
+  lay.width=lay.height=0;
+  tileH=H;
+}
+
+/* ---------- vignette ---------- */
+function applyVignette(){
+  vig.style.display=S.vigOn?'':'none';
+  const inner=S.vigSize;   // where the darkening starts, as % of the way from center to corner
+  vig.style.background=`radial-gradient(ellipse at center, ${rgba(col(S.vigC),0)} ${inner}%, ${rgba(col(S.vigC),S.vigStr/100)} 100%)`;
+}
+
+/* ---------- footer ---------- */
+function applyFooter(){
+  footer.style.display=S.ftOn?'':'none';
+  footer.textContent=S.ftText;
+  Object.assign(footer.style,{fontSize:S.ftSize+'px',bottom:S.ftBottom+'px',color:col(S.ftC),opacity:S.ftOpacity/100});
+  const o=S.ftOutline,sh=[];
+  if(o>0)for(let i=0;i<16;i++){const a=i/16*Math.PI*2;sh.push(`${(Math.cos(a)*o).toFixed(1)}px ${(Math.sin(a)*o).toFixed(1)}px 0 ${col(S.ftOutlineC)}`);}
+  footer.style.textShadow=sh.length?sh.join(','):'none';
+}
+
+/* ---------- messages ----------
+   Each message is drawn once into its own transparent image, outline and soft shadow included.
+   Only opacity and a slow drift change while it's up, so a big blurred shadow costs nothing per frame. */
+const FONT=s=>`${s}px "Caveat Brush", cursive`;
+const mctx=mk().getContext('2d');
+// the message box: inside the safe margin, and above the footer when it's on (as in the party file)
+function msgBoxRect(){
+  const m=S.margin/100*SH;let bottom=SH-m;
+  if(S.ftOn&&S.ftText.trim()){const ftTop=SH-S.ftBottom-footer.offsetHeight;bottom=Math.min(bottom,ftTop-m*0.5);}
+  return {x:m,y:m-S.vbias,w:SW-2*m,h:Math.max(60,bottom-m)};
+}
+// Line breaking, ported from the neon wall: for each possible line count, find the breaks that keep the
+// widest line as short as possible within the words-per-line limits, then score by type size reduced by
+// raggedness (Balance). Unlike the neon wall, a line break the guest typed is kept: no line may cross it.
+function layoutText(text){
+  const paras=text.split('\n').map(p=>p.replace(/\s+/g,' ').trim()).filter(Boolean);
+  const words=[],brk=[];
+  paras.forEach((p,pi)=>{const w=p.split(' ');w.forEach((x,i)=>{words.push(x);brk.push(i===w.length-1&&pi<paras.length-1);});});
+  const N=words.length,box=msgBoxRect();
+  if(!N)return {lines:[],s:10,box};
+  mctx.font=FONT(100);
+  const tr=S.tracking*100,sp=mctx.measureText(' ').width+tr;
+  const ws=words.map(w=>mctx.measureText(w).width+tr*[...w].length);
+  const pre=[0];for(let i=0;i<N;i++)pre.push(pre[i]+ws[i]);
+  const bpre=[0];for(let i=0;i<N;i++)bpre.push(bpre[i]+(brk[i]?1:0));
+  const crosses=(i,j)=>bpre[j-1]-bpre[i]>0;               // a typed break falls inside words i..j-1
+  const W=(i,j)=>pre[j]-pre[i]+(j-i-1)*sp;
+  const forced=bpre[N]>0,L=S.leading,K=Math.max(1,Math.round(S.maxWords));
+  const minW=forced?1:Math.max(1,Math.min(Math.round(S.minWords),K));
+  const minLast=forced?1:Math.max(minW,(S.widows&&N>=4&&K>=2)?2:1);
+  const oneLineOK=!forced&&(N<=K||N<Math.round(S.minWords));
+  const maxK=forced?N:K;   // with typed breaks, a line may hold a whole typed line
+  function minimax(n){
+    if(n===1)return oneLineOK?W(0,N):Infinity;
+    let prev=new Float64Array(N+1).fill(Infinity);prev[0]=0;
+    for(let k=1;k<=n;k++){
+      const cur=new Float64Array(N+1).fill(Infinity),last=k===n;
+      for(let j=1;j<=N;j++){
+        if(last&&j!==N)continue;
+        for(let c=last?minLast:minW;c<=maxK&&c<=j;c++){
+          const i=j-c;if(prev[i]===Infinity||crosses(i,j))continue;
+          if(!forced&&c>K)continue;
+          const v=Math.max(prev[i],W(i,j));if(v<cur[j])cur[j]=v;
+        }
+      }
+      prev=cur;
+    }
+    return prev[N];
+  }
+  const shortEnd=/^[\p{L}’']{1,2}$/u;
+  function breaks(n,C){
+    if(n===1)return oneLineOK?{lines:[words.join(' ')],ws:[W(0,N)]}:null;
+    const cost=[],back=[];
+    for(let k=0;k<=n;k++){cost.push(new Float64Array(N+1).fill(Infinity));back.push(new Int32Array(N+1).fill(-1));}
+    cost[0][0]=0;
+    for(let k=1;k<=n;k++){
+      const last=k===n;
+      for(let j=1;j<=N;j++){
+        if(last&&j!==N)continue;
+        for(let c=last?minLast:minW;c<=maxK&&c<=j;c++){
+          const i=j-c;if(cost[k-1][i]===Infinity||crosses(i,j))continue;
+          const w=W(i,j);if(w>C*1.0005)break;
+          let v;
+          if(last){v=(S.widows&&w<0.33*C)?Math.pow((0.33*C-w)/C,2)*6:0;}
+          else{const r=(C-w)/C;v=brk[j-1]?0:r*r;if(S.widows&&shortEnd.test(words[j-1]))v+=0.25;}
+          v+=cost[k-1][i];
+          if(v<cost[k][j]){cost[k][j]=v;back[k][j]=i;}
+        }
+      }
+    }
+    if(cost[n][N]===Infinity)return null;
+    const lines=[],lw=[];let j=N;
+    for(let k=n;k>0;k--){const i=back[k][j];lines.unshift(words.slice(i,j).join(' '));lw.unshift(W(i,j));j=i;}
+    return {lines,ws:lw};
+  }
+  let best=null;
+  for(let n=oneLineOK?1:Math.max(bpre[N]+1,Math.ceil(N/maxK));n<=N;n++){
+    const hBound=box.h/(n*L);
+    if(best&&hBound<=best.score)break;
+    const M=minimax(n);if(M===Infinity)continue;
+    const s0=Math.min(box.w*100/M,hBound);
+    const r=breaks(n,box.w*100/s0);if(!r)continue;
+    const widest=Math.max(...r.ws);
+    const s=Math.min(box.w*100/widest,hBound,S.maxType);
+    const rag=n>1?r.ws.reduce((a,w)=>a+(1-w/widest),0)/n:0;
+    const score=s*(1-S.balance*rag);
+    if(!best||score>best.score*1.0001)best={lines:r.lines,s,score};
+  }
+  if(!best){   // fallback: typed lines, split greedily by the word limit
+    const lines=[];let widest=0,i=0;
+    while(i<N){let j=i+1;while(j<N&&j-i<K&&!brk[j-1])j++;lines.push(words.slice(i,j).join(' '));widest=Math.max(widest,W(i,j));i=j;}
+    best={lines,s:Math.min(box.w*100/widest,box.h/(lines.length*L),S.maxType)};
+  }
+  return {lines:best.lines,s:best.s,box};
+}
+// tracking: use the canvas's own letter spacing where the browser has it; otherwise space the letters by hand
+const NATIVE_LS='letterSpacing' in CanvasRenderingContext2D.prototype;
+const GSEG=typeof Intl!=='undefined'&&Intl.Segmenter?new Intl.Segmenter(undefined,{granularity:'grapheme'}):null;
+const graphemes=t=>GSEG?[...GSEG.segment(t)].map(g=>g.segment):[...t];
+function lineWidth(ctx,ln,trPx){return ctx.measureText(ln).width+(NATIVE_LS?0:trPx*(graphemes(ln).length-1));}
+function drawLine(ctx,ln,x,y,trPx){
+  if(!trPx||NATIVE_LS){ctx.fillText(ln,x,y);return;}
+  for(const g of graphemes(ln)){ctx.fillText(g,x,y);x+=ctx.measureText(g).width+trPx;}
+}
+function renderSprite(sp,text){
+  const c=sp.el,ctx=c.getContext('2d');ctx.clearRect(0,0,SW,SH);
+  const L=layoutText(text);
+  const trPx=S.tracking*L.s;
+  mctx.font=FONT(L.s);if(NATIVE_LS)mctx.letterSpacing=trPx+'px';
+  const lw=L.lines.map(ln=>lineWidth(mctx,ln,trPx));
+  // safety pass: if real measuring at this size runs wider than the box, shrink to fit
+  const widest=Math.max(1,...lw);
+  if(widest>L.box.w){const k=L.box.w/widest*0.998;L.s*=k;for(let i=0;i<lw.length;i++)lw[i]*=k;}
+  const lh=L.s*S.leading,bw=Math.max(1,...lw),bh=lh*L.lines.length;
+  const cx=L.box.x+L.box.w/2,cy=L.box.y+L.box.h/2;
+  Object.assign(L,{w:bw,h:bh,lh,cx,cy});
+  const o=S.outline,pad=Math.ceil(o+L.s*0.35);
+  const tw=Math.ceil(bw+2*pad),th=Math.ceil(bh+2*pad);
+  // the letters
+  const tc=mk();tc.width=tw;tc.height=th;const t=tc.getContext('2d');
+  t.font=FONT(L.s);if(NATIVE_LS)t.letterSpacing=(S.tracking*L.s)+'px';
+  t.textAlign='left';t.textBaseline='middle';t.fillStyle=col(S.textC);
+  L.lines.forEach((ln,i)=>{
+    const w=lineWidth(t,ln,S.tracking*L.s),x=pad+(S.align==='left'?0:S.align==='right'?bw-w:(bw-w)/2);
+    drawLine(t,ln,x,pad+lh*(i+0.5),S.tracking*L.s);
+  });
+  // outline: the letters' own silhouette (emoji included), stamped around them in the outline color
+  const full=mk();full.width=tw;full.height=th;const f=full.getContext('2d');
+  if(o>0){
+    const sil=mk();sil.width=tw;sil.height=th;const g=sil.getContext('2d');
+    g.drawImage(tc,0,0);g.globalCompositeOperation='source-in';g.fillStyle=col(S.outlineC);g.fillRect(0,0,tw,th);
+    for(let i=0;i<16;i++){const a=i/16*Math.PI*2;f.drawImage(sil,Math.cos(a)*o,Math.sin(a)*o);}
+    sil.width=0;
+  }
+  f.drawImage(tc,0,0);tc.width=0;
+  // soft drop shadow, baked in once
+  if(S.shOn){ctx.shadowColor=rgba(col(S.shC),S.shOpacity/100);ctx.shadowBlur=S.shBlur;ctx.shadowOffsetX=0;ctx.shadowOffsetY=S.shY;}
+  ctx.drawImage(full,L.cx-tw/2,L.cy-th/2);
+  ctx.shadowColor='transparent';full.width=0;
+  sp.el.style.transformOrigin=`${L.cx}px ${L.cy}px`;
+  sp.textW=L.w;sp.text=text;
+  const N=text.trim().split(/\s+/).length,k=Math.min(1,Math.max(0,(N-SHORT_WORDS)/(LONG_WORDS-SHORT_WORDS)));
+  sp.hold=S.hold*(1+(S.mult-1)*k);
+}
+
+/* ---------- playback: fade in → hold (with drift) → fade out → gap → next ---------- */
+const SPR=[{el:$('sprA')},{el:$('sprB')}];
+let cur=0,idx=-1,paused=false,pausedAt=0,typed=null,nextAt=0;
+function sizeCanvases(){for(const sp of SPR){sp.el.width=SW;sp.el.height=SH;}}
+function pickText(){if(typed){const t=typed;typed=null;return t;}idx=(idx+1)%SAMPLES.length;return SAMPLES[idx];}
+function startMessage(now){
+  cur=1-cur;const sp=SPR[cur];
+  renderSprite(sp,pickText());
+  sp.t0=now;sp.outAt=now+S.inMs+sp.hold*1000;sp.end=sp.outAt+S.outMs;sp.live=true;
+  nextAt=sp.end+S.gapMs;
+}
+// Next / a typed message: start the current one's fade-out now
+function next(){
+  if(paused)setPaused(false);
+  const now=performance.now(),sp=SPR[cur];
+  if(sp.live&&now<sp.outAt){
+    const shown=Math.min(1,(now-sp.t0)/Math.max(1,S.inMs));   // fade out from wherever it is
+    sp.outAt=now-(1-shown)*S.outMs;sp.end=sp.outAt+S.outMs;nextAt=sp.end+S.gapMs;
+  }else if(!sp.live||now>=sp.end)nextAt=now;
+}
+function opacityAt(sp,now){
+  if(!sp.live||now<sp.t0)return 0;
+  if(now<sp.t0+S.inMs)return sine((now-sp.t0)/Math.max(1,S.inMs));
+  if(now<sp.outAt)return 1;
+  if(now<sp.end)return 1-sine((now-sp.outAt)/Math.max(1,S.outMs));
+  return 0;
+}
+const t0=performance.now();
+let tShift=0;   // time spent paused, so the color cycle and scroll pick up where they stopped
+let lastBg='';
+function tick(now){
+  if(paused){requestAnimationFrame(tick);return;}
+  const secs=(now-t0-tShift)/1000;
+  // background color and print scroll
+  const c=bgColorAt(secs);if(c!==lastBg){stage.style.backgroundColor=c;lastBg=c;}
+  if(tileH)printEl.style.transform=`translate3d(0,${(-(secs*S.scroll)%tileH).toFixed(1)}px,0)`;
+  // messages
+  if(now>=nextAt)startMessage(now);
+  for(const sp of SPR){
+    if(!sp.live){continue;}
+    if(now>=sp.end){sp.live=false;sp.el.style.opacity=0;continue;}
+    const d=(now-sp.t0)/1000,sc=1+S.driftZoom*d/Math.max(200,sp.textW);
+    sp.el.style.opacity=opacityAt(sp,now).toFixed(3);
+    sp.el.style.transform=`translate3d(0,${(-S.driftUp*d).toFixed(1)}px,0) scale(${sc.toFixed(4)})`;
+  }
+  requestAnimationFrame(tick);
+}
+// pause freezes everything, including the clock, so nothing jumps on resume
+function setPaused(p){
+  const now=performance.now();
+  if(p){pausedAt=now;}
+  else{const dt=now-pausedAt;for(const sp of SPR){if(sp.live){sp.t0+=dt;sp.outAt+=dt;sp.end+=dt;}}nextAt+=dt;tShift+=dt;}
+  paused=p;$('bPlay').textContent=p?'Play':'Pause';
+}
+$('bNext').onclick=next;
+$('bPlay').onclick=()=>setPaused(!paused);
+$('sim').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.value.trim()){e.preventDefault();typed=e.target.value.trim();e.target.value='';next();}});
+
+/* ---------- sizing ---------- */
+function fitFrame(){
+  const vw=viewer.clientWidth,vh=viewer.clientHeight,a=SW/SH,w=Math.min(vw,vh*a);
+  frame.style.width=w+'px';frame.style.height=(w/a)+'px';
+  stage.style.width=SW+'px';stage.style.transform=`scale(${w/SW})`;
+}
+new ResizeObserver(fitFrame).observe(viewer);
+function setWall(on){document.documentElement.classList.toggle('wall',on);requestAnimationFrame(fitFrame);}
+$('bFs').onclick=()=>{
+  if(document.fullscreenEnabled&&frame.requestFullscreen)frame.requestFullscreen().catch(()=>setWall(true));else setWall(true);
+};
+viewer.addEventListener('click',()=>{if(document.documentElement.classList.contains('wall'))setWall(false);});
+document.addEventListener('fullscreenchange',()=>requestAnimationFrame(fitFrame));
+document.addEventListener('keydown',e=>{if(e.target.matches('input,select,textarea'))return;
+  if(e.key===' '){e.preventDefault();$('bPlay').click();}if(e.key==='ArrowRight')next();});
+function drawGuides(){
+  gSafe.style.display=gBox.style.display=S.guides?'block':'none';
+  const m=S.margin/100*SH;Object.assign(gSafe.style,{left:m+'px',top:m+'px',width:(SW-2*m)+'px',height:(SH-2*m)+'px'});
+  const b=msgBoxRect();Object.assign(gBox.style,{left:b.x+'px',top:b.y+'px',width:b.w+'px',height:b.h+'px'});
+}
+
+/* ---------- panel ---------- */
+const px=v=>v+' px',pc=v=>v+'%',sec=v=>(+v).toFixed(1)+' s',ms=v=>v+' ms',pps=v=>v+' px/sec';
+const CTRL=[
+  {g:'Master colors'},
+  {type:'master'},
+  {g:'Screen'},
+  {id:'aspect',label:'Screen shape',type:'select',re:'aspect',options:[['16:9','TV (16:9)'],['4:3','iPad (4:3)'],['phone','Phone (2.16:1)']]},
+  {id:'guides',label:'Show the safe area (red) and message box (blue)',type:'check',re:'guides'},
+  {g:'Background color'},
+  {id:'cycle',label:'Colors to cycle through (in order)',type:'multi',re:'none'},
+  {id:'colorHold',label:'Time on each color',min:0,max:120,step:1,fmt:sec},
+  {id:'colorBlend',label:'Blend between colors',min:0,max:60,step:0.5,fmt:sec},
+  {id:'blendPath',label:'Blend',type:'select',options:[['nogreen','Around the color wheel, skipping greens'],['hue','Around the color wheel, shortest way'],['straight','Straight mix (can go muddy)']]},
+  {g:'Leopard print'},
+  {id:'printOn',label:'Leopard print on',type:'check',re:'print'},
+  {id:'printOpacity',label:'Print opacity',min:0,max:100,step:1,fmt:pc,re:'print',when:()=>S.printOn},
+  {id:'spotC',label:'Spots',type:'pick',re:'print',when:()=>S.printOn},
+  {id:'accC',label:'Accent (spot centers)',type:'pick',re:'print',when:()=>S.printOn},
+  {id:'accPct',label:'Spots with an accent',min:0,max:100,step:1,fmt:pc,re:'print',when:()=>S.printOn},
+  {id:'size',label:'Spot size',min:40,max:260,step:5,fmt:px,re:'print',when:()=>S.printOn},
+  {id:'density',label:'Density',min:0.4,max:2,step:0.05,fmt:v=>(+v).toFixed(2)+'×',re:'print',when:()=>S.printOn},
+  {id:'scroll',label:'Scroll speed (up)',min:0,max:120,step:1,fmt:pps,when:()=>S.printOn},
+  {id:'tileH',label:'Pattern repeat (screens tall)',min:1,max:3,step:0.25,fmt:v=>(+v).toFixed(2)+'×',re:'print',when:()=>S.printOn},
+  {id:'reseed',label:'New pattern',type:'button',when:()=>S.printOn,action:()=>{S.seed=(Math.random()*1e9)|0;save();buildPrint();}},
+  {g:'Vignette'},
+  {id:'vigOn',label:'Vignette on',type:'check',re:'vig'},
+  {id:'vigC',label:'Color',type:'pick',re:'vig',when:()=>S.vigOn},
+  {id:'vigStr',label:'Strength at the corners',min:0,max:100,step:1,fmt:pc,re:'vig',when:()=>S.vigOn},
+  {id:'vigSize',label:'Clear center (where it starts)',min:0,max:95,step:1,fmt:pc,re:'vig',when:()=>S.vigOn},
+  {g:'Text (Caveat Brush)'},
+  {id:'textC',label:'Text color',type:'pick',re:'text'},
+  {id:'outline',label:'Outline width',min:0,max:20,step:1,fmt:px,re:'text'},
+  {id:'outlineC',label:'Outline color',type:'pick',re:'text',when:()=>S.outline>0},
+  {id:'shOn',label:'Soft drop shadow',type:'check',re:'text'},
+  {id:'shC',label:'Shadow color',type:'pick',re:'text',when:()=>S.shOn},
+  {id:'shOpacity',label:'Shadow opacity',min:0,max:100,step:1,fmt:pc,re:'text',when:()=>S.shOn},
+  {id:'shBlur',label:'Shadow softness',min:0,max:120,step:1,fmt:px,re:'text',when:()=>S.shOn},
+  {id:'shY',label:'Shadow drop',min:0,max:60,step:1,fmt:px,re:'text',when:()=>S.shOn},
+  {g:'Type and layout'},
+  {id:'tracking',label:'Tracking',min:-0.1,max:0.2,step:0.005,fmt:v=>(+v).toFixed(3)+' em',re:'text'},
+  {id:'leading',label:'Leading',min:0.7,max:1.6,step:0.01,fmt:v=>(+v).toFixed(2),re:'text'},
+  {id:'align',label:'Alignment',type:'select',re:'text',options:[['center','Center'],['left','Left'],['right','Right']]},
+  {id:'balance',label:'Balance (0 = biggest type, 100 = most even lines)',min:0,max:1,step:0.01,fmt:v=>Math.round(v*100)+'%',re:'text'},
+  {id:'maxWords',label:'Max words per line',min:1,max:12,step:1,fmt:v=>v,re:'text'},
+  {id:'minWords',label:'Min words per line',min:1,max:6,step:1,fmt:v=>v,re:'text'},
+  {id:'widows',label:'Avoid widows and orphans',type:'check',re:'text'},
+  {id:'maxType',label:'Max type size (caps short messages and lone emoji)',min:100,max:900,step:10,fmt:px,re:'text'},
+  {id:'margin',label:'Safe margin (% of height)',min:0,max:25,step:0.5,fmt:pc,re:'text'},
+  {id:'vbias',label:'Vertical bias (+ is up)',min:-300,max:300,step:1,fmt:px,re:'text'},
+  {g:'Motion'},
+  {id:'inMs',label:'Fade in',min:0,max:3000,step:50,fmt:ms},
+  {id:'outMs',label:'Fade out',min:0,max:3000,step:50,fmt:ms},
+  {id:'gapMs',label:'Gap between messages',min:0,max:3000,step:50,fmt:ms},
+  {id:'driftZoom',label:'Drift toward camera',min:0,max:100,step:1,fmt:pps},
+  {id:'driftUp',label:'Drift up',min:0,max:100,step:1,fmt:pps},
+  {g:'Hold'},
+  {id:'hold',label:'Min hold',min:1,max:20,step:0.5,fmt:sec},
+  {id:'mult',label:'Length multiplier (long messages stay up this many times longer)',min:1,max:5,step:0.1,fmt:v=>(+v).toFixed(1)+'×'},
+  {g:'Footer'},
+  {id:'ftOn',label:'Footer on',type:'check',re:'footer'},
+  {id:'ftText',label:'Text',type:'text',re:'footer',when:()=>S.ftOn},
+  {id:'ftSize',label:'Size',min:12,max:120,step:1,fmt:px,re:'footer',when:()=>S.ftOn},
+  {id:'ftC',label:'Color',type:'pick',re:'footer',when:()=>S.ftOn},
+  {id:'ftOutline',label:'Outline width',min:0,max:12,step:1,fmt:px,re:'footer',when:()=>S.ftOn},
+  {id:'ftOutlineC',label:'Outline color',type:'pick',re:'footer',when:()=>S.ftOn&&S.ftOutline>0},
+  {id:'ftOpacity',label:'Opacity',min:0,max:100,step:1,fmt:pc,re:'footer',when:()=>S.ftOn},
+  {id:'ftBottom',label:'Distance from bottom',min:0,max:300,step:1,fmt:px,re:'footer',when:()=>S.ftOn},
+  {g:'Settings'},
+  {id:'copy',label:'Copy settings',type:'button',action:e=>copySettings(e.currentTarget)},
+  {id:'reset',label:'Reset everything to defaults',type:'button',action:()=>{
+    if(!confirm('Reset every setting, including the master colors?'))return;
+    try{localStorage.removeItem(STORE);}catch(e){}location.reload();}},
+];
+const rows=[],pickers=[];
+function buildPanel(){
+  let body=panel;
+  for(const it of CTRL){
+    if(it.g){
+      const sc=document.createElement('section');sc.className='grp';
+      const b=document.createElement('button');b.type='button';b.textContent=it.g;b.setAttribute('aria-expanded','true');
+      body=document.createElement('div');body.className='body';
+      b.onclick=()=>{const c=sc.classList.toggle('closed');b.setAttribute('aria-expanded',String(!c));};
+      sc.append(b,body);panel.appendChild(sc);continue;
+    }
+    const type=it.type||'range';let row;
+    if(type==='master'){
+      row=document.createElement('div');row.className='master';
+      S.pal.forEach((c,i)=>{
+        const l=document.createElement('label'),inp=document.createElement('input');inp.type='color';inp.value=c;
+        inp.addEventListener('input',()=>{S.pal[i]=inp.value;paintPickers();save();queue('all');});
+        l.append(inp,document.createTextNode(i+1));row.appendChild(l);
+      });
+    }else if(type==='button'){
+      row=document.createElement('button');row.className='pbtn';row.textContent=it.label;row.onclick=it.action;
+    }else if(type==='check'){
+      row=document.createElement('label');row.className='row check';
+      const inp=document.createElement('input');inp.type='checkbox';inp.checked=!!S[it.id];
+      const t=document.createElement('span');t.textContent=it.label;row.append(inp,t);
+      inp.addEventListener('change',()=>{S[it.id]=inp.checked;changed(it);});
+    }else{
+      row=document.createElement(type==='pick'||type==='multi'?'div':'label');row.className='row';
+      const top=document.createElement('div');top.className='top';
+      const name=document.createElement('span');name.textContent=it.label;
+      const val=document.createElement('span');val.className='val';top.append(name,val);row.appendChild(top);
+      if(type==='pick'||type==='multi'){
+        const wrap=document.createElement('div');wrap.className='picks'+(type==='multi'?' multi':'');
+        for(let i=0;i<6;i++){const b=document.createElement('button');b.type='button';b.textContent=i+1;
+          b.onclick=()=>{
+            if(type==='multi'){const a=S[it.id],k=a.indexOf(i);if(k>=0){if(a.length>1)a.splice(k,1);}else{a.push(i);a.sort((x,y)=>x-y);}}
+            else S[it.id]=i;
+            paintPickers();changed(it);};
+          wrap.appendChild(b);}
+        row.appendChild(wrap);pickers.push({id:it.id,wrap,multi:type==='multi'});
+      }else if(type==='select'){
+        const sel=document.createElement('select');
+        for(const [v,l] of it.options){const o=document.createElement('option');o.value=v;o.textContent=l;sel.appendChild(o);}
+        sel.value=S[it.id];row.appendChild(sel);
+        sel.addEventListener('change',()=>{S[it.id]=typeof DEFAULTS[it.id]==='number'?+sel.value:sel.value;changed(it);});
+      }else if(type==='text'){
+        const inp=document.createElement('input');inp.type='text';inp.value=S[it.id];row.appendChild(inp);
+        inp.addEventListener('input',()=>{S[it.id]=inp.value;changed(it);});
+      }else{
+        const inp=document.createElement('input');inp.type='range';inp.min=it.min;inp.max=it.max;inp.step=it.step;inp.value=S[it.id];
+        val.textContent=it.fmt(S[it.id]);row.appendChild(inp);
+        inp.addEventListener('input',()=>{S[it.id]=parseFloat(inp.value);val.textContent=it.fmt(S[it.id]);changed(it);});
+      }
+    }
+    body.appendChild(row);rows.push({it,row});
+  }
+  paintPickers();showRows();
+}
+function paintPickers(){
+  for(const {id,wrap,multi} of pickers)[...wrap.children].forEach((b,i)=>{
+    b.style.background=S.pal[i];b.classList.toggle('on',multi?S[id].includes(i):S[id]===i);});
+}
+function showRows(){for(const {it,row} of rows)if(it.when)row.classList.toggle('hide',!it.when());}
+function changed(it){save();showRows();queue(it.re);}
+let copyBox=null;
+function copySettings(btn){
+  const txt=JSON.stringify(S),t=btn.textContent;
+  const fallback=()=>{
+    if(!copyBox){
+      copyBox=document.createElement('div');copyBox.className='copybox';
+      copyBox.innerHTML='<p>This preview blocks copying. The settings below are selected: press ⌘C (or long-press → Copy), then paste them to Claude.</p><textarea readonly></textarea>';
+      btn.after(copyBox);
+    }
+    const ta=copyBox.querySelector('textarea');ta.value=txt;copyBox.classList.add('show');ta.focus();ta.select();
+  };
+  const done=ok=>{if(ok){copyBox&&copyBox.classList.remove('show');btn.textContent='Copied — paste it to Claude';setTimeout(()=>btn.textContent=t,2000);}else fallback();};
+  try{if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(txt).then(()=>done(true),()=>done(false));return;}}catch(e){}
+  let ok=false;
+  try{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove();}catch(e){}
+  done(ok);
+}
+// look changes: redraw only what they touch; the message on screen is redrawn in place
+function rerenderCurrent(){const sp=SPR[cur];if(sp.live&&sp.text!=null){const h=sp.hold;renderSprite(sp,sp.text);sp.hold=h;}}
+let pending=new Set(),queued=false;
+function queue(re){if(!re||re==='none')return;pending.add(re);if(queued)return;queued=true;
+  requestAnimationFrame(()=>{queued=false;const set=pending;pending=new Set();const all=set.has('all');
+    if(set.has('aspect')){SW=WIDTHS[S.aspect];sizeCanvases();fitFrame();}
+    if(all||set.has('aspect')||set.has('print'))buildPrint();
+    if(all||set.has('vig'))applyVignette();
+    if(all||set.has('footer'))applyFooter();
+    if(all||set.has('aspect')||set.has('text')||set.has('footer'))rerenderCurrent();
+    if(all||set.has('aspect')||set.has('guides')||set.has('text')||set.has('footer'))drawGuides();
+  });
+}
+
+/* ---------- boot ---------- */
+(async function(){
+  SW=WIDTHS[S.aspect]||1920;
+  buildPanel();sizeCanvases();fitFrame();applyVignette();drawGuides();
+  try{await Promise.race([document.fonts.load('100px "Caveat Brush"'),new Promise(r=>setTimeout(r,2500))]);}catch(e){}
+  applyFooter();buildPrint();
+  nextAt=performance.now();requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
