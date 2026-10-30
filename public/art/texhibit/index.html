@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11.21)</title>
+<title>Texhibit — Memory Wall (v11.22)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji&family=Tilt+Neon&display=swap" rel="stylesheet">
@@ -147,7 +147,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const VERSION='v11.21';   // bump with every change: shown in the panel heading and the page title
+const VERSION='v11.22';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -486,6 +486,8 @@ async function pollNow(){
    reload, so a Google hiccup never brings back a hidden text. */
 const MOD_STORE='mbMemoryWall.moderation';
 let hidden=new Set(), edits=new Map(), modOk=0, modErr='', modFails=0, modTimer=null, modPrimed=false;
+let modScript='', modStale=false;   // which sheet script answered; stale = older than this wall understands
+const MOD_API=2;                       // sheet v2+ (edit in place, host lines); v1 meant something else by "edits"
 const hostMsgs=new Map();   // id → message, for host lines typed into the sheet
 try{const c=JSON.parse(localStorage.getItem(MOD_STORE)||'null');
   if(c){hidden=new Set(c.hidden||[]);edits=new Map(Object.entries(c.edits||{}));
@@ -510,6 +512,10 @@ async function pollMod(){
       const r=await fetch(url,{cache:'no-store',signal:ac.signal});
       const j=await r.json().catch(()=>({}));
       if(!r.ok||!j.ok)throw new Error(j.error||('HTTP '+r.status));
+      // An out-of-date published script (e.g. a new version pasted but not deployed) can misread the columns:
+      // v1 read column E as "Edited text", which is now "From". Trust only its hide list, and say so.
+      modScript=j.script||'v1';modStale=(Number(j.api)||1)<MOD_API;
+      if(modStale){j.edits={};j.added=[...hostMsgs.values()].map(m=>({id:m.id,text:m.text,at:new Date(m.ts).toISOString()}));}
       const nh=new Set((j.hidden||[]).map(String)),ne=new Map(Object.entries(j.edits||{}));
       let changed=!sameSet(nh,hidden)||!sameMap(ne,edits);
       hidden=nh;edits=ne;modOk=Date.now();modErr='';modFails=0;
@@ -544,7 +550,9 @@ function modStatus(){
   if(!S.modUrl.trim())return 'sheet not set up';
   const ago=modOk?Math.round((Date.now()-modOk)/1000)+' s ago':'not yet';
   const counts=`${hidden.size} hidden, ${edits.size} edited, ${hostMsgs.size} host line${hostMsgs.size===1?'':'s'}`;
-  return modErr?`sheet error (${modErr}), last good ${ago}, using ${counts}`:`sheet live, ${counts}, checked ${ago}`;
+  if(modErr)return `sheet error (${modErr}), last good ${ago}, using ${counts}`;
+  if(modStale)return `SHEET SCRIPT OUT OF DATE (${modScript}): in Apps Script, Deploy → Manage deployments → New version. Using its hide list only`;
+  return `sheet ${modScript} live, ${counts}, checked ${ago}`;
 }
 
 /* ---------- viewer sizing (16:9, stage scaled to fit) ---------- */
