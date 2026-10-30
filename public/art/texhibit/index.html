@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Texhibit">
 <meta name="theme-color" content="#000000">
-<title>Texhibit — Memory Wall (v11.20)</title>
+<title>Texhibit — Memory Wall (v11.21)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji&family=Tilt+Neon&display=swap" rel="stylesheet">
@@ -147,7 +147,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const VERSION='v11.20';   // bump with every change: shown in the panel heading and the page title
+const VERSION='v11.21';   // bump with every change: shown in the panel heading and the page title
 
 /* ---------- show mode: ?show in the URL, or launched from a home-screen icon ---------- */
 const SHOW=new URLSearchParams(location.search).has('show')
@@ -410,7 +410,7 @@ const cutoffMs=()=>S.cutoff?new Date(S.cutoff).getTime():0;
 const passGate=m=>!S.gateOn||m.ts>=cutoffMs();
 const realMsgs=()=>[...seen.values()].filter(m=>passGate(m)&&!isHidden(m));
 // what the wall draws from: samples only in demo mode, otherwise real texts (past the gate) plus simulated ones
-const pool=()=>S.samples?sampleMsgs:realMsgs().concat(sims);
+const pool=()=>S.samples?sampleMsgs:realMsgs().concat(hostList(),sims);   // host lines from the sheet skip the date gate
 
 function pickNext(){
   while(queue.length){const m=queue.shift();if(pool().includes(m))return m;}
@@ -477,15 +477,20 @@ async function pollNow(){
   pollTimer=setTimeout(pollNow,wait);
 }
 
-/* ---------- moderation sheet (v11.20) ----------
-   The Google Sheet lists which texts are hidden and which have edited wording (see "Moderation sheet/").
+/* ---------- moderation sheet (v11.20; host lines v11.21) ----------
+   The Google Sheet lists which texts are hidden and which have edited wording (see "Moderation sheet/"),
+   plus host lines: messages typed into the sheet to seed the wall. Host lines join the pool without the
+   date gate; ones already there when the wall starts join quietly, and ones added later play next.
    Hidden texts leave the pool at once (and the screen, if showing). An edit shows the next time that
    text comes up. If the sheet can't be reached, the wall keeps the last list it had, including after a
    reload, so a Google hiccup never brings back a hidden text. */
 const MOD_STORE='mbMemoryWall.moderation';
-let hidden=new Set(), edits=new Map(), modOk=0, modErr='', modFails=0, modTimer=null;
+let hidden=new Set(), edits=new Map(), modOk=0, modErr='', modFails=0, modTimer=null, modPrimed=false;
+const hostMsgs=new Map();   // id → message, for host lines typed into the sheet
 try{const c=JSON.parse(localStorage.getItem(MOD_STORE)||'null');
-  if(c){hidden=new Set(c.hidden||[]);edits=new Map(Object.entries(c.edits||{}));}}catch(e){}
+  if(c){hidden=new Set(c.hidden||[]);edits=new Map(Object.entries(c.edits||{}));
+    for(const h of (c.added||[]))hostMsgs.set(h.id,{id:h.id,text:smarten(h.text),ts:new Date(h.at).getTime(),host:true});}}catch(e){}
+function hostList(){return S.modOn?[...hostMsgs.values()]:[];}
 function isHidden(m){return !!(S.modOn&&hidden.has(m.id));}
 function applyEdit(m){
   if(m.orig==null)return;                              // simulated and sample texts aren't in the sheet
@@ -506,10 +511,24 @@ async function pollMod(){
       const j=await r.json().catch(()=>({}));
       if(!r.ok||!j.ok)throw new Error(j.error||('HTTP '+r.status));
       const nh=new Set((j.hidden||[]).map(String)),ne=new Map(Object.entries(j.edits||{}));
-      const changed=!sameSet(nh,hidden)||!sameMap(ne,edits);
+      let changed=!sameSet(nh,hidden)||!sameMap(ne,edits);
       hidden=nh;edits=ne;modOk=Date.now();modErr='';modFails=0;
+      // host lines: add new ones, update changed wording, drop ones hidden or removed in the sheet
+      const added=Array.isArray(j.added)?j.added:[],keep=new Set();
+      for(const h of added){
+        const id=String(h.id),t=smarten(String(h.text||''));keep.add(id);
+        const m=hostMsgs.get(id);
+        if(!m){
+          const nm={id,text:t,ts:new Date(h.at).getTime()||Date.now(),host:true};
+          hostMsgs.set(id,nm);prefetch(nm);changed=true;
+          if(modPrimed&&!S.samples){queue.push(nm);if(cur&&cur.msg.empty)interrupt();}   // added during the party: plays next
+        }else if(m.text!==t){m.text=t;prefetch(m);changed=true;}   // shows the new wording next time
+      }
+      for(const id of [...hostMsgs.keys()])if(!keep.has(id)){hostMsgs.delete(id);changed=true;}
+      modPrimed=true;
       if(changed){
-        try{localStorage.setItem(MOD_STORE,JSON.stringify({hidden:[...hidden],edits:Object.fromEntries(edits)}));}catch(e){}
+        try{localStorage.setItem(MOD_STORE,JSON.stringify({hidden:[...hidden],edits:Object.fromEntries(edits),
+          added:[...hostMsgs.values()].map(m=>({id:m.id,text:m.text,at:new Date(m.ts).toISOString()}))}));}catch(e){}
         applyModeration();
       }
     }catch(e){
@@ -524,7 +543,7 @@ function modStatus(){
   if(!S.modOn)return 'sheet off';
   if(!S.modUrl.trim())return 'sheet not set up';
   const ago=modOk?Math.round((Date.now()-modOk)/1000)+' s ago':'not yet';
-  const counts=`${hidden.size} hidden, ${edits.size} edited`;
+  const counts=`${hidden.size} hidden, ${edits.size} edited, ${hostMsgs.size} host line${hostMsgs.size===1?'':'s'}`;
   return modErr?`sheet error (${modErr}), last good ${ago}, using ${counts}`:`sheet live, ${counts}, checked ${ago}`;
 }
 
