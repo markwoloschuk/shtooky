@@ -40,6 +40,7 @@
     -webkit-text-size-adjust: 100%;
   }
   * { touch-action: manipulation; }
+  [hidden] { display: none !important; }
   body {
     position: fixed; inset: 0;
     font: 18px/1.4 Georgia, 'Times New Roman', serif;
@@ -75,12 +76,15 @@
   .margin-top, .margin-bottom { flex: none; display: grid; place-items: center; color: var(--dim); font-size: 0.75rem; }
   .margin-top    { height: var(--margin-top, 12%); }
   .margin-bottom { height: var(--margin-bottom, 12%); }
-  #s-q1 h2 { font-size: clamp(1rem, 2.6vh, 1.35rem); margin: 0 0 0.6rem; text-align: center; }
-  #s-q1 .choices { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.35rem; margin: 0; }
-  #s-q1 .choices li { flex: 1; min-height: 0; margin: 0; display: flex; }
-  #s-q1 .choice { padding: 0.3rem 0.7rem; align-items: center; font-size: clamp(0.8rem, 2vh, 1rem); line-height: 1.25; }
-  #s-q1 .choice .box { margin-top: 0; }
-  #s-q1 .actions { flex: none; margin-top: 0.6rem; }
+  /* Questions I and III fill exactly one screen: the answers share
+     whatever height is left, so nothing ever scrolls. */
+  .fit h2 { flex: none; font-size: clamp(1rem, 2.6vh, 1.35rem); margin: 0 0 0.6rem; text-align: center; }
+  .fit .choices { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.35rem; margin: 0; }
+  .fit .choices li { flex: 1; min-height: 0; max-height: 4.5rem; margin: 0; display: flex; }
+  .fit .choice { padding: 0.3rem 0.7rem; align-items: center; font-size: clamp(0.8rem, 2vh, 1rem); line-height: 1.25; }
+  .fit .choice .box { margin-top: 0; }
+  .fit .actions { flex: none; margin-top: 0.6rem; }
+  .fit .status { flex: none; min-height: 1.2rem; margin-top: 0.4rem; }
 
   /* Checkbox lists (Questions I and III) */
   .choices { list-style: none; margin: 0 0 1.5rem; padding: 0; }
@@ -102,15 +106,49 @@
   .choice.on .box::after { content: '✓'; }
   .choice b { font-weight: bold; }
 
-  /* Slider (Question II) — plain range input for now; the molar comes later */
-  .slider-wrap { margin: 2rem 0 1rem; }
-  .score { text-align: center; font-size: 2.5rem; min-height: 3rem; }
-  .score.unset { color: var(--dim); font-size: 1rem; padding-top: 1rem; }
-  input[type=range] { width: 100%; height: 2.5rem; accent-color: var(--accent); }
-  input[type=range].unset { opacity: 0.35; }
-  .ends { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; font-size: 0.85rem; color: var(--dim); }
+  /* Question II — the molar slider.
+     Every element has a fixed size so nothing shifts as the value changes:
+     the number lives inside the tooth, the end labels sit in fixed cells. */
+  #s-q2 .illumination {
+    flex: 1; min-height: 0; display: grid; place-items: center;
+    color: var(--dim); font-size: 0.75rem; border: 1px dashed var(--line); border-radius: 0.4rem;
+    margin-bottom: 1rem;
+  }
+  #s-q2 h2 { flex: none; font-size: clamp(1rem, 2.6vh, 1.35rem); text-align: center; margin: 0 0 0.5rem; }
+  .molar-slider {
+    flex: none; position: relative; height: 104px; margin: 0.25rem 0 0;
+    cursor: pointer; outline: none;
+    --thumb-w: 64px;
+  }
+  .molar-slider .track {
+    position: absolute; left: calc(var(--thumb-w) / 2); right: calc(var(--thumb-w) / 2);
+    top: 46px; height: 12px; border-radius: 6px;
+    background: var(--track, #9c7a8f);
+    transition: background-color 120ms linear;
+  }
+  .molar-slider .thumb {
+    position: absolute; top: 0; left: 0; width: var(--thumb-w); height: 70px;
+    transform: translateX(var(--x, 0px));
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+  }
+  .molar-slider .thumb svg { display: block; width: 100%; height: 100%; }
+  .molar-slider .thumb .num {
+    position: absolute; left: 0; right: 0; top: 13px; text-align: center;
+    font-size: 1.5rem; line-height: 1; color: #2a1d14; font-variant-numeric: tabular-nums;
+  }
+  /* Untouched: no number, track and tooth faded until the first touch */
+  .molar-slider.inactive .track,
+  .molar-slider.inactive .thumb { filter: grayscale(1); opacity: 0.4; }
+  .molar-slider.inactive .num { visibility: hidden; }
+  .ends {
+    flex: none; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;
+    height: 3.6rem; font-size: 0.8rem; line-height: 1.25; color: var(--dim);
+    transition: opacity 150ms;
+  }
+  .ends.inactive { opacity: 0.4; }
   .ends span:nth-child(2) { text-align: center; }
   .ends span:nth-child(3) { text-align: right; }
+  #s-q2 .actions { flex: none; margin-top: 0.75rem; }
 
   /* Buttons */
   .actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
@@ -123,18 +161,51 @@
   button.btn:disabled { opacity: 0.3; cursor: default; }
   .solo { display: block; width: 100%; max-width: 20rem; margin: 2rem auto 0; }
 
-  /* Results — plain bars for now; pie + stacked bars come later */
-  .stat { display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid var(--line); }
-  .bar-row { margin: 0 0 0.6rem; }
-  .bar-label { display: flex; justify-content: space-between; font-size: 0.9rem; }
-  .bar { height: 0.6rem; background: var(--line); border-radius: 0.3rem; overflow: hidden; }
-  .bar i { display: block; height: 100%; background: var(--dim); }
-  .bar-row.mine .bar i { background: var(--accent); }
-  .bar-row.mine .bar-label { color: var(--accent); }
-  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin: 0.5rem 0 1.5rem; }
-  th, td { padding: 0.3rem 0.2rem; border-bottom: 1px solid var(--line); text-align: right; }
-  th:first-child, td:first-child { text-align: left; }
-  tr.mine td { color: var(--accent); }
+  /* ── Results ─────────────────────────────────────────────────────
+     Donut for Question I (tap a slice: its share + name appear in the
+     center), a single proportional strip for Question II, and a toggle
+     between everyone and the five generations. The penitent's own
+     answers are marked in gold. */
+  .res-title { margin: 0 0 0.75rem; }
+  .seg-toggle { display: flex; margin: 0 auto 0.75rem; width: max-content; border: 1px solid var(--line); border-radius: 2rem; overflow: hidden; }
+  .seg-toggle button { font: inherit; font-size: 0.85rem; padding: 0.4rem 1rem; background: none; border: 0; color: var(--dim); cursor: pointer; }
+  .seg-toggle button.on { background: var(--line); color: var(--ink); }
+  .gen-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; margin: 0 0 0.5rem; }
+  .gen-chips[hidden] { display: none; }
+  .gen-chips button { font: inherit; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 1rem; border: 1px solid var(--line); background: none; color: var(--dim); cursor: pointer; }
+  .gen-chips button.on { border-color: var(--ink); color: var(--ink); }
+  .gen-chips button.mine { color: var(--accent); }
+  .gen-chips button.mine.on { border-color: var(--accent); }
+  .donut-wrap { position: relative; width: min(72vw, 15rem); aspect-ratio: 1; margin: 0.25rem auto 1rem; }
+  #donut { width: 100%; height: 100%; display: block; overflow: visible; }
+  #donut .slice { cursor: pointer; transition: opacity 150ms, transform 150ms; stroke: var(--bg); stroke-width: 1.5; }
+  #donut .slice.dim { opacity: 0.25; }
+  #donut .mine-arc { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; pointer-events: none; }
+  .donut-center {
+    position: absolute; inset: 30%; border-radius: 50%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; cursor: pointer;
+  }
+  .donut-center .pct { font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+  .donut-center .lbl { font-size: 0.85rem; color: var(--dim); margin-top: 0.2rem; }
+  .donut-center .lbl.mine { color: var(--accent); }
+  .donut-center svg { width: 46%; height: auto; opacity: 0.9; }
+  .strip-title { font-size: 0.85rem; color: var(--dim); text-align: center; margin: 0 0 0.5rem; }
+  .strip-row { margin: 0 0 0.15rem; }
+  .strip-row .gen-label { font-size: 0.75rem; color: var(--dim); margin: 0 0 0.2rem; }
+  .strip-row.mine .gen-label { color: var(--accent); }
+  .strip { position: relative; display: flex; height: 16px; border-radius: 5px; overflow: hidden; background: var(--line); }
+  .strip.big { height: 30px; }
+  .strip i { display: block; height: 100%; }
+  .strip i + i { box-shadow: inset 2px 0 0 rgba(0,0,0,0.55); }
+  .strip-marker { position: relative; height: 0.65rem; }
+  .strip-marker span {
+    position: absolute; top: 1px; transform: translateX(-50%);
+    width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent;
+    border-bottom: 8px solid var(--accent);
+  }
+  .strip-ends { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.7rem; color: var(--dim); margin-top: 0.15rem; }
+  .res-count { margin: 0.25rem 0 0; }
   section { margin: 0 0 2rem; }
   .status { min-height: 1.4rem; margin-top: 1rem; text-align: center; color: var(--dim); font-size: 0.9rem; }
   .badge { display: inline-block; font-size: 0.75rem; padding: 0.15rem 0.5rem; border: 1px solid var(--accent); color: var(--accent); border-radius: 1rem; }
@@ -158,7 +229,7 @@
   </div>
 
   <!-- QUESTION I -->
-  <div class="screen" id="s-q1">
+  <div class="screen fit" id="s-q1">
     <div class="margin-top">heavenly marginalia</div>
     <h2 id="q1-title"></h2>
     <ul class="choices" id="q1-list"></ul>
@@ -170,12 +241,19 @@
 
   <!-- QUESTION II -->
   <div class="screen" id="s-q2">
+    <div class="illumination">illumination</div>
     <h2 id="q2-title"></h2>
-    <div class="slider-wrap">
-      <div class="score unset" id="q2-score">Move the slider</div>
-      <input type="range" id="q2-range" min="1" max="10" step="1" value="5" class="unset" aria-label="Score from 1 to 10">
-      <div class="ends" id="q2-ends"></div>
+    <div class="molar-slider inactive" id="q2-slider" role="slider" tabindex="0"
+         aria-valuemin="0" aria-valuemax="10" aria-label="Score from 0 to 10">
+      <div class="track"></div>
+      <div class="thumb">
+        <svg viewBox="0 0 100 110" aria-hidden="true">
+          <path fill="#f7f1e3" stroke="#d9cdb4" stroke-width="2" d="M18,12 C18,4 30,2 38,8 C44,12 56,12 62,8 C70,2 82,4 82,12 C88,30 86,48 80,58 C76,66 74,80 70,98 C68,106 60,106 58,96 C56,84 54,74 50,74 C46,74 44,84 42,96 C40,106 32,106 30,98 C26,80 24,66 20,58 C14,48 12,30 18,12 Z"/>
+        </svg>
+        <div class="num" id="q2-num"></div>
+      </div>
     </div>
+    <div class="ends inactive" id="q2-ends"></div>
     <div class="actions">
       <button class="btn ghost" id="b-q2-back">Recant</button>
       <button class="btn" id="b-q2-next" disabled>Confess</button>
@@ -183,7 +261,7 @@
   </div>
 
   <!-- QUESTION III -->
-  <div class="screen" id="s-q3">
+  <div class="screen fit" id="s-q3">
     <h2 id="q3-title"></h2>
     <ul class="choices" id="q3-list"></ul>
     <div class="actions">
@@ -195,8 +273,19 @@
 
   <!-- RESULTS -->
   <div class="screen scrolls" id="s-results">
-    <h2 class="center">The Reckoning <span class="badge" id="interviewer-badge" hidden>Interviewer</span></h2>
-    <div id="results-body"><p class="dim center">Gathering the confessions…</p></div>
+    <h2 class="center res-title">The Reckoning <span class="badge" id="interviewer-badge" hidden>Interviewer</span></h2>
+    <div class="seg-toggle" id="res-toggle">
+      <button type="button" data-mode="all" class="on">All</button>
+      <button type="button" data-mode="gen">By generation</button>
+    </div>
+    <div class="gen-chips" id="gen-chips" hidden></div>
+    <div class="donut-wrap">
+      <svg id="donut" viewBox="-110 -110 220 220" aria-label="How oft the faithful floss"></svg>
+      <div class="donut-center" id="donut-center"></div>
+    </div>
+    <div class="strip-title" id="strip-title"></div>
+    <div id="strips"></div>
+    <p class="dim center res-count" id="res-count"></p>
     <button class="btn solo" id="b-next-penitent" hidden>Next penitent</button>
   </div>
 
@@ -243,6 +332,7 @@ const TUNING = {
   submitRetries: 6,         // how many times to retry a confession on a bad connection
   submitRetryBaseMs: 1500,  // first retry wait; doubles each time
   storageKey: 'string_device_v1',
+  q2Start: 5,              // where the tooth sits before it's touched (no number shown)
   q1MarginTop: '12%',       // height reserved for heavenly marginalia above Question I
   q1MarginBottom: '12%',    // height reserved for demons below Question I
 }
@@ -285,6 +375,7 @@ function show(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'))
   $('s-' + name).classList.add('on')
   $('s-' + name).scrollTop = 0
+  if (name === 'q2') placeTooth(q2Pos)
   if (name === 'results') startPolling(); else stopPolling()
 }
 
@@ -315,24 +406,78 @@ function resetQuestions() {
   document.querySelectorAll('.choice').forEach(b => b.classList.remove('on'))
   $('b-q1-next').disabled = true
   $('b-q3-next').disabled = true
-  const range = $('q2-range')
-  range.value = 5
-  range.classList.add('unset')
-  $('q2-score').textContent = 'Move the slider'
-  $('q2-score').classList.add('unset')
+  resetSlider()
   $('b-q2-next').disabled = true
   $('submit-status').textContent = ''
 }
 
-// ═══ SLIDER (II) ══════════════════════════════════════════════════════
-// Starts unset: Confess stays locked until the slider is touched, so
-// nobody sails through on a default 5.
+// ═══ MOLAR SLIDER (II) ════════════════════════════════════════════════
+// 0–10. The tooth starts at 5 with no number, faded, and Confess locked.
+// The first touch (a tap on the tooth counts, even at 5) wakes it up.
+//
+// Track color by score: dark red → bright red (0–4), mauve at 5,
+// purple → very light blue (6–10). Edit the stops here.
+const SCORE_COLORS = [
+  '#4a0a0a', '#6e0f0f', '#951818', '#bd2320', '#e0302a',   // 0–4  hell
+  '#9c7a8f',                                                 // 5    the tolerable middle
+  '#8a4fc4', '#7f7ad6', '#86a5e3', '#b3d2f0', '#e2f3ff',   // 6–10 heaven
+]
+let q2Pos = TUNING.q2Start   // where the tooth sits (shown even before activation)
+
+function placeTooth(v) {
+  const el = $('q2-slider')
+  const thumbW = el.querySelector('.thumb').offsetWidth
+  const travel = el.clientWidth - thumbW
+  el.style.setProperty('--x', `${(v / 10) * travel}px`)
+  el.style.setProperty('--track', SCORE_COLORS[v])
+  el.setAttribute('aria-valuenow', v)
+}
+
 function setScore(v) {
-  answers.q2 = Number(v)
-  $('q2-range').classList.remove('unset')
-  $('q2-score').classList.remove('unset')
-  $('q2-score').textContent = v
+  v = Math.max(0, Math.min(10, Math.round(v)))
+  q2Pos = v
+  answers.q2 = v
+  $('q2-slider').classList.remove('inactive')
+  $('q2-ends').classList.remove('inactive')
+  $('q2-num').textContent = v
   $('b-q2-next').disabled = false
+  placeTooth(v)
+}
+
+function resetSlider() {
+  q2Pos = TUNING.q2Start
+  $('q2-slider').classList.add('inactive')
+  $('q2-ends').classList.add('inactive')
+  $('q2-num').textContent = ''
+  placeTooth(q2Pos)
+}
+
+function wireSlider() {
+  const el = $('q2-slider')
+  let dragging = false
+  const valueAt = clientX => {
+    const r = el.getBoundingClientRect()
+    const thumbW = el.querySelector('.thumb').offsetWidth
+    const t = (clientX - r.left - thumbW / 2) / (r.width - thumbW)
+    return t * 10
+  }
+  el.addEventListener('pointerdown', e => {
+    dragging = true
+    el.setPointerCapture(e.pointerId)
+    // A tap on the tooth itself keeps its value; a tap on the track jumps there.
+    const onThumb = e.target.closest('.thumb')
+    setScore(onThumb ? q2Pos : valueAt(e.clientX))
+  })
+  el.addEventListener('pointermove', e => { if (dragging) setScore(valueAt(e.clientX)) })
+  const stop = () => { dragging = false }
+  el.addEventListener('pointerup', stop)
+  el.addEventListener('pointercancel', stop)
+  el.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { setScore(q2Pos - 1); e.preventDefault() }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { setScore(q2Pos + 1); e.preventDefault() }
+  })
+  // Keep the tooth in the right spot if the phone rotates
+  window.addEventListener('resize', () => placeTooth(q2Pos))
 }
 
 // ═══ SUBMIT ═══════════════════════════════════════════════════════════
@@ -390,52 +535,152 @@ function labelOf(list, code) {
   const o = list.find(x => x.code === code)
   return o ? o.label : code
 }
+// Question I colors: heaven (light blue) to hell (dark red), matching
+// the slider palette. Keyed by answer code.
+const Q1_COLORS = {
+  twice: '#e2f3ff', daily: '#86a5e3', often: '#8a4fc4', weekly: '#9c7a8f',
+  monthly: '#e0302a', seldom: '#951818', never: '#4a0a0a',
+}
+const MOLAR_PATH = 'M18,12 C18,4 30,2 38,8 C44,12 56,12 62,8 C70,2 82,4 82,12 C88,30 86,48 80,58 C76,66 74,80 70,98 C68,106 60,106 58,96 C56,84 54,74 50,74 C46,74 44,84 42,96 C40,106 32,106 30,98 C26,80 24,66 20,58 C14,48 12,30 18,12 Z'
+
+let lastResults = null
+let resMode = 'all'        // 'all' | 'gen'
+let resGen = null          // which generation the donut shows in 'gen' mode
+let selSlice = null        // tapped Question I answer code, or null
+
 const pct = (n, total) => total ? Math.round((n / total) * 100) : 0
-const fmt = v => v === null || v === undefined ? '—' : v
+
+function arcPath(a0, a1, r0, r1) {
+  // angles in radians, 0 = 12 o'clock, clockwise
+  const pt = (a, r) => [Math.sin(a) * r, -Math.cos(a) * r]
+  const large = a1 - a0 > Math.PI ? 1 : 0
+  const [x0, y0] = pt(a0, r1), [x1, y1] = pt(a1, r1)
+  const [x2, y2] = pt(a1, r0), [x3, y3] = pt(a0, r0)
+  return `M${x0},${y0} A${r1},${r1} 0 ${large} 1 ${x1},${y1} L${x2},${y2} A${r0},${r0} 0 ${large} 0 ${x3},${y3} Z`
+}
+function arcLine(a0, a1, r) {
+  const pt = a => [Math.sin(a) * r, -Math.cos(a) * r]
+  const [x0, y0] = pt(a0), [x1, y1] = pt(a1)
+  return `M${x0},${y0} A${r},${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${x1},${y1}`
+}
+
+function drawDonut(q1Counts, total, myCode) {
+  const svg = $('donut')
+  const R_OUT = 96, R_IN = 62
+  let html = ''
+  if (!total) {
+    html = `<path d="${arcPath(0, Math.PI * 2 - 0.0001, R_IN, R_OUT)}" fill="var(--line)"/>`
+  } else {
+    let a = 0
+    for (const o of COPY.q1.options) {
+      const n = q1Counts[o.code] || 0
+      if (!n) continue
+      const sweep = (n / total) * Math.PI * 2
+      const a1 = a + sweep
+      const mid = a + sweep / 2
+      const pop = selSlice === o.code ? 6 : 0
+      const dx = Math.sin(mid) * pop, dy = -Math.cos(mid) * pop
+      const cls = 'slice' + (selSlice && selSlice !== o.code ? ' dim' : '')
+      const d = sweep >= Math.PI * 2 - 0.001 ? arcPath(0, Math.PI * 2 - 0.0001, R_IN, R_OUT) : arcPath(a, a1, R_IN, R_OUT)
+      html += `<path class="${cls}" data-code="${o.code}" d="${d}" fill="${Q1_COLORS[o.code]}" transform="translate(${dx},${dy})"/>`
+      // The penitent's own slice: a gold arc just outside the ring
+      if (o.code === myCode) {
+        const inset = Math.min(0.03, sweep * 0.15)
+        html += `<path class="mine-arc" d="${arcLine(a + inset, a1 - inset, R_OUT + 7)}" transform="translate(${dx},${dy})"/>`
+      }
+      a = a1
+    }
+  }
+  svg.innerHTML = html
+
+  // Center: a tooth at rest; the tapped slice's share and name when selected
+  const c = $('donut-center')
+  if (selSlice) {
+    const opt = COPY.q1.options.find(o => o.code === selSlice)
+    const n = q1Counts[selSlice] || 0
+    c.innerHTML = `<div class="pct">${pct(n, total)}%</div><div class="lbl${selSlice === myCode ? ' mine' : ''}">${opt.label}</div>`
+  } else {
+    c.innerHTML = `<svg viewBox="0 0 100 110" aria-hidden="true"><path fill="#f7f1e3" d="${MOLAR_PATH}"/></svg>`
+  }
+}
+
+// A single proportional strip: each score's width is its share of the
+// total, colored by score — the alien-quiz look.
+function stripHTML(dist, myScore, big) {
+  const total = dist.reduce((a, b) => a + b, 0)
+  let bar = ''
+  let marker = ''
+  if (total) {
+    let before = 0
+    dist.forEach((n, score) => {
+      if (!n) { return }
+      bar += `<i style="flex:${n};background:${SCORE_COLORS[score]}"></i>`
+      if (score === myScore) marker = `<span style="left:${((before + n / 2) / total) * 100}%"></span>`
+      before += n
+    })
+  }
+  return `<div class="strip${big ? ' big' : ''}">${bar}</div><div class="strip-marker">${marker}</div>`
+}
 
 function renderResults(r) {
+  if (r) lastResults = r
+  r = lastResults
   if (!r) return
-  const total = r.total || 0
   const myQ1 = mine && mine.q1
+  const myScore = mine ? mine.q2 : null
   const myGen = mine && mine.gen
-  let html = ''
 
-  html += `<section>
-    <div class="stat"><span>Confessions heard</span><b>${total}</b></div>
-    <div class="stat"><span>Love of the thread — average</span><b>${fmt(r.q2.avg)}</b></div>
-    <div class="stat"><span>Love of the thread — median</span><b>${fmt(r.q2.median)}</b></div>
-    ${mine ? `<div class="stat" style="color:var(--accent)"><span>Thy love of the thread</span><b>${mine.q2}</b></div>` : ''}
-  </section>`
+  // Generation chips (only in 'gen' mode); the penitent's own starts selected
+  if (resMode === 'gen' && !resGen) resGen = myGen || 'boomer'
+  const chips = $('gen-chips')
+  chips.hidden = resMode !== 'gen'
+  chips.innerHTML = COPY.q3.options.map(g =>
+    `<button type="button" data-gen="${g.code}" class="${g.code === resGen ? 'on' : ''}${g.code === myGen ? ' mine' : ''}">${g.label}</button>`
+  ).join('')
 
-  // Question I — how often (pie chart later)
-  html += `<section><h2>How oft the faithful floss</h2>`
-  for (const o of COPY.q1.options) {
-    const n = r.q1[o.code] || 0
-    const isMine = o.code === myQ1
-    html += `<div class="bar-row${isMine ? ' mine' : ''}">
-      <div class="bar-label"><span>${o.label}${isMine ? ' — thee' : ''}</span><span>${n} · ${pct(n, total)}%</span></div>
-      <div class="bar"><i style="width:${pct(n, total)}%"></i></div>
-    </div>`
+  // Donut: everyone, or the chosen generation
+  const group = resMode === 'gen' ? r.byGen[resGen] : r
+  drawDonut(group.q1, group.total, resMode === 'gen' && resGen !== myGen ? null : myQ1)
+
+  // Question II strips
+  $('strip-title').textContent = 'How the holy thread resteth upon the soul'
+  let strips = ''
+  if (resMode === 'all') {
+    strips = stripHTML(r.q2.dist, myScore, true)
+  } else {
+    for (const g of COPY.q3.options) {
+      const gr = r.byGen[g.code]
+      const isMine = g.code === myGen
+      strips += `<div class="strip-row${isMine ? ' mine' : ''}"><div class="gen-label">${g.label} · ${gr.total}</div>${stripHTML(gr.q2.dist, isMine ? myScore : null, false)}</div>`
+    }
   }
-  if (myQ1) {
-    const same = r.q1[myQ1] || 0
-    html += `<p class="dim">Thou art among the ${pct(same, total)}% who floss “${labelOf(COPY.q1.options, myQ1)}.”</p>`
-  }
-  html += `</section>`
+  strips += `<div class="strip-ends"><span>0 · ${COPY.q2.left}</span><span>${COPY.q2.right} · 10</span></div>`
+  $('strips').innerHTML = strips
 
-  // By generation (stacked bars later)
-  html += `<section><h2>By generation</h2><div style="overflow-x:auto"><table>
-    <tr><th></th><th>n</th>${COPY.q1.options.map(o => `<th>${o.label}</th>`).join('')}<th>avg</th><th>med</th></tr>`
-  for (const g of COPY.q3.options) {
-    const gr = r.byGen[g.code]
-    if (!gr) continue
-    html += `<tr class="${g.code === myGen ? 'mine' : ''}"><td>${g.label}</td><td>${gr.total}</td>
-      ${COPY.q1.options.map(o => `<td>${gr.q1[o.code] || 0}</td>`).join('')}
-      <td>${fmt(gr.q2.avg)}</td><td>${fmt(gr.q2.median)}</td></tr>`
-  }
-  html += `</table></div></section>`
+  const n = group.total
+  $('res-count').textContent = `${n} ${n === 1 ? 'confession' : 'confessions'} heard${resMode === 'gen' ? ' from ' + labelOf(COPY.q3.options, resGen) : ''}`
+}
 
-  $('results-body').innerHTML = html
+function wireResults() {
+  $('res-toggle').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return
+    resMode = b.dataset.mode
+    selSlice = null
+    $('res-toggle').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b))
+    renderResults()
+  })
+  $('gen-chips').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return
+    resGen = b.dataset.gen
+    selSlice = null
+    renderResults()
+  })
+  $('donut').addEventListener('click', e => {
+    const sl = e.target.closest('.slice'); if (!sl) return
+    selSlice = selSlice === sl.dataset.code ? null : sl.dataset.code
+    renderResults()
+  })
+  $('donut-center').addEventListener('click', () => { if (selSlice) { selSlice = null; renderResults() } })
 }
 
 async function fetchResults() {
@@ -469,9 +714,8 @@ function init() {
   buildChoices($('q1-list'), COPY.q1.options, 'q1', $('b-q1-next'))
   buildChoices($('q3-list'), COPY.q3.options, 'gen', $('b-q3-next'))
 
-  const range = $('q2-range')
-  range.addEventListener('input', e => setScore(e.target.value))
-  range.addEventListener('pointerdown', () => setScore(range.value))
+  wireSlider()
+  wireResults()
 
   $('b-enter').addEventListener('click', () => show('q1'))         // chant will start here later
   $('b-behold').addEventListener('click', () => show('results'))
@@ -480,7 +724,7 @@ function init() {
   $('b-q2-next').addEventListener('click', () => show('q3'))
   $('b-q3-back').addEventListener('click', () => show('q2'))
   $('b-q3-next').addEventListener('click', submit)
-  $('b-next-penitent').addEventListener('click', () => { mine = null; resetQuestions(); show('q1') })
+  $('b-next-penitent').addEventListener('click', () => { mine = null; selSlice = null; resGen = null; resetQuestions(); show('q1') })
 
   if (INTERVIEWER) {
     $('interviewer-badge').hidden = false

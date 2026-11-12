@@ -63,8 +63,9 @@ const KEY_LOG = 'string:log'
 const Q1 = ['never', 'seldom', 'monthly', 'weekly', 'often', 'daily', 'twice'] as const
 // III. Of what generation art thou begotten?
 const GEN = ['boomer', 'genx', 'millennial', 'genz', 'decline'] as const
-// II. How doth the holy thread rest upon thy soul? — whole numbers 1–10
-const Q2_MIN = 1
+// II. How doth the holy thread rest upon thy soul? — whole numbers 0–10
+// (0–10 so that 5 sits dead center)
+const Q2_MIN = 0
 const Q2_MAX = 10
 
 type Q1Code = (typeof Q1)[number]
@@ -103,7 +104,7 @@ function isInterviewer(key: unknown): boolean {
 type ScoreStats = { avg: number | null; median: number | null; dist: number[] }
 type Group = { total: number; q1: Record<Q1Code, number>; q2: ScoreStats }
 
-// dist[i] = number of people who chose score i+1.
+// dist[i] = number of people who chose score i (0–10).
 function scoreStats(dist: number[]): ScoreStats {
   const n = dist.reduce((a, b) => a + b, 0)
   if (n === 0) return { avg: null, median: null, dist }
