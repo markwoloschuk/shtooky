@@ -48,21 +48,88 @@
     -webkit-user-select: none; user-select: none;
     -webkit-touch-callout: none;
   }
-  main { height: 100%; max-width: 34rem; margin: 0 auto; }
+  main { position: relative; height: 100%; max-width: 34rem; margin: 0 auto; perspective: 1200px; }
   .screen {
     display: none;
-    height: 100%;
+    position: absolute; inset: 0;
+    background: var(--bg);
+    transform-origin: left center;
+    -webkit-backface-visibility: hidden; backface-visibility: hidden;
     padding: calc(env(safe-area-inset-top) + 1rem) 1.25rem calc(env(safe-area-inset-bottom) + 1rem);
     flex-direction: column;
   }
   .screen.on { display: flex; }
   .screen.scrolls { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: none; }
   .screen.scrolls.on { display: block; }
+  /* ── Parchment (the three questions) ───────────────────────────────
+     Ink-on-paper colors override the dark theme inside .paper screens.
+     Manuscript red replaces gold: gold disappears on paper. The paper
+     grain is generated (two layers of SVG noise), so no image loads. */
+  .paper {
+    --ink: #23170d; --dim: #6b5a44; --line: rgba(90,64,30,0.38);
+    --accent: #8e1b14; --on-accent: #f3e6c8; --expl: #4a3a28;
+    color: var(--ink);
+    background-color: #e6d6b4;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='a'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0 0.08 0 0 0 0.22 0'/></filter><filter id='b'><feTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.3 0 0 0 0 0.1 0 0 0 0.35 0'/></filter><rect width='100%' height='100%' filter='url(%23b)'/><rect width='100%' height='100%' filter='url(%23a)'/></svg>");
+  }
+  /* Candlelight over everything: an edge vignette and a slow flicker.
+     Strengths live in TUNING. */
+  .fx { position: absolute; inset: 0; pointer-events: none; z-index: 50; }
+  #fx-black { background: #000; opacity: 0; }
+  /* Shading layers inside each screen, driven during a page turn */
+  .turn-sh, .turn-dk { position: absolute; inset: 0; pointer-events: none; z-index: 40; }
   h1, h2 { font-weight: normal; line-height: 1.2; }
   h1 { font-size: 1.8rem; text-align: center; margin: 3rem 0 2rem; }
   h2 { font-size: 1.35rem; margin: 0 0 1.25rem; }
   .center { text-align: center; }
   .dim { color: var(--dim); font-size: 0.9rem; }
+
+  /* ── Splash: the icon of St. Ring, built from layers ───────────────
+     Art canvas is 941 × 1672. Every layer is placed in canvas pixels
+     (converted to % in script), so the whole icon scales as one piece.
+     It's letterboxed on black, like an icon hung on a dark wall. */
+  .splash { align-items: center; justify-content: center; background: #000; }
+  .art {
+    position: relative; flex: none; overflow: hidden; background: #000;
+    aspect-ratio: 941 / 1672;
+    width: min(100%, calc((100dvh - 7.5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 0.5628));
+  }
+  .art .ly { position: absolute; display: block; pointer-events: none; opacity: 0; transform-origin: 50% 42%; }
+  .art .grp { position: absolute; inset: 0; pointer-events: none; transform-origin: 50% 42%; }
+  .art.static .ly { opacity: 1; }
+  .art .full { left: 0; top: 0; width: 100%; height: 100%; }
+  .art .eyes {
+    -webkit-mask-image: var(--eye-mask); mask-image: var(--eye-mask);
+    -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+  }
+  .art .eyes img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .art .eb {
+    position: absolute; top: 0; width: 100%; height: 100%;
+    background-size: 100% 100%; background-repeat: no-repeat;
+    transform: translate(var(--gx, 0%), var(--gy, 0%));
+    transition: transform var(--glance-ms, 700ms) cubic-bezier(0.45, 0, 0.2, 1);
+  }
+  .art .smile { filter: drop-shadow(0 0 calc(var(--u) * 6px) rgba(255, 248, 225, 0.95)) drop-shadow(0 0 calc(var(--u) * 18px) rgba(255, 230, 170, 0.6)); }
+  .art .caption {
+    position: absolute; left: 20%; right: 20%; top: 88.6%; height: 5.6%;
+    display: grid; place-items: center; text-align: center;
+    font-style: italic; color: #4a120c; line-height: 1.1;
+    font-size: calc(var(--u) * 44px);
+  }
+  .art .glint {
+    position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none;
+  }
+  .art .glint::before, .art .glint::after {
+    content: ''; position: absolute; left: 50%; top: 50%;
+    background: radial-gradient(ellipse at center, #fff 0%, rgba(255,255,255,0.9) 20%, rgba(255,255,255,0) 70%);
+    transform: translate(-50%, -50%);
+  }
+  .art .glint::before { width: calc(var(--u) * 260px); height: calc(var(--u) * 26px); }
+  .art .glint::after  { width: calc(var(--u) * 26px);  height: calc(var(--u) * 260px); }
+  .splash-cta { flex: none; height: 5.5rem; width: 100%; max-width: 20rem; display: flex; align-items: center; }
+  .splash-cta .solo { margin: 0; }
+  #s-splash .splash-cta { opacity: 0; pointer-events: none; }
+  #s-splash .splash-cta.ready { pointer-events: auto; }
 
   /* Placeholder for the St. Ring image (stand-in) */
   .saint {
@@ -81,8 +148,13 @@
   .fit h2 { flex: none; font-size: clamp(1rem, 2.6vh, 1.35rem); margin: 0 0 0.6rem; text-align: center; }
   .fit .choices { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.35rem; margin: 0; }
   .fit .choices li { flex: 1; min-height: 0; max-height: 4.5rem; margin: 0; display: flex; }
-  .fit .choice { padding: 0.3rem 0.7rem; align-items: center; font-size: clamp(0.8rem, 2vh, 1rem); line-height: 1.25; }
-  .fit .choice .box { margin-top: 0; }
+  .fit .choice {
+    display: grid; grid-template-columns: 1.1rem 6.4rem 1fr; gap: 0.6rem;
+    padding: 0.25rem 0.7rem; align-items: center;
+  }
+  .fit .choice .box { margin-top: 0; width: 1.05rem; height: 1.05rem; }
+  .choice b { font-size: clamp(0.95rem, 2.5vh, 1.15rem); line-height: 1.1; }
+  .choice i { font-size: clamp(0.72rem, 1.8vh, 0.85rem); line-height: 1.2; color: var(--expl, var(--dim)); }
   .fit .actions { flex: none; margin-top: 0.6rem; }
   .fit .status { flex: none; min-height: 1.2rem; margin-top: 0.4rem; }
 
@@ -100,8 +172,8 @@
     border: 1.5px solid var(--dim); border-radius: 0.2rem;
     display: grid; place-items: center; font-size: 0.9rem; line-height: 1;
   }
-  .choice.on { border-color: var(--accent); }
-  .choice.on .box { border-color: var(--accent); background: var(--accent); color: var(--bg); }
+  .choice.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+  .choice.on .box { border-color: var(--accent); background: var(--accent); color: var(--on-accent, var(--bg)); }
   .choice .box::after { content: ''; }
   .choice.on .box::after { content: '✓'; }
   .choice b { font-weight: bold; }
@@ -112,9 +184,9 @@
   #s-q2 .illumination {
     flex: 1; min-height: 0; display: grid; place-items: center;
     color: var(--dim); font-size: 0.75rem; border: 1px dashed var(--line); border-radius: 0.4rem;
-    margin-bottom: 1rem;
+    margin-top: 0.5rem;
   }
-  #s-q2 h2 { flex: none; font-size: clamp(1rem, 2.6vh, 1.35rem); text-align: center; margin: 0 0 0.5rem; }
+  #s-q2 h2 { flex: none; font-size: clamp(1.1rem, 3vh, 1.45rem); text-align: left; white-space: pre-line; margin: 0.5rem 0 0.75rem; }
   .molar-slider {
     flex: none; position: relative; height: 104px; margin: 0.25rem 0 0;
     cursor: pointer; outline: none;
@@ -129,7 +201,7 @@
   .molar-slider .thumb {
     position: absolute; top: 0; left: 0; width: var(--thumb-w); height: 70px;
     transform: translateX(var(--x, 0px));
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+    filter: drop-shadow(0 2px 3px rgba(40,20,0,0.35));
   }
   .molar-slider .thumb svg { display: block; width: 100%; height: 100%; }
   .molar-slider .thumb .num {
@@ -142,20 +214,22 @@
   .molar-slider.inactive .num { visibility: hidden; }
   .ends {
     flex: none; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;
-    height: 3.6rem; font-size: 0.8rem; line-height: 1.25; color: var(--dim);
+    height: 1.3rem; font-size: 0.72rem; line-height: 1.3; white-space: nowrap; color: var(--expl, var(--dim)); font-style: italic;
     transition: opacity 150ms;
   }
   .ends.inactive { opacity: 0.4; }
   .ends span:nth-child(2) { text-align: center; }
   .ends span:nth-child(3) { text-align: right; }
-  #s-q2 .actions { flex: none; margin-top: 0.75rem; }
+  /* Buttons sit at the very bottom of every question page, always in the
+     same place: each screen ends with its .actions row. */
+  .paper .actions { flex: none; margin-top: 0.75rem; }
 
   /* Buttons */
   .actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
   button.btn {
     flex: 1; padding: 0.9rem 1rem; font: inherit; cursor: pointer;
     border-radius: 0.4rem; border: 1px solid var(--accent);
-    background: var(--accent); color: var(--bg);
+    background: var(--accent); color: var(--on-accent, var(--bg));
   }
   button.btn.ghost { background: none; color: var(--ink); border-color: var(--line); }
   button.btn:disabled { opacity: 0.3; cursor: default; }
@@ -212,48 +286,50 @@
 </style>
 </head>
 <body>
-<main>
+<main id="stage">
+  <div class="fx" id="fx-vignette"></div>
+  <div class="fx" id="fx-flicker"></div>
+  <div class="fx" id="fx-black"></div>
+  <div class="fx" id="fx-white" style="background:#fff;opacity:0"></div>
 
   <!-- SPLASH — first visit -->
-  <div class="screen" id="s-splash">
-    <div class="saint">St. Ring<br>(stand-in)</div>
-    <h1>St. Ring will hear your confession</h1>
-    <button class="btn solo" id="b-enter">Enter the confessional</button>
+  <div class="screen splash" id="s-splash">
+    <div class="art" id="art-splash"></div>
+    <div class="splash-cta"><button class="btn solo" id="b-enter">Enter the confessional</button></div>
   </div>
 
   <!-- SPLASH — return visit -->
-  <div class="screen" id="s-return">
-    <div class="saint">St. Ring<br>(stand-in)</div>
-    <h1>Thou hast confessed.</h1>
-    <button class="btn solo" id="b-behold">Behold the Reckoning</button>
+  <div class="screen splash" id="s-return">
+    <div class="art static" id="art-return"></div>
+    <div class="splash-cta"><button class="btn solo" id="b-behold">Behold the Reckoning</button></div>
   </div>
 
   <!-- QUESTION I -->
-  <div class="screen fit" id="s-q1">
+  <div class="screen fit paper" id="s-q1">
     <div class="margin-top">heavenly marginalia</div>
     <h2 id="q1-title"></h2>
     <ul class="choices" id="q1-list"></ul>
+    <div class="margin-bottom">demons</div>
     <div class="actions">
       <button class="btn" id="b-q1-next" disabled>Confess</button>
     </div>
-    <div class="margin-bottom">demons</div>
   </div>
 
   <!-- QUESTION II -->
-  <div class="screen" id="s-q2">
-    <div class="illumination">illumination</div>
+  <div class="screen paper" id="s-q2">
     <h2 id="q2-title"></h2>
     <div class="molar-slider inactive" id="q2-slider" role="slider" tabindex="0"
          aria-valuemin="0" aria-valuemax="10" aria-label="Score from 0 to 10">
       <div class="track"></div>
       <div class="thumb">
         <svg viewBox="0 0 100 110" aria-hidden="true">
-          <path fill="#f7f1e3" stroke="#d9cdb4" stroke-width="2" d="M18,12 C18,4 30,2 38,8 C44,12 56,12 62,8 C70,2 82,4 82,12 C88,30 86,48 80,58 C76,66 74,80 70,98 C68,106 60,106 58,96 C56,84 54,74 50,74 C46,74 44,84 42,96 C40,106 32,106 30,98 C26,80 24,66 20,58 C14,48 12,30 18,12 Z"/>
+          <path fill="#fbf6ea" stroke="#8a7a60" stroke-width="3" d="M18,12 C18,4 30,2 38,8 C44,12 56,12 62,8 C70,2 82,4 82,12 C88,30 86,48 80,58 C76,66 74,80 70,98 C68,106 60,106 58,96 C56,84 54,74 50,74 C46,74 44,84 42,96 C40,106 32,106 30,98 C26,80 24,66 20,58 C14,48 12,30 18,12 Z"/>
         </svg>
         <div class="num" id="q2-num"></div>
       </div>
     </div>
     <div class="ends inactive" id="q2-ends"></div>
+    <div class="illumination">illumination</div>
     <div class="actions">
       <button class="btn ghost" id="b-q2-back">Recant</button>
       <button class="btn" id="b-q2-next" disabled>Confess</button>
@@ -261,14 +337,14 @@
   </div>
 
   <!-- QUESTION III -->
-  <div class="screen fit" id="s-q3">
+  <div class="screen fit paper" id="s-q3">
     <h2 id="q3-title"></h2>
     <ul class="choices" id="q3-list"></ul>
+    <div class="status" id="submit-status"></div>
     <div class="actions">
       <button class="btn ghost" id="b-q3-back">Recant</button>
       <button class="btn" id="b-q3-next" disabled>Final Confession</button>
     </div>
-    <div class="status" id="submit-status"></div>
   </div>
 
   <!-- RESULTS -->
@@ -309,10 +385,10 @@ const COPY = {
     ],
   },
   q2: {
-    title: 'II. How doth the holy thread rest upon thy soul?',
-    left:   'Foul penance! I loathe it.',
-    middle: '’Tis a tolerable burden.',
-    right:  'Verily, it bringeth me rapture.',
+    title: 'II. How doth the holy thread\nrest upon thy soul?',   // \n = line break
+    left:   'Foul penance!',
+    middle: '’Tis tolerable',
+    right:  'Rapture and ecstasy.',
   },
   q3: {
     title: 'III. Of what generation art thou begotten?',
@@ -332,6 +408,27 @@ const TUNING = {
   submitRetries: 6,         // how many times to retry a confession on a bad connection
   submitRetryBaseMs: 1500,  // first retry wait; doubles each time
   storageKey: 'string_device_v1',
+  // Page turns between screens (locked 2026-11-12 on the Transition Bench)
+  transition: 'turn',      // 'turn' | 'dip' (dip to black, the fallback)
+  turnMs: 1500,
+  castShadow: 0.80,        // shadow the turning page casts on the page beneath
+  shadowSoftness: 60,      // width of that shadow's soft edge, % of screen
+  pageDarken: 0.40,        // how dark the turning page gets as it swings away
+  perspective: 1200,       // camera distance in px; lower = more 3D
+  dipMs: 900,              // dip to black: fade down + fade up, total
+  dipHoldMs: 150,
+  // Candlelight
+  vignette: 0.50,          // 0–1, edge darkening
+  flicker: 0.07,           // 0–1, brightness flicker
+  // Splash timing, in seconds from the start (multiplied by splashSpeed)
+  splashSpeed: 1.0,        // 0.5 = twice as fast, 2 = half speed
+  smileAt: 0.4,   smileFade: 1.4,
+  starsAt: 1.9,   starStagger: 0.22, starFade: 0.9,
+  haloAt: 3.2,    haloFade: 1.6,
+  artAt: 4.2,     artFade: 2.0,    // sky, saint and frame come up together
+  captionAt: 6.2, buttonAt: 6.9,
+  pushSeconds: 14,         // slow push-in with parallax, from the very start
+  glanceDownAt: 7.6,       // eyes drift down toward the button
   q2Start: 5,              // where the tooth sits before it's touched (no number shown)
   q1MarginTop: '12%',       // height reserved for heavenly marginalia above Question I
   q1MarginBottom: '12%',    // height reserved for demons below Question I
@@ -371,12 +468,246 @@ function deviceId() {
 }
 const DEVICE = deviceId()
 
-function show(name) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'))
-  $('s-' + name).classList.add('on')
+let currentScreen = null
+let turning = false
+
+function enter(name) {
+  currentScreen = name
   $('s-' + name).scrollTop = 0
   if (name === 'q2') placeTooth(q2Pos)
   if (name === 'results') startPolling(); else stopPolling()
+}
+
+// Instant switch (first load, and when no transition is wanted)
+function show(name) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.toggle('on', s.id === 's-' + name)
+    s.style.zIndex = ''
+    s.style.transform = ''
+  })
+  enter(name)
+}
+
+// ═══ PAGE TURN ═════════════════════════════════════════════════════════
+// Forward: the current page swings away on a spine at the left edge,
+// darkening as it goes, and its shadow sweeps across the page beneath.
+// Back (Recant): the previous page swings back in, the same in reverse.
+const easeInOut = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+
+function turnFrame(page, under, k) {
+  const deg = 95 * k
+  const rad = Math.min(deg, 90) * Math.PI / 180
+  const sn = Math.sin(rad)
+  page.style.transform = `rotateY(${-deg}deg)`
+  const edge = Math.max(0, Math.cos(rad)) * 100
+  const pen = TUNING.shadowSoftness * (0.25 + sn)
+  const str = TUNING.castShadow * Math.pow(1 - k, 0.8)   // fades to nothing by the end — no pop
+  under.querySelector('.turn-sh').style.background = str < 0.002 ? 'none'
+    : `linear-gradient(to right, rgba(30,14,0,${str}) 0%, rgba(30,14,0,${str}) ${edge}%, rgba(30,14,0,0) ${edge + pen}%)`
+  page.querySelector('.turn-dk').style.background =
+    `linear-gradient(to left, rgba(15,6,0,${TUNING.pageDarken * Math.pow(sn, 1.3)}), rgba(15,6,0,${TUNING.pageDarken * 0.6 * Math.pow(sn, 1.3)}))`
+}
+
+function animate(ms, f) {
+  return new Promise(res => {
+    const t0 = performance.now()
+    const frame = now => {
+      const k = Math.min(1, (now - t0) / ms)
+      f(easeInOut(k))
+      if (k < 1) requestAnimationFrame(frame); else res()
+    }
+    requestAnimationFrame(frame)
+  })
+}
+
+function clearTurn(el) {
+  el.style.transform = ''
+  el.style.zIndex = ''
+  el.querySelector('.turn-sh').style.background = 'none'
+  el.querySelector('.turn-dk').style.background = 'none'
+}
+
+async function go(name, dir) {
+  if (turning || name === currentScreen) return
+  if (!currentScreen) return show(name)
+  turning = true
+  $('stage').style.pointerEvents = 'none'
+  const out = $('s-' + currentScreen)
+  const inc = $('s-' + name)
+
+  if (TUNING.transition === 'dip') {
+    const blk = $('fx-black')
+    const half = TUNING.dipMs / 2
+    await blk.animate([{ opacity: 0 }, { opacity: 1 }], { duration: half, easing: 'ease-in-out', fill: 'forwards' }).finished
+    show(name)
+    await new Promise(r => setTimeout(r, TUNING.dipHoldMs))
+    await blk.animate([{ opacity: 1 }, { opacity: 0 }], { duration: half, easing: 'ease-in-out', fill: 'forwards' }).finished
+  } else {
+    inc.classList.add('on')
+    enter(name)                      // lay out the incoming page (tooth position etc.)
+    if (dir > 0) {
+      out.style.zIndex = 2; inc.style.zIndex = 1
+      await animate(TUNING.turnMs, k => turnFrame(out, inc, k))
+    } else {
+      inc.style.zIndex = 2; out.style.zIndex = 1
+      turnFrame(inc, out, 1)
+      await animate(TUNING.turnMs, k => turnFrame(inc, out, 1 - k))
+    }
+    out.classList.remove('on')
+    clearTurn(out); clearTurn(inc)
+  }
+  $('stage').style.pointerEvents = ''
+  turning = false
+}
+
+// ═══ CANDLELIGHT ═══════════════════════════════════════════════════════
+function startCandle() {
+  const a = TUNING.vignette
+  $('fx-vignette').style.boxShadow = `inset 0 0 ${30 + 70 * a}px ${10 + 30 * a}px rgba(20,8,0,${0.25 + 0.6 * a})`
+  const fl = $('fx-flicker')
+  const t0 = performance.now()
+  const frame = now => {
+    const t = (now - t0) / 1000
+    const n = 0.5 * Math.sin(t * 7.3) + 0.3 * Math.sin(t * 13.1 + 1.7) + 0.2 * Math.sin(t * 23.7 + 0.4) + 0.25 * (Math.random() - 0.5)
+    fl.style.background = `rgba(25,10,0,${Math.max(0, TUNING.flicker * (0.5 + 0.5 * n))})`
+    requestAnimationFrame(frame)
+  }
+  requestAnimationFrame(frame)
+}
+
+
+// ═══ SPLASH ART ════════════════════════════════════════════════════════
+// Layer placement in canvas pixels (941 × 1672), measured against the WIP
+// comp. Nudge any number here; everything else follows.
+const ASSET = '/art/string/splash/'
+const ART = {
+  W: 941, H: 1672,
+  halo:  { x: 165,   y: 190,   w: 618,   h: 611 },
+  saint: { x: 0,     y: 293,   w: 934,   h: 1245 },
+  eyes:  { x: 408.3, y: 473.8, w: 216.6, h: 72.2 },
+  smile: { x: 481,   y: 605,   w: 72,    h: 23 },
+  // Stars: centre x, centre y, size, which art (1 or 2)
+  stars: [
+    [351, 174, 70, 1], [585, 174, 70, 2], [186, 306, 80, 2], [762, 306, 80, 1],
+    [114, 555, 95, 1], [816, 555, 95, 2], [153, 672, 85, 2], [750, 720, 90, 1],
+  ],
+  // Eyeballs as drawn sit cross-eyed; these shifts centre each pupil
+  // (as a % of the eye layer's width).
+  eyeCentreL: -6.95, eyeCentreR: 7.0,
+  // Parallax: how much each layer grows during the push-in
+  push: { bg: 1.02, stars: 1.03, halo: 1.035, saint: 1.045, frame: 1.06 },
+}
+
+const cpct = (v, of) => (v / of * 100) + '%'
+function place(el, r) {
+  el.style.left = cpct(r.x, ART.W); el.style.top = cpct(r.y, ART.H)
+  el.style.width = cpct(r.w, ART.W); el.style.height = cpct(r.h, ART.H)
+}
+function img(src, cls) {
+  const i = document.createElement('img')
+  i.src = ASSET + src; i.alt = ''; i.className = 'ly ' + (cls || ''); i.decoding = 'async'
+  return i
+}
+
+function buildArt(host, caption) {
+  host.style.setProperty('--eye-mask', `url(${ASSET}eye_whites.webp)`)
+  const g = name => { const d = document.createElement('div'); d.className = 'grp g-' + name; host.appendChild(d); return d }
+  const L = {}
+  L.bgGrp = g('bg');       L.bg = img('bg.webp', 'full'); L.bgGrp.appendChild(L.bg)
+  L.starGrp = g('stars');  L.stars = ART.stars.map(([x, y, sz, n]) => {
+    const st = img(`star${n}.webp`, 'star'); place(st, { x: x - sz / 2, y: y - sz / 2, w: sz, h: sz }); L.starGrp.appendChild(st); return st
+  })
+  L.haloGrp = g('halo');   L.halo = img('halo.webp'); place(L.halo, ART.halo); L.haloGrp.appendChild(L.halo)
+  L.saintGrp = g('saint'); L.saint = img('saint.webp'); place(L.saint, ART.saint); L.saintGrp.appendChild(L.saint)
+  L.eyes = document.createElement('div'); L.eyes.className = 'ly eyes'; place(L.eyes, ART.eyes)
+  L.eyes.innerHTML = `<img src="${ASSET}eye_whites.webp" alt="">
+    <div class="eb" style="left:${ART.eyeCentreL}%;background-image:url(${ASSET}eyeballs.webp);clip-path:inset(0 50% 0 0)"></div>
+    <div class="eb" style="left:${ART.eyeCentreR}%;background-image:url(${ASSET}eyeballs.webp);clip-path:inset(0 0 0 50%)"></div>`
+  L.saintGrp.appendChild(L.eyes)
+  L.smile = img('smile.webp', 'smile'); place(L.smile, ART.smile); L.saintGrp.appendChild(L.smile)
+  L.frameGrp = g('frame'); L.frame = img('frame.webp', 'full'); L.frameGrp.appendChild(L.frame)
+  L.caption = document.createElement('div'); L.caption.className = 'ly caption'; L.caption.textContent = caption; host.appendChild(L.caption)
+  L.glint = document.createElement('div'); L.glint.className = 'glint'
+  L.glint.style.left = cpct(ART.smile.x + ART.smile.w * 0.62, ART.W); L.glint.style.top = cpct(ART.smile.y + ART.smile.h * 0.4, ART.H)
+  host.appendChild(L.glint)
+  if (host.classList.contains('static')) L.smile.style.opacity = 0   // the saint's own smile shows
+  host._layers = L
+  sizeArt(host)
+  return L
+}
+
+// --u = on-screen pixels per canvas pixel, for type and glows
+function sizeArt(host) { host.style.setProperty('--u', host.clientWidth / ART.W) }
+window.addEventListener('resize', () => document.querySelectorAll('.art').forEach(sizeArt))
+
+function glance(host, gx, gy, ms) {
+  host.style.setProperty('--glance-ms', (ms || 700) + 'ms')
+  host.style.setProperty('--gx', gx + '%'); host.style.setProperty('--gy', gy + '%')
+}
+
+// Idle eye life after the reveal: look at the viewer, at the button, around.
+function eyeLife(host) {
+  const looks = [[0, 0], [0, 7], [-5, 1], [0, 0], [5, 2], [0, 7], [0, 0]]
+  let i = 0
+  clearInterval(host._eyeTimer)
+  host._eyeTimer = setInterval(() => { i = (i + 1) % looks.length; glance(host, looks[i][0], looks[i][1], 900) }, 3200)
+}
+
+function waitForImages(host, maxMs) {
+  const imgs = [...host.querySelectorAll('img')]
+  return Promise.race([
+    Promise.all(imgs.map(i => i.decode ? i.decode().catch(() => {}) : Promise.resolve())),
+    new Promise(r => setTimeout(r, maxMs)),
+  ])
+}
+
+// The opening: smile in the dark → stars → halo → the icon, slowly pushing in.
+async function playSplash() {
+  const host = $('art-splash'), L = host._layers, k = TUNING.splashSpeed * 1000
+  await waitForImages(host, 5000)
+  sizeArt(host)
+  const fade = (el, at, dur, to = 1, from = 0) =>
+    el.animate([{ opacity: from }, { opacity: to }], { delay: at * k, duration: dur * k, easing: 'ease-in-out', fill: 'forwards' })
+  const pushGrp = (grp, sc) =>
+    grp.animate([{ transform: 'scale(1)' }, { transform: `scale(${sc})` }], { duration: TUNING.pushSeconds * k, easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)', fill: 'forwards' })
+  pushGrp(L.bgGrp, ART.push.bg); pushGrp(L.starGrp, ART.push.stars); pushGrp(L.haloGrp, ART.push.halo)
+  pushGrp(L.saintGrp, ART.push.saint); pushGrp(L.frameGrp, ART.push.frame)
+
+  fade(L.smile, TUNING.smileAt, TUNING.smileFade)
+  L.stars.forEach((st, i) => {
+    fade(st, TUNING.starsAt + i * TUNING.starStagger, TUNING.starFade).finished.then(() => {
+      st.style.opacity = 1
+      st.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0.7, transform: 'scale(0.9)' }],
+        { duration: (1.8 + Math.random() * 2) * 1000, direction: 'alternate', iterations: Infinity, easing: 'ease-in-out', delay: Math.random() * 800 })
+    })
+  })
+  L.halo.animate([{ opacity: 0, transform: 'translateY(3%) scale(0.92)' }, { opacity: 1, transform: 'translateY(0) scale(1)' }],
+    { delay: TUNING.haloAt * k, duration: TUNING.haloFade * k, easing: 'cubic-bezier(0.2, 0.6, 0.2, 1)', fill: 'forwards' })
+  for (const el of [L.bg, L.saint, L.eyes, L.frame]) fade(el, TUNING.artAt, TUNING.artFade)
+  fade(L.smile, TUNING.artAt + TUNING.artFade * 0.5, TUNING.artFade * 0.6, 0, 1)   // the glow hands over to the painted smile
+  fade(L.caption, TUNING.captionAt, 1.0)
+  const cta = $('s-splash').querySelector('.splash-cta')
+  fade(cta, TUNING.buttonAt, 0.8).finished.then(() => cta.classList.add('ready'))
+  setTimeout(() => { glance(host, 0, 7, 1100); setTimeout(() => eyeLife(host), 2500) }, TUNING.glanceDownAt * k)
+}
+
+// Tap: a glint flares off the smile and white floods the screen,
+// then clears onto Question I.
+async function enterConfessional() {
+  const host = $('art-splash'), L = host._layers
+  $('stage').style.pointerEvents = 'none'
+  L.glint.style.opacity = 1
+  await L.glint.animate([
+    { transform: 'scale(0.1) rotate(0deg)', opacity: 0 },
+    { transform: 'scale(1) rotate(25deg)', opacity: 1, offset: 0.6 },
+    { transform: 'scale(1.6) rotate(45deg)', opacity: 1 },
+  ], { duration: 420, easing: 'ease-out', fill: 'forwards' }).finished
+  const white = $('fx-white')
+  await white.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, easing: 'ease-in', fill: 'forwards' }).finished
+  clearInterval(host._eyeTimer)
+  show('q1')
+  await white.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 750, easing: 'ease-out', fill: 'forwards' }).finished
+  $('stage').style.pointerEvents = ''
 }
 
 // ═══ CHECKBOX LISTS (I and III) ═══════════════════════════════════════
@@ -389,7 +720,7 @@ function buildChoices(listEl, options, field, nextBtn) {
     btn.type = 'button'
     btn.className = 'choice'
     btn.dataset.code = opt.code
-    btn.innerHTML = `<span class="box"></span><span><b>${opt.label}</b> — ${opt.line}</span>`
+    btn.innerHTML = `<span class="box"></span><b>${opt.label}</b><i>${opt.line}</i>`
     btn.addEventListener('click', () => {
       answers[field] = answers[field] === opt.code ? null : opt.code
       listEl.querySelectorAll('.choice').forEach(b =>
@@ -500,7 +831,7 @@ async function submit() {
       if (res.ok && data.ok) {
         mine = data.mine
         renderResults(data.results)
-        show('results')
+        await go('results', 1)
         status.textContent = ''
         $('b-q3-back').disabled = false
         return
@@ -508,7 +839,7 @@ async function submit() {
       if (res.status === 409) {           // this phone already confessed
         mine = data.mine
         renderResults(data.results)
-        show('results')
+        await go('results', 1)
         status.textContent = ''
         $('b-q3-back').disabled = false
         return
@@ -705,6 +1036,13 @@ function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = 
 
 // ═══ WIRING ═══════════════════════════════════════════════════════════
 function init() {
+  buildArt($('art-splash'), 'St. Ring will hear your confession')
+  buildArt($('art-return'), 'Thou hast confessed.')
+  document.querySelectorAll('.screen').forEach(sc => {
+    sc.insertAdjacentHTML('beforeend', '<div class="turn-sh"></div><div class="turn-dk"></div>')
+  })
+  $('stage').style.perspective = TUNING.perspective + 'px'
+  startCandle()
   document.documentElement.style.setProperty('--margin-top', TUNING.q1MarginTop)
   document.documentElement.style.setProperty('--margin-bottom', TUNING.q1MarginBottom)
   $('q1-title').textContent = COPY.q1.title
@@ -717,12 +1055,12 @@ function init() {
   wireSlider()
   wireResults()
 
-  $('b-enter').addEventListener('click', () => show('q1'))         // chant will start here later
+  $('b-enter').addEventListener('click', enterConfessional)         // chant will start here later
   $('b-behold').addEventListener('click', () => show('results'))
-  $('b-q1-next').addEventListener('click', () => show('q2'))
-  $('b-q2-back').addEventListener('click', () => show('q1'))
-  $('b-q2-next').addEventListener('click', () => show('q3'))
-  $('b-q3-back').addEventListener('click', () => show('q2'))
+  $('b-q1-next').addEventListener('click', () => go('q2', 1))
+  $('b-q2-back').addEventListener('click', () => go('q1', -1))
+  $('b-q2-next').addEventListener('click', () => go('q3', 1))
+  $('b-q3-back').addEventListener('click', () => go('q2', -1))
   $('b-q3-next').addEventListener('click', submit)
   $('b-next-penitent').addEventListener('click', () => { mine = null; selSlice = null; resGen = null; resetQuestions(); show('q1') })
 
@@ -734,17 +1072,17 @@ function init() {
 
 async function start() {
   init()
-  if (INTERVIEWER) { show('splash'); return }    // interviewer always starts fresh
+  if (INTERVIEWER) { show('splash'); playSplash(); return }    // interviewer always starts fresh
 
   // Guests: has this phone confessed already?
   const data = await fetchResults()
   if (data && data.confessed) {
     mine = data.mine
     renderResults(data.results)
-    show('return')
+    show('return'); sizeArt($('art-return')); eyeLife($('art-return'))
   } else {
     if (data) renderResults(data.results)
-    show('splash')
+    show('splash'); playSplash()
   }
 }
 
