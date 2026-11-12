@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>St. Ring will hear your confession</title>
 <!--
@@ -27,15 +27,36 @@
     --accent: #e8c66a;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--ink); }
-  body {
-    font: 18px/1.4 Georgia, 'Times New Roman', serif;
-    min-height: 100dvh;
-    -webkit-tap-highlight-color: transparent;
+  /* ── Static page ──────────────────────────────────────────────────
+     The page itself never scrolls or zooms. On iOS Safari the bottom
+     toolbar collapses and reappears when the PAGE scrolls; scrolling
+     only ever happens inside a screen (the results), so the toolbar
+     stays put. touch-action: manipulation kills double-tap zoom; the
+     viewport tag and the gesture handler in the script block pinch. */
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    overscroll-behavior: none;
+    background: var(--bg); color: var(--ink);
+    -webkit-text-size-adjust: 100%;
   }
-  main { max-width: 34rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-  .screen { display: none; }
-  .screen.on { display: block; }
+  * { touch-action: manipulation; }
+  body {
+    position: fixed; inset: 0;
+    font: 18px/1.4 Georgia, 'Times New Roman', serif;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+  }
+  main { height: 100%; max-width: 34rem; margin: 0 auto; }
+  .screen {
+    display: none;
+    height: 100%;
+    padding: calc(env(safe-area-inset-top) + 1rem) 1.25rem calc(env(safe-area-inset-bottom) + 1rem);
+    flex-direction: column;
+  }
+  .screen.on { display: flex; }
+  .screen.scrolls { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: none; }
+  .screen.scrolls.on { display: block; }
   h1, h2 { font-weight: normal; line-height: 1.2; }
   h1 { font-size: 1.8rem; text-align: center; margin: 3rem 0 2rem; }
   h2 { font-size: 1.35rem; margin: 0 0 1.25rem; }
@@ -48,6 +69,18 @@
     border: 1px dashed var(--line); border-radius: 50% 50% 0.5rem 0.5rem;
     display: grid; place-items: center; color: var(--dim); font-size: 0.85rem;
   }
+
+  /* Question I is heaven (top) and hell (bottom). These two slots are
+     reserved for the marginalia; heights live in TUNING. */
+  .margin-top, .margin-bottom { flex: none; display: grid; place-items: center; color: var(--dim); font-size: 0.75rem; }
+  .margin-top    { height: var(--margin-top, 12%); }
+  .margin-bottom { height: var(--margin-bottom, 12%); }
+  #s-q1 h2 { font-size: clamp(1rem, 2.6vh, 1.35rem); margin: 0 0 0.6rem; text-align: center; }
+  #s-q1 .choices { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.35rem; margin: 0; }
+  #s-q1 .choices li { flex: 1; min-height: 0; margin: 0; display: flex; }
+  #s-q1 .choice { padding: 0.3rem 0.7rem; align-items: center; font-size: clamp(0.8rem, 2vh, 1rem); line-height: 1.25; }
+  #s-q1 .choice .box { margin-top: 0; }
+  #s-q1 .actions { flex: none; margin-top: 0.6rem; }
 
   /* Checkbox lists (Questions I and III) */
   .choices { list-style: none; margin: 0 0 1.5rem; padding: 0; }
@@ -126,11 +159,13 @@
 
   <!-- QUESTION I -->
   <div class="screen" id="s-q1">
+    <div class="margin-top">heavenly marginalia</div>
     <h2 id="q1-title"></h2>
     <ul class="choices" id="q1-list"></ul>
     <div class="actions">
       <button class="btn" id="b-q1-next" disabled>Confess</button>
     </div>
+    <div class="margin-bottom">demons</div>
   </div>
 
   <!-- QUESTION II -->
@@ -159,7 +194,7 @@
   </div>
 
   <!-- RESULTS -->
-  <div class="screen" id="s-results">
+  <div class="screen scrolls" id="s-results">
     <h2 class="center">The Reckoning <span class="badge" id="interviewer-badge" hidden>Interviewer</span></h2>
     <div id="results-body"><p class="dim center">Gathering the confessions…</p></div>
     <button class="btn solo" id="b-next-penitent" hidden>Next penitent</button>
@@ -173,14 +208,15 @@
 const COPY = {
   q1: {
     title: 'I. How oft dost thou ply the sacred thread?',
+    // Listed heaven-first: the most virtuous at the top, the damned at the bottom.
     options: [
-      { code: 'never',   label: 'Never',       line: 'I am a heretic of the gum.' },
-      { code: 'seldom',  label: 'Seldom',      line: 'Only when the spirit or a barber moveth me.' },
-      { code: 'monthly', label: 'Monthly',     line: 'Once in each lunar turn.' },
-      { code: 'weekly',  label: 'Weekly',      line: 'Honoring each Sabbath.' },
-      { code: 'often',   label: 'Often',       line: 'Upon divers days of the week.' },
-      { code: 'daily',   label: 'Daily',       line: 'As is meet and right!' },
       { code: 'twice',   label: 'Twice Daily', line: 'At matins and compline.' },
+      { code: 'daily',   label: 'Daily',       line: 'As is meet and right!' },
+      { code: 'often',   label: 'Often',       line: 'Upon divers days.' },
+      { code: 'weekly',  label: 'Weekly',      line: 'Honoring each Sabbath.' },
+      { code: 'monthly', label: 'Monthly',     line: 'Once each Lune.' },
+      { code: 'seldom',  label: 'Seldom',      line: 'Only when the spirit or a barber moveth me.' },
+      { code: 'never',   label: 'Never',       line: 'I am a heretic of the gum.' },
     ],
   },
   q2: {
@@ -207,7 +243,17 @@ const TUNING = {
   submitRetries: 6,         // how many times to retry a confession on a bad connection
   submitRetryBaseMs: 1500,  // first retry wait; doubles each time
   storageKey: 'string_device_v1',
+  q1MarginTop: '12%',       // height reserved for heavenly marginalia above Question I
+  q1MarginBottom: '12%',    // height reserved for demons below Question I
 }
+
+// ═══ NO ZOOM ═══════════════════════════════════════════════════════════
+// iOS ignores user-scalable=no for pinching, so block the gesture itself.
+// Double-tap zoom is already off via touch-action in the CSS.
+for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
+  document.addEventListener(type, e => e.preventDefault(), { passive: false })
+}
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault() }, { passive: false })
 
 // ═══ STATE ═════════════════════════════════════════════════════════════
 const API = '/api/string'
@@ -238,7 +284,7 @@ const DEVICE = deviceId()
 function show(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'))
   $('s-' + name).classList.add('on')
-  window.scrollTo(0, 0)
+  $('s-' + name).scrollTop = 0
   if (name === 'results') startPolling(); else stopPolling()
 }
 
@@ -414,6 +460,8 @@ function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = 
 
 // ═══ WIRING ═══════════════════════════════════════════════════════════
 function init() {
+  document.documentElement.style.setProperty('--margin-top', TUNING.q1MarginTop)
+  document.documentElement.style.setProperty('--margin-bottom', TUNING.q1MarginBottom)
   $('q1-title').textContent = COPY.q1.title
   $('q2-title').textContent = COPY.q2.title
   $('q3-title').textContent = COPY.q3.title
