@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>St. Ring will hear your confession</title>
+<!--
+  St. Ring — Confession Quiz — BARE-BONES BUILD (step 2 of the spec)
+  Spec: spec_string_2026-11-11_v01.md (repo root)
+  Back end: app/api/string/route.ts
+
+  This version proves the flow end to end. Deliberately plain: no chant,
+  no smile/halo, no tooth-glint burst, no page turns, no molar, no charts.
+  Those come next, one at a time.
+
+  Edit the COPY block to change wording, the TUNING block to change timing.
+  The `code` values in COPY must match the codes in route.ts — change the
+  labels freely, never the codes.
+-->
+<style>
+  :root {
+    --ink: #f3ead7;
+    --dim: #9a917f;
+    --bg: #0b0907;
+    --line: #3a332a;
+    --accent: #e8c66a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font: 18px/1.4 Georgia, 'Times New Roman', serif;
+    min-height: 100dvh;
+    -webkit-tap-highlight-color: transparent;
+  }
+  main { max-width: 34rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  .screen { display: none; }
+  .screen.on { display: block; }
+  h1, h2 { font-weight: normal; line-height: 1.2; }
+  h1 { font-size: 1.8rem; text-align: center; margin: 3rem 0 2rem; }
+  h2 { font-size: 1.35rem; margin: 0 0 1.25rem; }
+  .center { text-align: center; }
+  .dim { color: var(--dim); font-size: 0.9rem; }
+
+  /* Placeholder for the St. Ring image (stand-in) */
+  .saint {
+    width: 10rem; height: 12rem; margin: 2rem auto 0;
+    border: 1px dashed var(--line); border-radius: 50% 50% 0.5rem 0.5rem;
+    display: grid; place-items: center; color: var(--dim); font-size: 0.85rem;
+  }
+
+  /* Checkbox lists (Questions I and III) */
+  .choices { list-style: none; margin: 0 0 1.5rem; padding: 0; }
+  .choices li { margin: 0 0 0.5rem; }
+  .choice {
+    width: 100%; display: flex; gap: 0.75rem; align-items: flex-start;
+    padding: 0.75rem 0.85rem; text-align: left;
+    background: none; color: inherit; font: inherit;
+    border: 1px solid var(--line); border-radius: 0.4rem; cursor: pointer;
+  }
+  .choice .box {
+    flex: none; width: 1.2rem; height: 1.2rem; margin-top: 0.15rem;
+    border: 1.5px solid var(--dim); border-radius: 0.2rem;
+    display: grid; place-items: center; font-size: 0.9rem; line-height: 1;
+  }
+  .choice.on { border-color: var(--accent); }
+  .choice.on .box { border-color: var(--accent); background: var(--accent); color: var(--bg); }
+  .choice .box::after { content: ''; }
+  .choice.on .box::after { content: '✓'; }
+  .choice b { font-weight: bold; }
+
+  /* Slider (Question II) — plain range input for now; the molar comes later */
+  .slider-wrap { margin: 2rem 0 1rem; }
+  .score { text-align: center; font-size: 2.5rem; min-height: 3rem; }
+  .score.unset { color: var(--dim); font-size: 1rem; padding-top: 1rem; }
+  input[type=range] { width: 100%; height: 2.5rem; accent-color: var(--accent); }
+  input[type=range].unset { opacity: 0.35; }
+  .ends { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; font-size: 0.85rem; color: var(--dim); }
+  .ends span:nth-child(2) { text-align: center; }
+  .ends span:nth-child(3) { text-align: right; }
+
+  /* Buttons */
+  .actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+  button.btn {
+    flex: 1; padding: 0.9rem 1rem; font: inherit; cursor: pointer;
+    border-radius: 0.4rem; border: 1px solid var(--accent);
+    background: var(--accent); color: var(--bg);
+  }
+  button.btn.ghost { background: none; color: var(--ink); border-color: var(--line); }
+  button.btn:disabled { opacity: 0.3; cursor: default; }
+  .solo { display: block; width: 100%; max-width: 20rem; margin: 2rem auto 0; }
+
+  /* Results — plain bars for now; pie + stacked bars come later */
+  .stat { display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid var(--line); }
+  .bar-row { margin: 0 0 0.6rem; }
+  .bar-label { display: flex; justify-content: space-between; font-size: 0.9rem; }
+  .bar { height: 0.6rem; background: var(--line); border-radius: 0.3rem; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--dim); }
+  .bar-row.mine .bar i { background: var(--accent); }
+  .bar-row.mine .bar-label { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin: 0.5rem 0 1.5rem; }
+  th, td { padding: 0.3rem 0.2rem; border-bottom: 1px solid var(--line); text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  tr.mine td { color: var(--accent); }
+  section { margin: 0 0 2rem; }
+  .status { min-height: 1.4rem; margin-top: 1rem; text-align: center; color: var(--dim); font-size: 0.9rem; }
+  .badge { display: inline-block; font-size: 0.75rem; padding: 0.15rem 0.5rem; border: 1px solid var(--accent); color: var(--accent); border-radius: 1rem; }
+</style>
+</head>
+<body>
+<main>
+
+  <!-- SPLASH — first visit -->
+  <div class="screen" id="s-splash">
+    <div class="saint">St. Ring<br>(stand-in)</div>
+    <h1>St. Ring will hear your confession</h1>
+    <button class="btn solo" id="b-enter">Enter the confessional</button>
+  </div>
+
+  <!-- SPLASH — return visit -->
+  <div class="screen" id="s-return">
+    <div class="saint">St. Ring<br>(stand-in)</div>
+    <h1>Thou hast confessed.</h1>
+    <button class="btn solo" id="b-behold">Behold the Reckoning</button>
+  </div>
+
+  <!-- QUESTION I -->
+  <div class="screen" id="s-q1">
+    <h2 id="q1-title"></h2>
+    <ul class="choices" id="q1-list"></ul>
+    <div class="actions">
+      <button class="btn" id="b-q1-next" disabled>Confess</button>
+    </div>
+  </div>
+
+  <!-- QUESTION II -->
+  <div class="screen" id="s-q2">
+    <h2 id="q2-title"></h2>
+    <div class="slider-wrap">
+      <div class="score unset" id="q2-score">Move the slider</div>
+      <input type="range" id="q2-range" min="1" max="10" step="1" value="5" class="unset" aria-label="Score from 1 to 10">
+      <div class="ends" id="q2-ends"></div>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="b-q2-back">Recant</button>
+      <button class="btn" id="b-q2-next" disabled>Confess</button>
+    </div>
+  </div>
+
+  <!-- QUESTION III -->
+  <div class="screen" id="s-q3">
+    <h2 id="q3-title"></h2>
+    <ul class="choices" id="q3-list"></ul>
+    <div class="actions">
+      <button class="btn ghost" id="b-q3-back">Recant</button>
+      <button class="btn" id="b-q3-next" disabled>Final Confession</button>
+    </div>
+    <div class="status" id="submit-status"></div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="screen" id="s-results">
+    <h2 class="center">The Reckoning <span class="badge" id="interviewer-badge" hidden>Interviewer</span></h2>
+    <div id="results-body"><p class="dim center">Gathering the confessions…</p></div>
+    <button class="btn solo" id="b-next-penitent" hidden>Next penitent</button>
+  </div>
+
+</main>
+
+<script>
+// ═══ COPY ══════════════════════════════════════════════════════════════
+// Change any wording here. Never change a `code` — route.ts depends on them.
+const COPY = {
+  q1: {
+    title: 'I. How oft dost thou ply the sacred thread?',
+    options: [
+      { code: 'never',   label: 'Never',       line: 'I am a heretic of the gum.' },
+      { code: 'seldom',  label: 'Seldom',      line: 'Only when the spirit or a barber moveth me.' },
+      { code: 'monthly', label: 'Monthly',     line: 'Once in each lunar turn.' },
+      { code: 'weekly',  label: 'Weekly',      line: 'Honoring each Sabbath.' },
+      { code: 'often',   label: 'Often',       line: 'Upon divers days of the week.' },
+      { code: 'daily',   label: 'Daily',       line: 'As is meet and right!' },
+      { code: 'twice',   label: 'Twice Daily', line: 'At matins and compline.' },
+    ],
+  },
+  q2: {
+    title: 'II. How doth the holy thread rest upon thy soul?',
+    left:   'Foul penance! I loathe it.',
+    middle: '’Tis a tolerable burden.',
+    right:  'Verily, it bringeth me rapture.',
+  },
+  q3: {
+    title: 'III. Of what generation art thou begotten?',
+    options: [
+      { code: 'boomer',     label: 'Boomer',     line: 'From great fecundity following the War.' },
+      { code: 'genx',       label: 'Gen X',      line: 'The forgotten middle, raised by latchkeys.' },
+      { code: 'millennial', label: 'Millennial', line: 'Born in the twilight of the old millennium.' },
+      { code: 'genz',       label: 'Gen Z',      line: 'Raised into the age of glowing glass.' },
+      { code: 'decline',    label: 'I say not',  line: '’Tis a matter betwixt me and THE LORD.' },
+    ],
+  },
+}
+
+// ═══ TUNING ════════════════════════════════════════════════════════════
+const TUNING = {
+  resultsRefreshMs: 5000,   // how often the results screen re-reads the tallies
+  submitRetries: 6,         // how many times to retry a confession on a bad connection
+  submitRetryBaseMs: 1500,  // first retry wait; doubles each time
+  storageKey: 'string_device_v1',
+}
+
+// ═══ STATE ═════════════════════════════════════════════════════════════
+const API = '/api/string'
+const params = new URLSearchParams(location.search)
+const KEY = params.get('key') || ''
+const INTERVIEWER = KEY !== ''
+
+const answers = { q1: null, q2: null, gen: null }
+let mine = null            // this phone's answers, once known
+let pollTimer = null
+
+const $ = id => document.getElementById(id)
+
+// The device ID lives in the browser. If storage is blocked (some private
+// modes), we still get an ID for this visit — it just won't survive a reload.
+function deviceId() {
+  let id = null
+  try { id = localStorage.getItem(TUNING.storageKey) } catch {}
+  if (!id) {
+    id = (crypto.randomUUID ? crypto.randomUUID()
+      : 'd-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12))
+    try { localStorage.setItem(TUNING.storageKey, id) } catch {}
+  }
+  return id
+}
+const DEVICE = deviceId()
+
+function show(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'))
+  $('s-' + name).classList.add('on')
+  window.scrollTo(0, 0)
+  if (name === 'results') startPolling(); else stopPolling()
+}
+
+// ═══ CHECKBOX LISTS (I and III) ═══════════════════════════════════════
+// One choice at most: tap to select, tap again to clear, tap another to switch.
+function buildChoices(listEl, options, field, nextBtn) {
+  listEl.innerHTML = ''
+  for (const opt of options) {
+    const li = document.createElement('li')
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'choice'
+    btn.dataset.code = opt.code
+    btn.innerHTML = `<span class="box"></span><span><b>${opt.label}</b> — ${opt.line}</span>`
+    btn.addEventListener('click', () => {
+      answers[field] = answers[field] === opt.code ? null : opt.code
+      listEl.querySelectorAll('.choice').forEach(b =>
+        b.classList.toggle('on', b.dataset.code === answers[field]))
+      nextBtn.disabled = !answers[field]
+    })
+    li.appendChild(btn)
+    listEl.appendChild(li)
+  }
+}
+
+function resetQuestions() {
+  answers.q1 = answers.q2 = answers.gen = null
+  document.querySelectorAll('.choice').forEach(b => b.classList.remove('on'))
+  $('b-q1-next').disabled = true
+  $('b-q3-next').disabled = true
+  const range = $('q2-range')
+  range.value = 5
+  range.classList.add('unset')
+  $('q2-score').textContent = 'Move the slider'
+  $('q2-score').classList.add('unset')
+  $('b-q2-next').disabled = true
+  $('submit-status').textContent = ''
+}
+
+// ═══ SLIDER (II) ══════════════════════════════════════════════════════
+// Starts unset: Confess stays locked until the slider is touched, so
+// nobody sails through on a default 5.
+function setScore(v) {
+  answers.q2 = Number(v)
+  $('q2-range').classList.remove('unset')
+  $('q2-score').classList.remove('unset')
+  $('q2-score').textContent = v
+  $('b-q2-next').disabled = false
+}
+
+// ═══ SUBMIT ═══════════════════════════════════════════════════════════
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+
+async function submit() {
+  const btn = $('b-q3-next')
+  const status = $('submit-status')
+  btn.disabled = true
+  $('b-q3-back').disabled = true
+  const body = JSON.stringify({ device: DEVICE, q1: answers.q1, q2: answers.q2, gen: answers.gen, key: KEY || undefined })
+
+  for (let attempt = 0; attempt <= TUNING.submitRetries; attempt++) {
+    status.textContent = attempt === 0
+      ? 'Thy confession ascendeth…'
+      : 'The way is obscured. Trying again…'
+    try {
+      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.ok) {
+        mine = data.mine
+        renderResults(data.results)
+        show('results')
+        status.textContent = ''
+        $('b-q3-back').disabled = false
+        return
+      }
+      if (res.status === 409) {           // this phone already confessed
+        mine = data.mine
+        renderResults(data.results)
+        show('results')
+        status.textContent = ''
+        $('b-q3-back').disabled = false
+        return
+      }
+      if (res.status === 400) {           // bad data — retrying won't help
+        status.textContent = 'St. Ring could not read thy confession. Recant and try again.'
+        break
+      }
+      // 500 or other: fall through to retry
+    } catch {
+      // network failure: retry
+    }
+    if (attempt < TUNING.submitRetries) await sleep(TUNING.submitRetryBaseMs * 2 ** attempt)
+  }
+  if (!status.textContent.startsWith('St. Ring could not')) {
+    status.textContent = 'The heavens are silent. Find a better signal and press again.'
+  }
+  btn.disabled = false
+  $('b-q3-back').disabled = false
+}
+
+// ═══ RESULTS ══════════════════════════════════════════════════════════
+function labelOf(list, code) {
+  const o = list.find(x => x.code === code)
+  return o ? o.label : code
+}
+const pct = (n, total) => total ? Math.round((n / total) * 100) : 0
+const fmt = v => v === null || v === undefined ? '—' : v
+
+function renderResults(r) {
+  if (!r) return
+  const total = r.total || 0
+  const myQ1 = mine && mine.q1
+  const myGen = mine && mine.gen
+  let html = ''
+
+  html += `<section>
+    <div class="stat"><span>Confessions heard</span><b>${total}</b></div>
+    <div class="stat"><span>Love of the thread — average</span><b>${fmt(r.q2.avg)}</b></div>
+    <div class="stat"><span>Love of the thread — median</span><b>${fmt(r.q2.median)}</b></div>
+    ${mine ? `<div class="stat" style="color:var(--accent)"><span>Thy love of the thread</span><b>${mine.q2}</b></div>` : ''}
+  </section>`
+
+  // Question I — how often (pie chart later)
+  html += `<section><h2>How oft the faithful floss</h2>`
+  for (const o of COPY.q1.options) {
+    const n = r.q1[o.code] || 0
+    const isMine = o.code === myQ1
+    html += `<div class="bar-row${isMine ? ' mine' : ''}">
+      <div class="bar-label"><span>${o.label}${isMine ? ' — thee' : ''}</span><span>${n} · ${pct(n, total)}%</span></div>
+      <div class="bar"><i style="width:${pct(n, total)}%"></i></div>
+    </div>`
+  }
+  if (myQ1) {
+    const same = r.q1[myQ1] || 0
+    html += `<p class="dim">Thou art among the ${pct(same, total)}% who floss “${labelOf(COPY.q1.options, myQ1)}.”</p>`
+  }
+  html += `</section>`
+
+  // By generation (stacked bars later)
+  html += `<section><h2>By generation</h2><div style="overflow-x:auto"><table>
+    <tr><th></th><th>n</th>${COPY.q1.options.map(o => `<th>${o.label}</th>`).join('')}<th>avg</th><th>med</th></tr>`
+  for (const g of COPY.q3.options) {
+    const gr = r.byGen[g.code]
+    if (!gr) continue
+    html += `<tr class="${g.code === myGen ? 'mine' : ''}"><td>${g.label}</td><td>${gr.total}</td>
+      ${COPY.q1.options.map(o => `<td>${gr.q1[o.code] || 0}</td>`).join('')}
+      <td>${fmt(gr.q2.avg)}</td><td>${fmt(gr.q2.median)}</td></tr>`
+  }
+  html += `</table></div></section>`
+
+  $('results-body').innerHTML = html
+}
+
+async function fetchResults() {
+  try {
+    const res = await fetch(`${API}?device=${encodeURIComponent(DEVICE)}`, { cache: 'no-store' })
+    if (!res.ok) return null
+    return await res.json()
+  } catch { return null }
+}
+
+function startPolling() {
+  stopPolling()
+  pollTimer = setInterval(async () => {
+    const data = await fetchResults()
+    if (data) {
+      if (!INTERVIEWER && data.mine) mine = data.mine
+      renderResults(data.results)
+    }
+  }, TUNING.resultsRefreshMs)
+}
+function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null } }
+
+// ═══ WIRING ═══════════════════════════════════════════════════════════
+function init() {
+  $('q1-title').textContent = COPY.q1.title
+  $('q2-title').textContent = COPY.q2.title
+  $('q3-title').textContent = COPY.q3.title
+  $('q2-ends').innerHTML = `<span>${COPY.q2.left}</span><span>${COPY.q2.middle}</span><span>${COPY.q2.right}</span>`
+  buildChoices($('q1-list'), COPY.q1.options, 'q1', $('b-q1-next'))
+  buildChoices($('q3-list'), COPY.q3.options, 'gen', $('b-q3-next'))
+
+  const range = $('q2-range')
+  range.addEventListener('input', e => setScore(e.target.value))
+  range.addEventListener('pointerdown', () => setScore(range.value))
+
+  $('b-enter').addEventListener('click', () => show('q1'))         // chant will start here later
+  $('b-behold').addEventListener('click', () => show('results'))
+  $('b-q1-next').addEventListener('click', () => show('q2'))
+  $('b-q2-back').addEventListener('click', () => show('q1'))
+  $('b-q2-next').addEventListener('click', () => show('q3'))
+  $('b-q3-back').addEventListener('click', () => show('q2'))
+  $('b-q3-next').addEventListener('click', submit)
+  $('b-next-penitent').addEventListener('click', () => { mine = null; resetQuestions(); show('q1') })
+
+  if (INTERVIEWER) {
+    $('interviewer-badge').hidden = false
+    $('b-next-penitent').hidden = false
+  }
+}
+
+async function start() {
+  init()
+  if (INTERVIEWER) { show('splash'); return }    // interviewer always starts fresh
+
+  // Guests: has this phone confessed already?
+  const data = await fetchResults()
+  if (data && data.confessed) {
+    mine = data.mine
+    renderResults(data.results)
+    show('return')
+  } else {
+    if (data) renderResults(data.results)
+    show('splash')
+  }
+}
+
+start()
+</script>
+</body>
+</html>
