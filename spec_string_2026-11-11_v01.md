@@ -1,4 +1,5 @@
 # St. Ring — Confession Quiz — Spec v01 (2026-11-11)
+
 A phone-based flossing confession for Room Service (theme: string). Guests scan a QR code, confess to St. Ring, and see live results. Mark can also run it as a live interviewer from his phone.
 
 ---
