@@ -74,8 +74,8 @@
     --ink: #23170d; --dim: #6b5a44; --line: rgba(90,64,30,0.38);
     --accent: #8e1b14; --on-accent: #f3e6c8; --expl: #4a3a28;
     color: var(--ink);
-    background-color: #e9d29a;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='a'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0 0.05 0 0 0 0.32 0'/></filter><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.06 0.16' numOctaves='3' seed='3'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.27 0 0 0 0 0.08 0 0 0 0.2 0'/></filter><filter id='b'><feTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='3' seed='9'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.32 0 0 0 0 0.08 0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23b)'/><rect width='100%' height='100%' filter='url(%23f)'/><rect width='100%' height='100%' filter='url(%23a)'/></svg>");
+    background-color: #eed27a;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='a'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0 0.05 0 0 0 0.32 0'/></filter><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.06 0.16' numOctaves='3' seed='3'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.27 0 0 0 0 0.08 0 0 0 0.2 0'/></filter><filter id='b'><feTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='3' seed='9'/><feColorMatrix values='0 0 0 0 0.62 0 0 0 0 0.45 0 0 0 0 0.05 0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23b)'/><rect width='100%' height='100%' filter='url(%23f)'/><rect width='100%' height='100%' filter='url(%23a)'/></svg>");
   }
   /* Candlelight over everything: an edge vignette and a slow flicker.
      Strengths live in TUNING. */
@@ -136,6 +136,7 @@
   /* Illustrations are painted on white: multiply drops the white out so the
      ink sits on the parchment like a real manuscript page. */
   .illum-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; pointer-events: none; }
+  .parade { flex: none; position: relative; margin: 0.6rem -0.75rem 0; aspect-ratio: 1400 / 390; max-height: 22vh; }
   .margin-top    { height: var(--margin-top, 12%); }
   .margin-bottom { height: var(--margin-bottom, 12%); }
   /* Questions I and III fill exactly one screen: the answers share
@@ -153,7 +154,7 @@
   }
   .fit .choice .box { margin-top: 0; }
   .choice b { font-size: clamp(0.95rem, 2.5vh, 1.15rem); line-height: 1.1; }
-  .choice i { font-size: clamp(0.72rem, 1.8vh, 0.85rem); line-height: 1.2; color: var(--expl, var(--dim)); }
+  .choice i { white-space: pre-line; font-size: clamp(0.72rem, 1.8vh, 0.85rem); line-height: 1.2; color: var(--expl, var(--dim)); }
   .fit .actions { flex: none; margin-top: 0.6rem; }
   .fit .status { flex: none; min-height: 1.2rem; margin-top: 0.4rem; }
 
@@ -232,7 +233,7 @@
   /* Buttons */
   .actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
   button.btn {
-    flex: 1; padding: 0.9rem 1rem; font-size: inherit; line-height: inherit; cursor: pointer;
+    flex: 1; padding: 0.9rem 0.5rem; font-size: min(1em, 4.6vw); line-height: inherit; white-space: nowrap; cursor: pointer;
     border-radius: 0.4rem; border: 1px solid var(--accent);
     background: var(--accent); color: var(--on-accent, var(--bg));
   }
@@ -260,9 +261,12 @@
   .donut-wrap { position: relative; width: min(72vw, 15rem); aspect-ratio: 1; margin: 0.25rem auto 1rem; }
   #donut { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 2px 2px rgba(60,35,10,0.3)); }
   #donut .slice { cursor: pointer; transition: opacity 150ms, transform 150ms; stroke: #23170d; stroke-width: 1.6; stroke-linejoin: round; }
+  #donut .slice-outline { stroke: #23170d; stroke-width: 1.6; stroke-linejoin: round; }
   #donut .ring-rule { fill: none; stroke: #23170d; stroke-width: 1.2; }
   #donut .ring-gold { fill: none; stroke: #c9a24a; stroke-width: 2.5; }
   #donut .slice.dim { opacity: 0.25; }
+  /* The halo's mosaic, in greys, laid over the slices so each colour reads as gilded tesserae */
+  #donut .ring-tex { mix-blend-mode: overlay; opacity: 0.9; pointer-events: none; }
   #donut .mine-arc { fill: none; stroke: var(--accent); stroke-width: 3.5; stroke-linecap: round; pointer-events: none; }
   .donut-center {
     position: absolute; inset: 30%; border-radius: 50%;
@@ -348,6 +352,7 @@
   <div class="screen fit paper" id="s-q3">
     <h2 id="q3-title"></h2>
     <ul class="choices" id="q3-list"></ul>
+    <div class="parade"><img class="illum-img" src="/art/string/illum/parade.webp" alt=""></div>
     <div class="status" id="submit-status"></div>
     <div class="actions">
       <button class="btn ghost" id="b-q3-back">Recant</button>
@@ -401,11 +406,11 @@ const COPY = {
   q3: {
     title: 'Of what generation art thou begotten?',
     options: [
-      { code: 'boomer',     label: 'Boomer',     line: 'From great fecundity following the War.' },
-      { code: 'genx',       label: 'Gen X',      line: 'The forgotten middle, raised by latchkeys.' },
-      { code: 'millennial', label: 'Millennial', line: 'Born in the twilight of the old millennium.' },
+      { code: 'boomer',     label: 'Boomer',     line: 'From great fecundity\nfollowing the great war.' },   // \n = line break
+      { code: 'genx',       label: 'Gen X',      line: 'The forgotten middle,\nraised by latchkeys.' },
+      { code: 'millennial', label: 'Millennial', line: 'Born in the twilight of\nthe old millennium.' },
       { code: 'genz',       label: 'Gen Z',      line: 'Raised into the age of glowing glass.' },
-      { code: 'decline',    label: 'I say not',  line: '’Tis a matter betwixt me and THE LORD.' },
+      { code: 'decline',    label: 'I say not',  line: '’Tis a matter only betwixt\nme and the LORD.' },
     ],
   },
 }
@@ -979,6 +984,14 @@ function drawDonut(q1Counts, total, myCode) {
       }
       a = a1
     }
+  }
+  // Halo texture, clipped to the ring (under the ink outlines)
+  if (total) {
+    const ring = arcPath(0, Math.PI * 2 - 0.0001, R_IN, R_OUT)
+    const tex = `<defs><clipPath id="ring-clip"><path d="${ring}"/></clipPath></defs>` +
+      `<image class="ring-tex" href="/art/string/illum/halo_tex.webp" x="-128" y="-128" width="256" height="256" clip-path="url(#ring-clip)"/>`
+    const outlines = html.match(/<path class="slice[^>]*>/g).map(p => p.replace(/fill="[^"]*"/, 'fill="none"').replace('class="slice', 'class="slice-outline').replace(' dim', '')).join('')
+    html += tex + `<g style="pointer-events:none">${outlines}</g>`
   }
   // Manuscript rules: a thin gold band with ink edges hugging the ring
   html = `<circle class="ring-gold" r="${R_OUT + 3}"/><circle class="ring-rule" r="${R_OUT + 4.6}"/><circle class="ring-rule" r="${R_IN - 1}"/>` + html
