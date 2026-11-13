@@ -41,9 +41,14 @@
   }
   * { touch-action: manipulation; }
   [hidden] { display: none !important; }
+  /* Fonts (self-hosted so the party wifi can't strand them):
+     IM Fell English for anything long; Almendra Bold for short, punchy labels. */
+  @font-face { font-family: 'IM Fell English'; src: url(/art/string/fonts/im-fell-english-latin-400-normal.woff2) format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+  @font-face { font-family: 'IM Fell English'; src: url(/art/string/fonts/im-fell-english-latin-400-italic.woff2) format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
+  @font-face { font-family: 'Almendra'; src: url(/art/string/fonts/almendra-latin-700-normal.woff2) format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
   body {
     position: fixed; inset: 0;
-    font: 18px/1.4 Georgia, 'Times New Roman', serif;
+    font: 18px/1.4 'IM Fell English', Georgia, 'Times New Roman', serif;
     -webkit-tap-highlight-color: transparent;
     -webkit-user-select: none; user-select: none;
     -webkit-touch-callout: none;
@@ -85,51 +90,38 @@
   .dim { color: var(--dim); font-size: 0.9rem; }
 
   /* ── Splash: the icon of St. Ring, built from layers ───────────────
-     Art canvas is 941 × 1672. Every layer is placed in canvas pixels
-     (converted to % in script), so the whole icon scales as one piece.
-     It's letterboxed on black, like an icon hung on a dark wall. */
-  .splash { align-items: center; justify-content: center; background: #000; }
-  .art {
-    position: relative; flex: none; overflow: hidden; background: #000;
-    aspect-ratio: 941 / 1672;
-    width: min(100%, calc((100dvh - 7.5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 0.5628));
-  }
-  .art .ly { position: absolute; display: block; pointer-events: none; opacity: 0; transform-origin: 50% 42%; }
-  .art .grp { position: absolute; inset: 0; pointer-events: none; transform-origin: 50% 42%; }
-  .art.static .ly { opacity: 1; }
-  .art .full { left: 0; top: 0; width: 100%; height: 100%; }
+     Canvas is 941 × 1672. The art always fills the screen's width: the
+     arch's top piece pins to the top, the banner piece to the bottom, and
+     the straight pillars stretch or compress to fit. The saint, halo and
+     stars stay anchored to the banner. Positions live in ART (script). */
+  .splash { padding: 0; background: #000; }
+  .art { position: absolute; inset: 0; overflow: hidden; background: #000; }
+  .art .ly { position: absolute; display: block; pointer-events: none; }
+  .art .grp { position: absolute; inset: 0; pointer-events: none; }
+  .art .bgimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .art .eyes {
     -webkit-mask-image: var(--eye-mask); mask-image: var(--eye-mask);
     -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
   }
   .art .eyes img { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .art .eb {
-    position: absolute; top: 0; width: 100%; height: 100%;
-    background-size: 100% 100%; background-repeat: no-repeat;
-    transform: translate(var(--gx, 0%), var(--gy, 0%));
-    transition: transform var(--glance-ms, 700ms) cubic-bezier(0.45, 0, 0.2, 1);
+  .art .eb { position: absolute; top: 0; width: 100%; height: 100%; background-size: 100% 100%; background-repeat: no-repeat; }
+  .art .bloom { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; opacity: 0; }
+  .art .framegrp { position: absolute; inset: 0; pointer-events: none; }
+  .art .framegrp img { position: absolute; display: block; }
+  /* The banner is the button. Pressing it brightens the cartouche. */
+  .art .banner-glow {
+    position: absolute; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+    background: radial-gradient(ellipse at center, rgba(255,240,190,0.9) 0%, rgba(255,222,150,0.45) 40%, rgba(255,200,120,0) 72%);
+    transition: opacity 140ms ease-out;
   }
-  .art .smile { filter: drop-shadow(0 0 calc(var(--u) * 6px) rgba(255, 248, 225, 0.95)) drop-shadow(0 0 calc(var(--u) * 18px) rgba(255, 230, 170, 0.6)); }
-  .art .caption {
-    position: absolute; left: 20%; right: 20%; top: 88.6%; height: 5.6%;
-    display: grid; place-items: center; text-align: center;
-    font-style: italic; color: #4a120c; line-height: 1.1;
-    font-size: calc(var(--u) * 44px);
+  .art .banner-hit {
+    position: absolute; display: grid; place-items: center; text-align: center; cursor: pointer;
+    font-style: italic; font-weight: bold; color: #4a120c; line-height: 1.1;
+    pointer-events: auto; -webkit-tap-highlight-color: transparent;
+    transition: text-shadow 140ms ease-out, color 140ms ease-out;
   }
-  .art .glint {
-    position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none;
-  }
-  .art .glint::before, .art .glint::after {
-    content: ''; position: absolute; left: 50%; top: 50%;
-    background: radial-gradient(ellipse at center, #fff 0%, rgba(255,255,255,0.9) 20%, rgba(255,255,255,0) 70%);
-    transform: translate(-50%, -50%);
-  }
-  .art .glint::before { width: calc(var(--u) * 260px); height: calc(var(--u) * 26px); }
-  .art .glint::after  { width: calc(var(--u) * 26px);  height: calc(var(--u) * 260px); }
-  .splash-cta { flex: none; height: 5.5rem; width: 100%; max-width: 20rem; display: flex; align-items: center; }
-  .splash-cta .solo { margin: 0; }
-  #s-splash .splash-cta { opacity: 0; pointer-events: none; }
-  #s-splash .splash-cta.ready { pointer-events: auto; }
+  .art.pressed .banner-glow { opacity: 1; }
+  .art.pressed .banner-hit { color: #6e1d10; text-shadow: 0 0 calc(var(--u) * 14px) rgba(255, 244, 205, 0.95); }
 
   /* Placeholder for the St. Ring image (stand-in) */
   .saint {
@@ -140,19 +132,26 @@
 
   /* Question I is heaven (top) and hell (bottom). These two slots are
      reserved for the marginalia; heights live in TUNING. */
-  .margin-top, .margin-bottom { flex: none; display: grid; place-items: center; color: var(--dim); font-size: 0.75rem; }
+  .margin-top, .margin-bottom { flex: none; position: relative; margin: 0 -0.75rem; }
+  /* Illustrations are painted on white: multiply drops the white out so the
+     ink sits on the parchment like a real manuscript page. */
+  .illum-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; pointer-events: none; }
   .margin-top    { height: var(--margin-top, 12%); }
   .margin-bottom { height: var(--margin-bottom, 12%); }
   /* Questions I and III fill exactly one screen: the answers share
      whatever height is left, so nothing ever scrolls. */
   .fit h2 { flex: none; font-size: clamp(1rem, 2.6vh, 1.35rem); margin: 0 0 0.6rem; text-align: center; }
+  /* Illuminated initial: the letter is the picture, the rest of the word
+     follows straight on, left-aligned. */
+  .paper h2.capped { display: flex; align-items: center; text-align: left; white-space: pre-line; }
+  .paper h2.capped .cap { flex: none; height: 2.9em; width: auto; margin-right: 0.15em; mix-blend-mode: multiply; }
   .fit .choices { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.35rem; margin: 0; }
   .fit .choices li { flex: 1; min-height: 0; max-height: 4.5rem; margin: 0; display: flex; }
   .fit .choice {
-    display: grid; grid-template-columns: 1.1rem 6.4rem 1fr; gap: 0.6rem;
+    display: grid; grid-template-columns: 2.1rem 6rem 1fr; gap: 0.55rem;
     padding: 0.25rem 0.7rem; align-items: center;
   }
-  .fit .choice .box { margin-top: 0; width: 1.05rem; height: 1.05rem; }
+  .fit .choice .box { margin-top: 0; }
   .choice b { font-size: clamp(0.95rem, 2.5vh, 1.15rem); line-height: 1.1; }
   .choice i { font-size: clamp(0.72rem, 1.8vh, 0.85rem); line-height: 1.2; color: var(--expl, var(--dim)); }
   .fit .actions { flex: none; margin-top: 0.6rem; }
@@ -167,54 +166,59 @@
     background: none; color: inherit; font: inherit;
     border: 1px solid var(--line); border-radius: 0.4rem; cursor: pointer;
   }
+  /* Illuminated checkbox art (both states share one footprint so nothing shifts) */
   .choice .box {
-    flex: none; width: 1.2rem; height: 1.2rem; margin-top: 0.15rem;
-    border: 1.5px solid var(--dim); border-radius: 0.2rem;
-    display: grid; place-items: center; font-size: 0.9rem; line-height: 1;
+    flex: none; width: 2.1rem; height: 1.65rem; margin-top: 0;
+    background: url(/art/string/illum/check_off.webp) center / contain no-repeat;
+    mix-blend-mode: multiply;
   }
   .choice.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
-  .choice.on .box { border-color: var(--accent); background: var(--accent); color: var(--on-accent, var(--bg)); }
-  .choice .box::after { content: ''; }
-  .choice.on .box::after { content: '✓'; }
-  .choice b { font-weight: bold; }
+  .choice.on .box { background-image: url(/art/string/illum/check_on.webp); }
+  .choice b, .ends, button.btn, .molar-slider .thumb .num { font-family: 'Almendra', 'IM Fell English', Georgia, serif; font-weight: 700; font-style: normal; }
 
   /* Question II — the molar slider.
      Every element has a fixed size so nothing shifts as the value changes:
      the number lives inside the tooth, the end labels sit in fixed cells. */
-  #s-q2 .illumination {
-    flex: 1; min-height: 0; display: grid; place-items: center;
-    color: var(--dim); font-size: 0.75rem; border: 1px dashed var(--line); border-radius: 0.4rem;
-    margin-top: 0.5rem;
-  }
+  #s-q2 .illumination { flex: 1; min-height: 0; position: relative; margin-top: 0.5rem; }
+  #s-q2 .illumination img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
   #s-q2 h2 { flex: none; font-size: clamp(1.1rem, 3vh, 1.45rem); text-align: left; white-space: pre-line; margin: 0.5rem 0 0.75rem; }
   .molar-slider {
-    flex: none; position: relative; height: 104px; margin: 0.25rem 0 0;
-    cursor: pointer; outline: none;
-    --thumb-w: 64px;
+    flex: none; position: relative; height: 80px; margin: 0.25rem 0 0;
+    cursor: pointer; outline: none; touch-action: none;
+    --thumb-w: 66px;
   }
+  /* Ornate gold track: positioned in JS so its 11 diamonds sit under scores 0–10.
+     The score colour fills the channel behind the (multiplied) artwork. */
   .molar-slider .track {
-    position: absolute; left: calc(var(--thumb-w) / 2); right: calc(var(--thumb-w) / 2);
-    top: 46px; height: 12px; border-radius: 6px;
-    background: var(--track, #9c7a8f);
-    transition: background-color 120ms linear;
+    position: absolute; left: var(--tl, 0px); width: var(--tw, 100%); height: var(--th, 30px);
+    top: calc(40px - var(--th, 30px) * 0.455);
+  }
+  .molar-slider .track .fill {
+    position: absolute; left: 5.4%; right: 5.2%; top: 37%; height: 17%; border-radius: 999px;
+    background: var(--track, #9c7a8f); transition: background-color 120ms linear;
+  }
+  .molar-slider .track img {
+    position: absolute; inset: 0; width: 100%; height: 100%; mix-blend-mode: multiply; pointer-events: none;
   }
   .molar-slider .thumb {
-    position: absolute; top: 0; left: 0; width: var(--thumb-w); height: 70px;
+    position: absolute; top: 7px; left: 0; width: var(--thumb-w); height: var(--thumb-w);
     transform: translateX(var(--x, 0px));
-    filter: drop-shadow(0 2px 3px rgba(40,20,0,0.35));
+    filter: drop-shadow(0 2px 3px rgba(40,20,0,0.4));
   }
-  .molar-slider .thumb svg { display: block; width: 100%; height: 100%; }
+  .molar-slider .thumb img { display: block; width: 100%; height: 100%; pointer-events: none; }
   .molar-slider .thumb .num {
-    position: absolute; left: 0; right: 0; top: 13px; text-align: center;
-    font-size: 1.5rem; line-height: 1; color: #2a1d14; font-variant-numeric: tabular-nums;
+    position: absolute; left: 0; right: 0; top: 30%; text-align: center;
+    font-size: 1.15rem; font-weight: bold; line-height: 1; color: #6e0f0f; font-variant-numeric: tabular-nums;
   }
-  /* Untouched: no number, track and tooth faded until the first touch */
-  .molar-slider.inactive .track,
-  .molar-slider.inactive .thumb { filter: grayscale(1); opacity: 0.4; }
+  /* Untouched: no number, track and medallion faded until the first touch */
+  /* (filter sits on the pieces, not the .track wrapper, so the art still multiplies onto the parchment) */
+  .molar-slider.inactive .track img,
+  .molar-slider.inactive .track .fill { filter: grayscale(1); opacity: 0.45; }
+  .molar-slider.inactive .thumb img { filter: grayscale(1) brightness(1.15) contrast(0.6); }
   .molar-slider.inactive .num { visibility: hidden; }
   .ends {
     flex: none; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;
-    height: 1.3rem; font-size: 0.72rem; line-height: 1.3; white-space: nowrap; color: var(--expl, var(--dim)); font-style: italic;
+    height: 1.3rem; font-size: 0.72rem; line-height: 1.3; white-space: nowrap; color: var(--expl, var(--dim));
     transition: opacity 150ms;
   }
   .ends.inactive { opacity: 0.4; }
@@ -227,7 +231,7 @@
   /* Buttons */
   .actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
   button.btn {
-    flex: 1; padding: 0.9rem 1rem; font: inherit; cursor: pointer;
+    flex: 1; padding: 0.9rem 1rem; font-size: inherit; line-height: inherit; cursor: pointer;
     border-radius: 0.4rem; border: 1px solid var(--accent);
     background: var(--accent); color: var(--on-accent, var(--bg));
   }
@@ -295,21 +299,19 @@
   <!-- SPLASH — first visit -->
   <div class="screen splash" id="s-splash">
     <div class="art" id="art-splash"></div>
-    <div class="splash-cta"><button class="btn solo" id="b-enter">Enter the confessional</button></div>
   </div>
 
   <!-- SPLASH — return visit -->
   <div class="screen splash" id="s-return">
-    <div class="art static" id="art-return"></div>
-    <div class="splash-cta"><button class="btn solo" id="b-behold">Behold the Reckoning</button></div>
+    <div class="art" id="art-return"></div>
   </div>
 
   <!-- QUESTION I -->
   <div class="screen fit paper" id="s-q1">
-    <div class="margin-top">heavenly marginalia</div>
     <h2 id="q1-title"></h2>
+    <div class="margin-top"><img class="illum-img" src="/art/string/illum/heaven.webp" alt=""></div>
     <ul class="choices" id="q1-list"></ul>
-    <div class="margin-bottom">demons</div>
+    <div class="margin-bottom"><img class="illum-img" src="/art/string/illum/hell.webp" alt=""></div>
     <div class="actions">
       <button class="btn" id="b-q1-next" disabled>Confess</button>
     </div>
@@ -320,16 +322,14 @@
     <h2 id="q2-title"></h2>
     <div class="molar-slider inactive" id="q2-slider" role="slider" tabindex="0"
          aria-valuemin="0" aria-valuemax="10" aria-label="Score from 0 to 10">
-      <div class="track"></div>
+      <div class="track"><div class="fill"></div><img src="/art/string/illum/track.webp" alt=""></div>
       <div class="thumb">
-        <svg viewBox="0 0 100 110" aria-hidden="true">
-          <path fill="#fbf6ea" stroke="#8a7a60" stroke-width="3" d="M18,12 C18,4 30,2 38,8 C44,12 56,12 62,8 C70,2 82,4 82,12 C88,30 86,48 80,58 C76,66 74,80 70,98 C68,106 60,106 58,96 C56,84 54,74 50,74 C46,74 44,84 42,96 C40,106 32,106 30,98 C26,80 24,66 20,58 C14,48 12,30 18,12 Z"/>
-        </svg>
+        <img src="/art/string/illum/medallion.webp" alt="">
         <div class="num" id="q2-num"></div>
       </div>
     </div>
     <div class="ends inactive" id="q2-ends"></div>
-    <div class="illumination">illumination</div>
+    <div class="illumination"><img src="/art/string/illum/martyr.webp" alt=""></div>
     <div class="actions">
       <button class="btn ghost" id="b-q2-back">Recant</button>
       <button class="btn" id="b-q2-next" disabled>Confess</button>
@@ -372,7 +372,7 @@
 // Change any wording here. Never change a `code` — route.ts depends on them.
 const COPY = {
   q1: {
-    title: 'I. How oft dost thou ply the sacred thread?',
+    title: 'How oft dost thou ply the sacred thread?',
     // Listed heaven-first: the most virtuous at the top, the damned at the bottom.
     options: [
       { code: 'twice',   label: 'Twice Daily', line: 'At matins and compline.' },
@@ -385,13 +385,13 @@ const COPY = {
     ],
   },
   q2: {
-    title: 'II. How doth the holy thread\nrest upon thy soul?',   // \n = line break
+    title: 'How doth the holy thread\nrest upon thy soul?',   // \n = line break
     left:   'Foul penance!',
     middle: '’Tis tolerable',
     right:  'Rapture and ecstasy.',
   },
   q3: {
-    title: 'III. Of what generation art thou begotten?',
+    title: 'Of what generation art thou begotten?',
     options: [
       { code: 'boomer',     label: 'Boomer',     line: 'From great fecundity following the War.' },
       { code: 'genx',       label: 'Gen X',      line: 'The forgotten middle, raised by latchkeys.' },
@@ -420,18 +420,27 @@ const TUNING = {
   // Candlelight
   vignette: 0.50,          // 0–1, edge darkening
   flicker: 0.07,           // 0–1, brightness flicker
-  // Splash timing, in seconds from the start (multiplied by splashSpeed)
-  splashSpeed: 1.0,        // 0.5 = twice as fast, 2 = half speed
-  smileAt: 0.4,   smileFade: 1.4,
-  starsAt: 1.9,   starStagger: 0.22, starFade: 0.9,
-  haloAt: 3.2,    haloFade: 1.6,
-  artAt: 4.2,     artFade: 2.0,    // sky, saint and frame come up together
-  captionAt: 6.2, buttonAt: 6.9,
-  pushSeconds: 14,         // slow push-in with parallax, from the very start
-  glanceDownAt: 7.6,       // eyes drift down toward the button
+  // Splash (locked 2026-11-13 on the Splash Simulator)
+  splash: {
+    grinIn: 1.5,            // 1 · the grin fades in (s)
+    grinGlow: 0.35,         // glow around the grin, 0–1
+    handOffAt: 0.75,        // grin hands over to the painted smile, this far into the saint's lighting
+    handOffDur: 1.2,
+    starsAt: 1.5,           // 2 · stars start, seconds after the grin begins
+    starsBuild: 2.5,
+    starFloat: 5, starWiggle: 5, starTwinkle: 0.25,
+    lightDur: 1.6,          // 3 · each layer lights up over this long
+    stagger: 0.6,           // halo → sky → saint → arch
+    haloOvershoot: 0.35,    // the halo flares past full brightness: backlit silhouette
+    bloom: 0.40,
+    parallax: 8,            // canvas px at full viewpoint drift
+    eyeRange: 3,            // pupil glance, % of the eye layer
+    smoothing: 10,
+    depth: { bg: 0.10, stars: 0.55, halo: 0.35, saint: 0.80 },   // the arch never moves
+  },
   q2Start: 5,              // where the tooth sits before it's touched (no number shown)
-  q1MarginTop: '12%',       // height reserved for heavenly marginalia above Question I
-  q1MarginBottom: '12%',    // height reserved for demons below Question I
+  q1MarginTop: '15%',       // height of the heaven band above Question I
+  q1MarginBottom: '14%',    // height of the hell band below Question I
 }
 
 // ═══ NO ZOOM ═══════════════════════════════════════════════════════════
@@ -576,143 +585,172 @@ function startCandle() {
 }
 
 
-// ═══ SPLASH ART ════════════════════════════════════════════════════════
-// Layer placement in canvas pixels (941 × 1672), measured against the WIP
-// comp. Nudge any number here; everything else follows.
+// ═══ SPLASH ═══════════════════════════════════════════════════════════
+// Layer placement in canvas pixels (941 × 1672). Nudge any number here.
 const ASSET = '/art/string/splash/'
 const ART = {
   W: 941, H: 1672,
-  halo:  { x: 165,   y: 190,   w: 618,   h: 611 },
-  saint: { x: 0,     y: 293,   w: 934,   h: 1245 },
-  eyes:  { x: 408.3, y: 473.8, w: 216.6, h: 72.2 },
-  smile: { x: 481,   y: 605,   w: 72,    h: 23 },
-  // Stars: centre x, centre y, size, which art (1 or 2)
-  stars: [
-    [351, 174, 70, 1], [585, 174, 70, 2], [186, 306, 80, 2], [762, 306, 80, 1],
-    [114, 555, 95, 1], [816, 555, 95, 2], [153, 672, 85, 2], [750, 720, 90, 1],
-  ],
-  // Eyeballs as drawn sit cross-eyed; these shifts centre each pupil
-  // (as a % of the eye layer's width).
-  eyeCentreL: -6.95, eyeCentreR: 7.0,
-  // Parallax: how much each layer grows during the push-in
-  push: { bg: 1.02, stars: 1.03, halo: 1.035, saint: 1.045, frame: 1.06 },
+  halo:   { x: 165,    y: 190,    w: 618,   h: 611 },
+  saint:  { x: 0,      y: 293,    w: 934,   h: 1245 },
+  eyes:   { x: 408.3,  y: 473.8,  w: 216.6, h: 72.2 },
+  smile:  { x: 484.18, y: 601.74, w: 67.94, h: 18.92 },   // teeth cut from the saint layer: they line up exactly
+  banner: { x: 200,    y: 1462,   w: 541,   h: 100 },     // text area, centred on the cartouche
+  bannerGlow: { x: 150, y: 1430, w: 641, h: 165 },
+  frame: { top: 502, bottom: 320 },                        // piece heights; the pillars fill the rest
+  // Stars: centre x, centre y, size, which art (1 or 2). They travel with the halo.
+  stars: [[351,174,70,1],[585,174,70,2],[186,306,80,2],[762,306,80,1],[114,555,95,1],[816,555,95,2],[153,672,85,2],[750,720,90,1]],
+  eyeCentreL: -6.95, eyeCentreR: 7.0,   // centre the pupils (the eyeball art is drawn cross-eyed)
 }
 
-const cpct = (v, of) => (v / of * 100) + '%'
-function place(el, r) {
-  el.style.left = cpct(r.x, ART.W); el.style.top = cpct(r.y, ART.H)
-  el.style.width = cpct(r.w, ART.W); el.style.height = cpct(r.h, ART.H)
-}
-function img(src, cls) {
-  const i = document.createElement('img')
-  i.src = ASSET + src; i.alt = ''; i.className = 'ly ' + (cls || ''); i.decoding = 'async'
-  return i
-}
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x))
+const ramp = (t, a, d) => clamp((t - a) / Math.max(d, 0.001), 0, 1)
 
-function buildArt(host, caption) {
+function makeSplash(host, caption, lit) {
   host.style.setProperty('--eye-mask', `url(${ASSET}eye_whites.webp)`)
-  const g = name => { const d = document.createElement('div'); d.className = 'grp g-' + name; host.appendChild(d); return d }
-  const L = {}
-  L.bgGrp = g('bg');       L.bg = img('bg.webp', 'full'); L.bgGrp.appendChild(L.bg)
-  L.starGrp = g('stars');  L.stars = ART.stars.map(([x, y, sz, n]) => {
-    const st = img(`star${n}.webp`, 'star'); place(st, { x: x - sz / 2, y: y - sz / 2, w: sz, h: sz }); L.starGrp.appendChild(st); return st
-  })
-  L.haloGrp = g('halo');   L.halo = img('halo.webp'); place(L.halo, ART.halo); L.haloGrp.appendChild(L.halo)
-  L.saintGrp = g('saint'); L.saint = img('saint.webp'); place(L.saint, ART.saint); L.saintGrp.appendChild(L.saint)
-  L.eyes = document.createElement('div'); L.eyes.className = 'ly eyes'; place(L.eyes, ART.eyes)
-  L.eyes.innerHTML = `<img src="${ASSET}eye_whites.webp" alt="">
+  const el = (tag, cls, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; (parent || host).appendChild(e); return e }
+  const img = (src, cls, parent) => { const i = el('img', 'ly ' + (cls || ''), parent); i.src = ASSET + src; i.alt = ''; i.decoding = 'async'; return i }
+  const grp = () => el('div', 'grp')
+
+  const G = { bg: grp(), halo: grp(), saint: grp() }
+  img('bg.webp', 'bgimg', G.bg)
+  const halo = img('halo.webp', '', G.halo)
+  const saint = img('saint.webp', '', G.saint)
+  const eyes = el('div', 'ly eyes', G.saint)
+  eyes.innerHTML = `<img src="${ASSET}eye_whites.webp" alt="">
     <div class="eb" style="left:${ART.eyeCentreL}%;background-image:url(${ASSET}eyeballs.webp);clip-path:inset(0 50% 0 0)"></div>
     <div class="eb" style="left:${ART.eyeCentreR}%;background-image:url(${ASSET}eyeballs.webp);clip-path:inset(0 0 0 50%)"></div>`
-  L.saintGrp.appendChild(L.eyes)
-  L.smile = img('smile.webp', 'smile'); place(L.smile, ART.smile); L.saintGrp.appendChild(L.smile)
-  L.frameGrp = g('frame'); L.frame = img('frame.webp', 'full'); L.frameGrp.appendChild(L.frame)
-  L.caption = document.createElement('div'); L.caption.className = 'ly caption'; L.caption.textContent = caption; host.appendChild(L.caption)
-  L.glint = document.createElement('div'); L.glint.className = 'glint'
-  L.glint.style.left = cpct(ART.smile.x + ART.smile.w * 0.62, ART.W); L.glint.style.top = cpct(ART.smile.y + ART.smile.h * 0.4, ART.H)
-  host.appendChild(L.glint)
-  if (host.classList.contains('static')) L.smile.style.opacity = 0   // the saint's own smile shows
-  host._layers = L
-  sizeArt(host)
-  return L
-}
+  const pupils = eyes.querySelectorAll('.eb')
+  const bloom = el('div', 'bloom'); host.insertBefore(bloom, G.saint)    // halo glow sits behind him, never on his face
+  G.stars = grp()
+  const stars = ART.stars.map(([x, y, sz, n], i) => ({ el: img(`star${n}.webp`, '', G.stars), x, y, sz, seed: i * 1.7 + 0.3 }))
+  const frame = el('div', 'framegrp')
+  const fTop = img('frame_top.webp', '', frame), fSides = img('frame_sides.webp', '', frame), fBot = img('frame_bottom.webp', '', frame)
+  const glow = el('div', 'banner-glow', frame)
+  const banner = el('div', 'banner-hit', frame); banner.textContent = caption
+  const smileG = grp()
+  const smile = img('smile_saint.webp', '', smileG)
+  for (const g of [G.halo, G.saint, G.stars, smileG]) g.style.transformOrigin = '50% 100%'
 
-// --u = on-screen pixels per canvas pixel, for type and glows
-function sizeArt(host) { host.style.setProperty('--u', host.clientWidth / ART.W) }
-window.addEventListener('resize', () => document.querySelectorAll('.art').forEach(sizeArt))
+  const S = { host, banner, ready: false, t0: performance.now() - (lit ? 60000 : 0), u: 1, extra: 0, offX: 0, fitS: 1, cur: { x: 0, y: 0 } }
 
-function glance(host, gx, gy, ms) {
-  host.style.setProperty('--glance-ms', (ms || 700) + 'ms')
-  host.style.setProperty('--gx', gx + '%'); host.style.setProperty('--gy', gy + '%')
-}
+  S.layout = () => {
+    const W = host.clientWidth, H = host.clientHeight
+    if (!W || !H) return
+    let u = W / ART.W, offX = 0
+    if (H < (ART.frame.top + ART.frame.bottom + 250) * u) { u = H / ART.H; offX = (W - ART.W * u) / 2 }   // landscape fallback
+    const extra = H - ART.H * u
+    // On short screens the saint, halo and stars scale down from the bottom so his head clears the arch
+    const fitS = extra < 0 ? Math.max(0.6, 1 + extra / ((ART.H - ART.halo.y) * u)) : 1
+    Object.assign(S, { u, offX, extra, fitS })
+    host.style.setProperty('--u', u)
+    const put = (e, r) => {
+      e.style.left = (offX + r.x * u) + 'px'; e.style.top = (r.y * u + extra) + 'px'
+      e.style.width = (r.w * u) + 'px'; e.style.height = (r.h * u) + 'px'
+    }
+    put(halo, ART.halo); put(saint, ART.saint); put(eyes, ART.eyes); put(smile, ART.smile)
+    put(banner, ART.banner); put(glow, ART.bannerGlow); banner.style.fontSize = (52 * u) + 'px'
+    stars.forEach(s => put(s.el, { x: s.x - s.sz / 2, y: s.y - s.sz / 2, w: s.sz, h: s.sz }))
+    const H2 = ART.H * u + extra, fw = ART.W * u
+    for (const im of [fTop, fSides, fBot]) { im.style.left = offX + 'px'; im.style.width = fw + 'px' }
+    fTop.style.top = '0px'; fTop.style.height = (ART.frame.top * u) + 'px'
+    fBot.style.top = (H2 - ART.frame.bottom * u) + 'px'; fBot.style.height = (ART.frame.bottom * u) + 'px'
+    fSides.style.top = (ART.frame.top * u - 1) + 'px'; fSides.style.height = (H2 - (ART.frame.top + ART.frame.bottom) * u + 2) + 'px'
+    const hx = offX + (ART.halo.x + ART.halo.w / 2) * u
+    const hy = H2 - (H2 - ((ART.halo.y + ART.halo.h / 2) * u + extra)) * fitS
+    bloom.style.background = `radial-gradient(circle at ${hx}px ${hy}px, rgba(255,214,120,.9) 0%, rgba(255,190,80,.35) ${150 * u}px, rgba(255,170,60,0) ${420 * u}px)`
+  }
 
-// Idle eye life after the reveal: look at the viewer, at the button, around.
-function eyeLife(host) {
-  const looks = [[0, 0], [0, 7], [-5, 1], [0, 0], [5, 2], [0, 7], [0, 0]]
-  let i = 0
-  clearInterval(host._eyeTimer)
-  host._eyeTimer = setInterval(() => { i = (i + 1) % looks.length; glance(host, looks[i][0], looks[i][1], 900) }, 3200)
-}
+  S.restart = () => { S.t0 = performance.now(); S.ready = false }
 
-function waitForImages(host, maxMs) {
-  const imgs = [...host.querySelectorAll('img')]
-  return Promise.race([
-    Promise.all(imgs.map(i => i.decode ? i.decode().catch(() => {}) : Promise.resolve())),
-    new Promise(r => setTimeout(r, maxMs)),
-  ])
-}
+  S.tick = now => {
+    const C = TUNING.splash, t = (now - S.t0) / 1000, u = S.u
+    const ease = k => k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2
+    const s1 = 0.3, s2 = s1 + C.starsAt, s3 = Math.max(s1 + C.grinIn, s2 + C.starsBuild * 0.85)
+    const L = C.lightDur, tSky = s3 + C.stagger, tSaint = s3 + 2 * C.stagger, tFrame = s3 + 2.5 * C.stagger
 
-// The opening: smile in the dark → stars → halo → the icon, slowly pushing in.
-async function playSplash() {
-  const host = $('art-splash'), L = host._layers, k = TUNING.splashSpeed * 1000
-  await waitForImages(host, 5000)
-  sizeArt(host)
-  const fade = (el, at, dur, to = 1, from = 0) =>
-    el.animate([{ opacity: from }, { opacity: to }], { delay: at * k, duration: dur * k, easing: 'ease-in-out', fill: 'forwards' })
-  const pushGrp = (grp, sc) =>
-    grp.animate([{ transform: 'scale(1)' }, { transform: `scale(${sc})` }], { duration: TUNING.pushSeconds * k, easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)', fill: 'forwards' })
-  pushGrp(L.bgGrp, ART.push.bg); pushGrp(L.starGrp, ART.push.stars); pushGrp(L.haloGrp, ART.push.halo)
-  pushGrp(L.saintGrp, ART.push.saint); pushGrp(L.frameGrp, ART.push.frame)
+    // 1 · the grin — a touch warm, handing over to the painted smile as he's lit
+    const g = C.grinGlow
+    smile.style.filter = `sepia(0.35) brightness(0.92) drop-shadow(0 0 ${6 * u * g + 0.01}px rgba(255,240,200,${0.9 * g})) drop-shadow(0 0 ${18 * u * g + 0.01}px rgba(255,220,150,${0.5 * g}))`
+    smile.style.opacity = ease(ramp(t, s1, C.grinIn)) * (1 - ease(ramp(t, tSaint + L * C.handOffAt, C.handOffDur)))
 
-  fade(L.smile, TUNING.smileAt, TUNING.smileFade)
-  L.stars.forEach((st, i) => {
-    fade(st, TUNING.starsAt + i * TUNING.starStagger, TUNING.starFade).finished.then(() => {
-      st.style.opacity = 1
-      st.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0.7, transform: 'scale(0.9)' }],
-        { duration: (1.8 + Math.random() * 2) * 1000, direction: 'alternate', iterations: Infinity, easing: 'ease-in-out', delay: Math.random() * 800 })
+    // 2 · stars build around it, then float, wiggle and twinkle
+    stars.forEach((s, i) => {
+      const k = ease(ramp(t, s2 + i * (C.starsBuild / stars.length), C.starsBuild * 0.5))
+      const tw = 1 + C.starTwinkle * (0.5 * Math.sin(t * (2.1 + (i % 3) * 0.7) + s.seed * 3) + 0.3 * Math.sin(t * 5.3 + s.seed * 7))
+      s.el.style.opacity = k
+      s.el.style.filter = `brightness(${Math.max(0.3, tw).toFixed(3)})`
+      const dx = Math.sin(t * 0.5 + s.seed) * C.starFloat * 0.6 * u, dy = Math.cos(t * 0.37 + s.seed * 1.3) * C.starFloat * 0.6 * u
+      const rot = Math.sin(t * 0.3 + s.seed) * C.starFloat * 0.6 + Math.sin(t * 0.9 + s.seed * 2) * C.starWiggle
+      s.el.style.transform = `translate(${dx.toFixed(2)}px, ${(dy + (1 - k) * 8 * u).toFixed(2)}px) scale(${(0.6 + 0.4 * k).toFixed(3)}) rotate(${rot.toFixed(2)}deg)`
     })
+
+    // 3 · lit from behind: the halo flares (he's a silhouette against it),
+    //     then the sky, then bounce light warms the saint, then the arch
+    const kH = ease(ramp(t, s3, L))
+    G.halo.style.filter = `brightness(${(kH * (1 + C.haloOvershoot * Math.sin(Math.PI * Math.min(1, ramp(t, s3, L * 1.8))))).toFixed(3)})`
+    G.bg.style.filter = `brightness(${ease(ramp(t, tSky, L)).toFixed(3)})`
+    const kS = ease(ramp(t, tSaint, L * 1.3))
+    G.saint.style.filter = `brightness(${kS.toFixed(3)}) sepia(${(0.55 * Math.sin(Math.PI * kS)).toFixed(3)}) saturate(${(1 + 0.3 * Math.sin(Math.PI * kS)).toFixed(3)})`
+    const kF = ease(ramp(t, tFrame, L))
+    frame.style.filter = `brightness(${kF.toFixed(3)}) sepia(${(0.4 * Math.sin(Math.PI * kF)).toFixed(3)})`
+    bloom.style.opacity = C.bloom * (Math.sin(Math.PI * ramp(t, s3, L * 2.2)) * 0.8 + 0.2 * kH)
+    S.ready = t > tFrame + L * 0.6
+
+    // Slow wandering viewpoint: layers drift by depth, the eyes glance with the body
+    const w = now / 1000
+    const target = { x: 0.55 * Math.sin(w * 0.45) * Math.sin(w * 0.17 + 1), y: 0.35 + 0.45 * Math.sin(w * 0.31 + 2) }
+    const sm = 1 / C.smoothing
+    S.cur.x += (target.x - S.cur.x) * sm; S.cur.y += (target.y - S.cur.y) * sm
+    for (const [k, gr] of Object.entries(G)) {
+      const d = C.depth[k], sc = k === 'bg' ? 1.04 : 1.04 * S.fitS
+      gr.style.transform = `translate(${(-S.cur.x * C.parallax * d * u).toFixed(2)}px, ${(-S.cur.y * C.parallax * d * u).toFixed(2)}px) scale(${sc.toFixed(4)})`
+    }
+    smileG.style.transform = G.saint.style.transform
+    const er = C.eyeRange
+    pupils.forEach(p => p.style.transform = `translate(${(-S.cur.x * er).toFixed(2)}%, ${(-Math.min(0.4, S.cur.y) * er * 1.1).toFixed(2)}%)`)
+  }
+
+  // Press: the cartouche brightens; release: page turn onward
+  banner.addEventListener('pointerdown', () => { if (S.ready) host.classList.add('pressed') })
+  banner.addEventListener('pointerleave', () => host.classList.remove('pressed'))
+  banner.addEventListener('pointercancel', () => host.classList.remove('pressed'))
+  banner.addEventListener('pointerup', () => {
+    const wasPressed = host.classList.contains('pressed')
+    setTimeout(() => host.classList.remove('pressed'), 180)
+    if (wasPressed && S.ready && S.onEnter) S.onEnter()
   })
-  L.halo.animate([{ opacity: 0, transform: 'translateY(3%) scale(0.92)' }, { opacity: 1, transform: 'translateY(0) scale(1)' }],
-    { delay: TUNING.haloAt * k, duration: TUNING.haloFade * k, easing: 'cubic-bezier(0.2, 0.6, 0.2, 1)', fill: 'forwards' })
-  for (const el of [L.bg, L.saint, L.eyes, L.frame]) fade(el, TUNING.artAt, TUNING.artFade)
-  fade(L.smile, TUNING.artAt + TUNING.artFade * 0.5, TUNING.artFade * 0.6, 0, 1)   // the glow hands over to the painted smile
-  fade(L.caption, TUNING.captionAt, 1.0)
-  const cta = $('s-splash').querySelector('.splash-cta')
-  fade(cta, TUNING.buttonAt, 0.8).finished.then(() => cta.classList.add('ready'))
-  setTimeout(() => { glance(host, 0, 7, 1100); setTimeout(() => eyeLife(host), 2500) }, TUNING.glanceDownAt * k)
+  return S
 }
 
-// Tap: a glint flares off the smile and white floods the screen,
-// then clears onto Question I.
-async function enterConfessional() {
-  const host = $('art-splash'), L = host._layers
-  $('stage').style.pointerEvents = 'none'
-  L.glint.style.opacity = 1
-  await L.glint.animate([
-    { transform: 'scale(0.1) rotate(0deg)', opacity: 0 },
-    { transform: 'scale(1) rotate(25deg)', opacity: 1, offset: 0.6 },
-    { transform: 'scale(1.6) rotate(45deg)', opacity: 1 },
-  ], { duration: 420, easing: 'ease-out', fill: 'forwards' }).finished
-  const white = $('fx-white')
-  await white.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, easing: 'ease-in', fill: 'forwards' }).finished
-  clearInterval(host._eyeTimer)
-  show('q1')
-  await white.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 750, easing: 'ease-out', fill: 'forwards' }).finished
-  $('stage').style.pointerEvents = ''
+// One loop drives whichever splash is on screen
+const SPLASHES = []
+function splashLoop(now) {
+  for (const S of SPLASHES) if (S.host.closest('.screen').classList.contains('on')) S.tick(now)
+  requestAnimationFrame(splashLoop)
+}
+addEventListener('resize', () => SPLASHES.forEach(S => S.layout()))
+
+// ═══ ILLUMINATED CAPITALS ════════════════════════════════════════════
+// A question's first letter is drawn as an illuminated initial when one
+// exists for it; otherwise it stays plain text. Add letters here.
+const CAPS = { H: '/art/string/illum/cap_h.webp', O: '/art/string/illum/cap_o.webp' }
+function setTitle(el, title) {
+  const first = title.charAt(0).toUpperCase()
+  el.innerHTML = ''
+  if (CAPS[first]) {
+    el.classList.add('capped')
+    const im = document.createElement('img'); im.className = 'cap'; im.src = CAPS[first]; im.alt = first
+    const tx = document.createElement('span'); tx.textContent = title.slice(1)
+    el.append(im, tx)
+  } else {
+    el.textContent = title
+  }
 }
 
 // ═══ CHECKBOX LISTS (I and III) ═══════════════════════════════════════
 // One choice at most: tap to select, tap again to clear, tap another to switch.
 function buildChoices(listEl, options, field, nextBtn) {
+  new Image().src = '/art/string/illum/check_on.webp'   // preload so the first tick is instant
   listEl.innerHTML = ''
   for (const opt of options) {
     const li = document.createElement('li')
@@ -760,6 +798,12 @@ function placeTooth(v) {
   const thumbW = el.querySelector('.thumb').offsetWidth
   const travel = el.clientWidth - thumbW
   el.style.setProperty('--x', `${(v / 10) * travel}px`)
+  // Scale the track art so diamond 0 and diamond 10 sit under the medallion's centre at 0 and 10
+  const TW = 2073, TH = 205, D0 = 170.5, D10 = 1903.5
+  const ws = travel * TW / (D10 - D0)
+  el.style.setProperty('--tw', `${ws}px`)
+  el.style.setProperty('--th', `${ws * TH / TW}px`)
+  el.style.setProperty('--tl', `${thumbW / 2 - D0 * ws / TW}px`)
   el.style.setProperty('--track', SCORE_COLORS[v])
   el.setAttribute('aria-valuenow', v)
 }
@@ -1036,8 +1080,12 @@ function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = 
 
 // ═══ WIRING ═══════════════════════════════════════════════════════════
 function init() {
-  buildArt($('art-splash'), 'St. Ring will hear your confession')
-  buildArt($('art-return'), 'Thou hast confessed.')
+  const sp = makeSplash($('art-splash'), 'Enter the Confessional', false)
+  const rt = makeSplash($('art-return'), 'Behold the Reckoning', true)
+  sp.onEnter = () => go('q1', 1)          // chant will start here later
+  rt.onEnter = () => go('results', 1)
+  SPLASHES.push(sp, rt)
+  requestAnimationFrame(splashLoop)
   document.querySelectorAll('.screen').forEach(sc => {
     sc.insertAdjacentHTML('beforeend', '<div class="turn-sh"></div><div class="turn-dk"></div>')
   })
@@ -1045,9 +1093,9 @@ function init() {
   startCandle()
   document.documentElement.style.setProperty('--margin-top', TUNING.q1MarginTop)
   document.documentElement.style.setProperty('--margin-bottom', TUNING.q1MarginBottom)
-  $('q1-title').textContent = COPY.q1.title
-  $('q2-title').textContent = COPY.q2.title
-  $('q3-title').textContent = COPY.q3.title
+  setTitle($('q1-title'), COPY.q1.title)
+  setTitle($('q2-title'), COPY.q2.title)
+  setTitle($('q3-title'), COPY.q3.title)
   $('q2-ends').innerHTML = `<span>${COPY.q2.left}</span><span>${COPY.q2.middle}</span><span>${COPY.q2.right}</span>`
   buildChoices($('q1-list'), COPY.q1.options, 'q1', $('b-q1-next'))
   buildChoices($('q3-list'), COPY.q3.options, 'gen', $('b-q3-next'))
@@ -1055,8 +1103,6 @@ function init() {
   wireSlider()
   wireResults()
 
-  $('b-enter').addEventListener('click', enterConfessional)         // chant will start here later
-  $('b-behold').addEventListener('click', () => show('results'))
   $('b-q1-next').addEventListener('click', () => go('q2', 1))
   $('b-q2-back').addEventListener('click', () => go('q1', -1))
   $('b-q2-next').addEventListener('click', () => go('q3', 1))
@@ -1070,19 +1116,27 @@ function init() {
   }
 }
 
+// Show a splash screen, lay it out now that it's visible, and start its clock
+function showSplash(name) {
+  show(name)
+  const S = SPLASHES[name === 'splash' ? 0 : 1]
+  S.layout()
+  if (name === 'splash') S.restart()
+}
+
 async function start() {
   init()
-  if (INTERVIEWER) { show('splash'); playSplash(); return }    // interviewer always starts fresh
+  if (INTERVIEWER) { showSplash('splash'); return }    // interviewer always starts fresh
 
   // Guests: has this phone confessed already?
   const data = await fetchResults()
   if (data && data.confessed) {
     mine = data.mine
     renderResults(data.results)
-    show('return'); sizeArt($('art-return')); eyeLife($('art-return'))
+    showSplash('return')
   } else {
     if (data) renderResults(data.results)
-    show('splash'); playSplash()
+    showSplash('splash')
   }
 }
 
