@@ -441,7 +441,8 @@ const TUNING = {
     stagger: 0.6,           // halo → sky → saint → arch
     haloOvershoot: 0.35,    // the halo flares past full brightness: backlit silhouette
     bloom: 0.40,
-    parallax: 8,            // canvas px at full viewpoint drift
+    parallax: 30,           // canvas px at full viewpoint drift
+    eyeSpeed: 1.7,          // how much faster the gaze wanders than the body
     eyeRange: 3,            // pupil glance, % of the eye layer
     smoothing: 10,
     depth: { bg: 0.10, stars: 0.55, halo: 0.35, saint: 0.80 },   // the arch never moves
@@ -715,7 +716,12 @@ function makeSplash(host, caption, lit) {
     }
     smileG.style.transform = G.saint.style.transform
     const er = C.eyeRange
-    pupils.forEach(p => p.style.transform = `translate(${(-S.cur.x * er).toFixed(2)}%, ${(-Math.min(0.4, S.cur.y) * er * 1.1).toFixed(2)}%)`)
+    // The gaze wanders on its own, quicker clock (the eyes still ride with the body)
+    const we = w * C.eyeSpeed
+    const eT = { x: 0.55 * Math.sin(we * 0.45) * Math.sin(we * 0.17 + 1), y: 0.35 + 0.45 * Math.sin(we * 0.31 + 2) }
+    S.eye = S.eye || { x: eT.x, y: eT.y }
+    S.eye.x += (eT.x - S.eye.x) * sm; S.eye.y += (eT.y - S.eye.y) * sm
+    pupils.forEach(p => p.style.transform = `translate(${(-S.eye.x * er).toFixed(2)}%, ${(-Math.min(0.4, S.eye.y) * er * 1.1).toFixed(2)}%)`)
   }
 
   // Press: the cartouche brightens; release: page turn onward
