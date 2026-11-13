@@ -74,8 +74,8 @@
     --ink: #23170d; --dim: #6b5a44; --line: rgba(90,64,30,0.38);
     --accent: #8e1b14; --on-accent: #f3e6c8; --expl: #4a3a28;
     color: var(--ink);
-    background-color: #e6d6b4;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='a'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0 0.08 0 0 0 0.22 0'/></filter><filter id='b'><feTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.3 0 0 0 0 0.1 0 0 0 0.35 0'/></filter><rect width='100%' height='100%' filter='url(%23b)'/><rect width='100%' height='100%' filter='url(%23a)'/></svg>");
+    background-color: #e9d29a;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='a'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0 0.05 0 0 0 0.32 0'/></filter><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.06 0.16' numOctaves='3' seed='3'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.27 0 0 0 0 0.08 0 0 0 0.2 0'/></filter><filter id='b'><feTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='3' seed='9'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.32 0 0 0 0 0.08 0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23b)'/><rect width='100%' height='100%' filter='url(%23f)'/><rect width='100%' height='100%' filter='url(%23a)'/></svg>");
   }
   /* Candlelight over everything: an edge vignette and a slow flicker.
      Strengths live in TUNING. */
@@ -116,7 +116,7 @@
   }
   .art .banner-hit {
     position: absolute; display: grid; place-items: center; text-align: center; cursor: pointer;
-    font-style: italic; font-weight: bold; color: #4a120c; line-height: 1.1;
+    font-family: 'Almendra', 'IM Fell English', serif; font-style: normal; font-weight: 700; color: #4a120c; line-height: 1.1;
     pointer-events: auto; -webkit-tap-highlight-color: transparent;
     transition: text-shadow 140ms ease-out, color 140ms ease-out;
   }
@@ -180,6 +180,7 @@
      Every element has a fixed size so nothing shifts as the value changes:
      the number lives inside the tooth, the end labels sit in fixed cells. */
   #s-q2 .illumination { flex: 1; min-height: 0; position: relative; margin-top: 0.5rem; }
+  .illum-caption { flex: none; text-align: center; font-style: italic; font-size: 0.85rem; color: var(--expl, var(--dim)); margin-top: 0.3rem; }
   #s-q2 .illumination img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
   #s-q2 h2 { flex: none; font-size: clamp(1.1rem, 3vh, 1.45rem); text-align: left; white-space: pre-line; margin: 0.5rem 0 0.75rem; }
   .molar-slider {
@@ -191,10 +192,10 @@
      The score colour fills the channel behind the (multiplied) artwork. */
   .molar-slider .track {
     position: absolute; left: var(--tl, 0px); width: var(--tw, 100%); height: var(--th, 30px);
-    top: calc(40px - var(--th, 30px) * 0.455);
+    top: calc(40px - var(--th, 30px) * 0.5);
   }
   .molar-slider .track .fill {
-    position: absolute; left: 5.4%; right: 5.2%; top: 37%; height: 17%; border-radius: 999px;
+    position: absolute; left: 5.6%; right: 5.6%; top: 39.4%; height: 21.1%; border-radius: 999px;
     background: var(--track, #9c7a8f); transition: background-color 120ms linear;
   }
   .molar-slider .track img {
@@ -207,8 +208,8 @@
   }
   .molar-slider .thumb img { display: block; width: 100%; height: 100%; pointer-events: none; }
   .molar-slider .thumb .num {
-    position: absolute; left: 0; right: 0; top: 30%; text-align: center;
-    font-size: 1.15rem; font-weight: bold; line-height: 1; color: #6e0f0f; font-variant-numeric: tabular-nums;
+    position: absolute; left: 0; right: 0; top: 23%; text-align: center;
+    font-size: 0.92rem; font-weight: bold; line-height: 1; color: #6e0f0f; font-variant-numeric: tabular-nums;
   }
   /* Untouched: no number, track and medallion faded until the first touch */
   /* (filter sits on the pieces, not the .track wrapper, so the art still multiplies onto the parchment) */
@@ -244,46 +245,52 @@
      center), a single proportional strip for Question II, and a toggle
      between everyone and the five generations. The penitent's own
      answers are marked in gold. */
-  .res-title { margin: 0 0 0.75rem; }
-  .seg-toggle { display: flex; margin: 0 auto 0.75rem; width: max-content; border: 1px solid var(--line); border-radius: 2rem; overflow: hidden; }
-  .seg-toggle button { font: inherit; font-size: 0.85rem; padding: 0.4rem 1rem; background: none; border: 0; color: var(--dim); cursor: pointer; }
-  .seg-toggle button.on { background: var(--line); color: var(--ink); }
+  .res-title { margin: 0.25rem 0 0.9rem; font-family: 'Almendra', 'IM Fell English', serif; font-weight: 700; font-size: 1.9rem; letter-spacing: 0.01em; }
+  .res-title::before, .res-title::after { content: '✠'; color: var(--accent); font-size: 0.6em; vertical-align: 0.3em; margin: 0 0.45em; }
+  .seg-toggle { display: flex; margin: 0 auto 0.75rem; width: max-content; border: 1.5px solid var(--ink); border-radius: 0.35rem; overflow: hidden; }
+  .seg-toggle button { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.9rem; padding: 0.4rem 1rem; background: none; border: 0; color: var(--ink); cursor: pointer; }
+  .seg-toggle button + button { border-left: 1.5px solid var(--ink); }
+  .seg-toggle button.on { background: var(--accent); color: var(--on-accent); }
   .gen-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; margin: 0 0 0.5rem; }
   .gen-chips[hidden] { display: none; }
-  .gen-chips button { font: inherit; font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 1rem; border: 1px solid var(--line); background: none; color: var(--dim); cursor: pointer; }
-  .gen-chips button.on { border-color: var(--ink); color: var(--ink); }
+  .gen-chips button { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.78rem; padding: 0.25rem 0.6rem; border-radius: 0.3rem; border: 1px solid var(--line); background: none; color: var(--dim); cursor: pointer; }
+  .gen-chips button.on { border-color: var(--ink); color: var(--ink); background: rgba(90,64,30,0.12); }
   .gen-chips button.mine { color: var(--accent); }
   .gen-chips button.mine.on { border-color: var(--accent); }
   .donut-wrap { position: relative; width: min(72vw, 15rem); aspect-ratio: 1; margin: 0.25rem auto 1rem; }
-  #donut { width: 100%; height: 100%; display: block; overflow: visible; }
-  #donut .slice { cursor: pointer; transition: opacity 150ms, transform 150ms; stroke: var(--bg); stroke-width: 1.5; }
+  #donut { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 2px 2px rgba(60,35,10,0.3)); }
+  #donut .slice { cursor: pointer; transition: opacity 150ms, transform 150ms; stroke: #23170d; stroke-width: 1.6; stroke-linejoin: round; }
+  #donut .ring-rule { fill: none; stroke: #23170d; stroke-width: 1.2; }
+  #donut .ring-gold { fill: none; stroke: #c9a24a; stroke-width: 2.5; }
   #donut .slice.dim { opacity: 0.25; }
-  #donut .mine-arc { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; pointer-events: none; }
+  #donut .mine-arc { fill: none; stroke: var(--accent); stroke-width: 3.5; stroke-linecap: round; pointer-events: none; }
   .donut-center {
     position: absolute; inset: 30%; border-radius: 50%;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center; cursor: pointer;
   }
-  .donut-center .pct { font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
-  .donut-center .lbl { font-size: 0.85rem; color: var(--dim); margin-top: 0.2rem; }
+  .donut-center .pct { font-family: 'Almendra', serif; font-weight: 700; font-size: 2rem; line-height: 1; }
+  .donut-center .lbl { font-size: 0.9rem; font-style: italic; color: var(--dim); margin-top: 0.2rem; }
   .donut-center .lbl.mine { color: var(--accent); }
-  .donut-center svg { width: 46%; height: auto; opacity: 0.9; }
-  .strip-title { font-size: 0.85rem; color: var(--dim); text-align: center; margin: 0 0 0.5rem; }
+  .donut-center img { width: 100%; height: auto; }
+  .strip-title { font-size: 1rem; font-style: italic; color: var(--expl); text-align: center; margin: 0 0 0.6rem; }
   .strip-row { margin: 0 0 0.15rem; }
-  .strip-row .gen-label { font-size: 0.75rem; color: var(--dim); margin: 0 0 0.2rem; }
+  .strip-row .gen-label { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.8rem; color: var(--ink); margin: 0 0 0.25rem; }
   .strip-row.mine .gen-label { color: var(--accent); }
-  .strip { position: relative; display: flex; height: 16px; border-radius: 5px; overflow: hidden; background: var(--line); }
-  .strip.big { height: 30px; }
+  /* The strip is framed like the slider's channel: ink rule inside a gold band */
+  .strip { position: relative; display: flex; height: 16px; border-radius: 999px; overflow: hidden; background: rgba(90,64,30,0.15);
+    border: 1.5px solid #23170d; box-shadow: 0 0 0 2.5px #c9a24a, 0 0 0 3.6px #23170d; margin: 4px 4px 0; }
+  .strip.big { height: 26px; }
   .strip i { display: block; height: 100%; }
-  .strip i + i { box-shadow: inset 2px 0 0 rgba(0,0,0,0.55); }
-  .strip-marker { position: relative; height: 0.65rem; }
+  .strip i + i { box-shadow: inset 1.5px 0 0 #23170d; }
+  .strip-marker { position: relative; height: 0.8rem; margin: 3px 4px 0; }
   .strip-marker span {
     position: absolute; top: 1px; transform: translateX(-50%);
     width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent;
-    border-bottom: 8px solid var(--accent);
+    border-bottom: 9px solid var(--accent);
   }
-  .strip-ends { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.7rem; color: var(--dim); margin-top: 0.15rem; }
-  .res-count { margin: 0.25rem 0 0; }
+  .strip-ends { display: flex; justify-content: space-between; gap: 1rem; font-family: 'Almendra', serif; font-weight: 700; font-size: 0.78rem; color: var(--expl); margin-top: 0.15rem; }
+  .res-count { margin: 0.6rem 0 0; font-style: italic; font-size: 0.95rem; color: var(--expl); }
   section { margin: 0 0 2rem; }
   .status { min-height: 1.4rem; margin-top: 1rem; text-align: center; color: var(--dim); font-size: 0.9rem; }
   .badge { display: inline-block; font-size: 0.75rem; padding: 0.15rem 0.5rem; border: 1px solid var(--accent); color: var(--accent); border-radius: 1rem; }
@@ -330,6 +337,7 @@
     </div>
     <div class="ends inactive" id="q2-ends"></div>
     <div class="illumination"><img src="/art/string/illum/martyr.webp" alt=""></div>
+    <div class="illum-caption">The martyrdom of St. Ring</div>
     <div class="actions">
       <button class="btn ghost" id="b-q2-back">Recant</button>
       <button class="btn" id="b-q2-next" disabled>Confess</button>
@@ -348,7 +356,7 @@
   </div>
 
   <!-- RESULTS -->
-  <div class="screen scrolls" id="s-results">
+  <div class="screen scrolls paper" id="s-results">
     <h2 class="center res-title">The Reckoning <span class="badge" id="interviewer-badge" hidden>Interviewer</span></h2>
     <div class="seg-toggle" id="res-toggle">
       <button type="button" data-mode="all" class="on">All</button>
@@ -372,7 +380,7 @@
 // Change any wording here. Never change a `code` — route.ts depends on them.
 const COPY = {
   q1: {
-    title: 'How oft dost thou ply the sacred thread?',
+    title: 'How oft dost thou ply\nthe sacred thread?',   // \n = line break
     // Listed heaven-first: the most virtuous at the top, the damned at the bottom.
     options: [
       { code: 'twice',   label: 'Twice Daily', line: 'At matins and compline.' },
@@ -380,7 +388,7 @@ const COPY = {
       { code: 'often',   label: 'Often',       line: 'Upon divers days.' },
       { code: 'weekly',  label: 'Weekly',      line: 'Honoring each Sabbath.' },
       { code: 'monthly', label: 'Monthly',     line: 'Once each Lune.' },
-      { code: 'seldom',  label: 'Seldom',      line: 'Only when the spirit or a barber moveth me.' },
+      { code: 'seldom',  label: 'Seldom',      line: 'Only when a barber moveth me.' },
       { code: 'never',   label: 'Never',       line: 'I am a heretic of the gum.' },
     ],
   },
@@ -440,7 +448,7 @@ const TUNING = {
   },
   q2Start: 5,              // where the tooth sits before it's touched (no number shown)
   q1MarginTop: '15%',       // height of the heaven band above Question I
-  q1MarginBottom: '14%',    // height of the hell band below Question I
+  q1MarginBottom: '18%',    // height of the hell band below Question I
 }
 
 // ═══ NO ZOOM ═══════════════════════════════════════════════════════════
@@ -966,6 +974,8 @@ function drawDonut(q1Counts, total, myCode) {
       a = a1
     }
   }
+  // Manuscript rules: a thin gold band with ink edges hugging the ring
+  html = `<circle class="ring-gold" r="${R_OUT + 3}"/><circle class="ring-rule" r="${R_OUT + 4.6}"/><circle class="ring-rule" r="${R_IN - 1}"/>` + html
   svg.innerHTML = html
 
   // Center: a tooth at rest; the tapped slice's share and name when selected
@@ -975,7 +985,7 @@ function drawDonut(q1Counts, total, myCode) {
     const n = q1Counts[selSlice] || 0
     c.innerHTML = `<div class="pct">${pct(n, total)}%</div><div class="lbl${selSlice === myCode ? ' mine' : ''}">${opt.label}</div>`
   } else {
-    c.innerHTML = `<svg viewBox="0 0 100 110" aria-hidden="true"><path fill="#f7f1e3" d="${MOLAR_PATH}"/></svg>`
+    c.innerHTML = `<img src="/art/string/illum/medallion.webp" alt="">`
   }
 }
 
