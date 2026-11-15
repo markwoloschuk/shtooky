@@ -274,7 +274,7 @@
   .gen-chips button.mine { background: var(--gild); color: #23170d; border-color: #23170d; }
   .ring-row { margin: 0.25rem 0 1rem; }
   .donut-wrap { position: relative; width: min(72vw, 15rem); aspect-ratio: 1; margin: 0 auto 1rem; }
-  #s-results.gen .ring-row { display: flex; align-items: center; justify-content: center; gap: 1rem; margin: 0.4rem 0 1.1rem; }
+  #s-results.gen .ring-row { display: flex; align-items: center; justify-content: center; gap: 1rem; margin: 0.3rem 0 0.6rem; }
   #s-results.gen .donut-wrap { flex: none; width: min(46vw, 11rem); margin: 0; }
   #donut { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 2px 2px rgba(60,35,10,0.3)); }
   #donut .slice { cursor: pointer; transition: opacity 150ms, transform 150ms; stroke: #23170d; stroke-width: 1.6; stroke-linejoin: round; }
@@ -313,10 +313,13 @@
   .donut-key span.p { margin-left: auto; padding-left: 0.5rem; font-size: 0.85rem; color: var(--expl); font-variant-numeric: tabular-nums; }
   .donut-key li.mine b { background: var(--gild); border-radius: 0.25rem; padding: 0 0.3rem; margin-left: -0.3rem; box-shadow: inset 0 0 0 1px rgba(35,23,13,0.6); }
   .strip-title { font-size: 1rem; font-style: italic; color: var(--expl); text-align: center; margin: 0 0 0.6rem; }
-  .strip-row { margin: 0 0 0.15rem; display: grid; grid-template-columns: 5.6rem 1fr; align-items: center; column-gap: 0.4rem; }
-  .strip-row .strip-marker { grid-column: 2; height: 0.55rem; }
+  .strip-row { margin: 0 0 0.05rem; }
+  #s-results.gen .strip-title { margin-bottom: 0.3rem; }
+  #s-results.gen .res-count { margin-top: 0.3rem; }
+  .strip-row .strip-marker { height: 0.5rem; }
+  .strip-row .strip-marker:empty { height: 0.15rem; }
   .strip-row .strip { height: 12px; }
-  .strip-row .gen-label { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.75rem; color: var(--ink); white-space: nowrap; }
+  .strip-row .gen-label { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.72rem; line-height: 1.1; color: var(--ink); white-space: nowrap; margin: 0 0 0.05rem 0.3rem; }
   .strip-row.mine .gen-label span { background: var(--gild); border-radius: 0.25rem; padding: 0 0.3rem; margin-left: -0.3rem; box-shadow: inset 0 0 0 1px rgba(35,23,13,0.6); }
   /* The strip is framed like the slider's channel: ink rule inside a gold band */
   .strip { position: relative; display: flex; height: 16px; border-radius: 999px; overflow: hidden; background: rgba(90,64,30,0.15);
@@ -399,7 +402,7 @@
 
   <!-- RESULTS -->
   <div class="screen scrolls paper" id="s-results">
-    <h2 class="center res-title">The Reckoning <span class="badge" id="interviewer-badge" hidden>Interviewer</span></h2>
+    <h2 class="center res-title">The Reckoning</h2>
     <div class="seg-toggle" id="res-toggle">
       <button type="button" data-mode="all" class="on">All</button>
       <button type="button" data-mode="gen">By generation</button>
@@ -1212,7 +1215,6 @@ function init() {
   $('b-next-penitent').addEventListener('click', () => { mine = null; selSlice = null; resGen = null; resetQuestions(); show('q1') })
 
   if (INTERVIEWER) {
-    $('interviewer-badge').hidden = false
     $('b-next-penitent').hidden = false
   }
 }
