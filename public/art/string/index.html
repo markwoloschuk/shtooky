@@ -251,7 +251,12 @@
      between everyone and the five generations. The penitent's own
      answers are marked in gold. */
   .res-title { margin: 0.25rem 0 0.9rem; font-family: 'Almendra', 'IM Fell English', serif; font-weight: 700; font-size: 1.9rem; letter-spacing: 0.01em; }
-  .res-title::before, .res-title::after { content: '✠'; color: var(--accent); font-size: 0.6em; vertical-align: 0.3em; margin: 0 0.45em; }
+  .res-title { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; }
+  .res-title::before, .res-title::after { content: '✠'; color: var(--accent); font-size: 0.6em; line-height: 1; margin: 0 0.45em; transform: translateY(0.12em); }
+  /* Whole results page sits centred top-to-bottom; the spacers shrink away when it's taller than the screen and scrolls */
+  #s-results.on { display: flex; }
+  #s-results > * { flex-shrink: 0; }
+  #s-results::before, #s-results::after { content: ''; flex: 1 1 0; }
   .seg-toggle { display: flex; margin: 0 auto 0.75rem; width: max-content; border: 1.5px solid var(--ink); border-radius: 0.35rem; overflow: hidden; }
   .seg-toggle button { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.9rem; padding: 0.4rem 1rem; background: none; border: 0; color: var(--ink); cursor: pointer; }
   .seg-toggle button + button { border-left: 1.5px solid var(--ink); }
