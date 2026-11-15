@@ -255,9 +255,14 @@
   .res-title { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; }
   .res-title::before, .res-title::after { content: '✠'; color: var(--accent); font-size: 0.6em; line-height: 1; margin: 0 0.45em; transform: translateY(0.12em); }
   /* Whole results page sits centred top-to-bottom; the spacers shrink away when it's taller than the screen and scrolls */
-  #s-results.on { display: flex; }
+  /* Title + toggle stay at the top and Next penitent at the bottom; only the middle block
+     moves — centred in the space between, scrolling there if it's ever taller */
+  #s-results.on { display: flex; overflow: hidden; }
   #s-results > * { flex-shrink: 0; }
-  #s-results::before, #s-results::after { content: ''; flex: 1 1 0; }
+  #s-results > .res-mid { flex: 1 1 0; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; margin: 0 -1.25rem; padding: 0 1.25rem; }
+  .res-mid > * { flex-shrink: 0; }
+  #s-results > .btn { flex: none; margin-top: 0.75rem; }
+  .res-mid::before, .res-mid::after { content: ''; flex: 1 1 0; }
   .seg-toggle { display: flex; margin: 0 auto 0.75rem; width: max-content; border: 1.5px solid var(--ink); border-radius: 0.35rem; overflow: hidden; }
   .seg-toggle button { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.9rem; padding: 0.4rem 1rem; background: none; border: 0; color: var(--ink); cursor: pointer; }
   .seg-toggle button + button { border-left: 1.5px solid var(--ink); }
@@ -267,14 +272,18 @@
   .gen-chips button { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.72rem; white-space: nowrap; padding: 0.22rem 0.42rem; border-radius: 0.3rem; border: 1px solid var(--line); background: none; color: var(--dim); cursor: pointer; }
   .gen-chips button.on { border-color: var(--ink); color: var(--ink); background: rgba(90,64,30,0.12); }
   .gen-chips button.mine { background: var(--gild); color: #23170d; border-color: #23170d; }
-  .ring-row { display: flex; align-items: center; justify-content: center; gap: 1rem; margin: 0.4rem 0 1.1rem; }
-  .donut-wrap { position: relative; flex: none; width: min(46vw, 11rem); aspect-ratio: 1; }
+  .ring-row { margin: 0.25rem 0 1rem; }
+  .donut-wrap { position: relative; width: min(72vw, 15rem); aspect-ratio: 1; margin: 0 auto 1rem; }
+  #s-results.gen .ring-row { display: flex; align-items: center; justify-content: center; gap: 1rem; margin: 0.4rem 0 1.1rem; }
+  #s-results.gen .donut-wrap { flex: none; width: min(46vw, 11rem); margin: 0; }
   #donut { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 2px 2px rgba(60,35,10,0.3)); }
   #donut .slice { cursor: pointer; transition: opacity 150ms, transform 150ms; stroke: #23170d; stroke-width: 1.6; stroke-linejoin: round; }
   #donut .slice-outline { stroke: #23170d; stroke-width: 1.6; stroke-linejoin: round; }
   #donut .ring-rule { fill: none; stroke: #23170d; stroke-width: 1.2; }
   #donut .ring-gold { fill: none; stroke: #c9a24a; stroke-width: 2.5; }
   #donut .slice.dim { fill-opacity: 0.3; }
+  #donut .sel-edge { fill: none; stroke: #23170d; stroke-width: 5.5; stroke-linejoin: round; pointer-events: none; }
+  #donut .sel-gold { fill: none; stroke: #e3b33a; stroke-width: 2.6; stroke-linejoin: round; pointer-events: none; }
   #donut .ring-back { fill: #1e1309; }
   /* The halo's mosaic, in greys, laid over the slices so each colour reads as gilded tesserae */
   #donut .ring-tex { mix-blend-mode: overlay; opacity: 0.9; pointer-events: none; }
@@ -285,17 +294,23 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center; cursor: pointer;
   }
-  .donut-center .pct { font-family: 'Almendra', serif; font-weight: 700; font-size: 1.35rem; line-height: 1; }
-  .donut-center .lbl { font-size: 0.7rem; font-style: italic; color: var(--dim); margin-top: 0.2rem; }
+  .donut-center .pct { font-family: 'Almendra', serif; font-weight: 700; font-size: 2rem; line-height: 1; }
+  #s-results.gen .donut-center .pct { font-size: 1.35rem; }
+  #s-results.gen .donut-center .lbl { font-size: 0.7rem; }
+  .donut-center .lbl { font-size: 0.9rem; font-style: italic; color: var(--dim); margin-top: 0.2rem; }
   .donut-center .lbl.mine { color: var(--accent); }
   .donut-center img { width: 100%; height: auto; }
   /* Key for the ring: heaven-first, two columns; tap a line to light its slice */
-  .donut-key { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.18rem; min-width: 0; }
+  .donut-key { list-style: none; margin: -0.25rem auto 0.4rem; padding: 0; max-width: 21rem; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, auto); grid-auto-flow: column; gap: 0.3rem 1.4rem; }
+  #s-results.gen .donut-key { margin: 0; max-width: none; min-width: 0; grid-template-columns: 1fr; grid-template-rows: none; grid-auto-flow: row; gap: 0.18rem; }
   .donut-key li { display: flex; align-items: center; gap: 0.45rem; cursor: pointer; transition: opacity 150ms; }
   .donut-key li.dim { opacity: 0.4; }
-  .donut-key .sw { flex: none; width: 0.8rem; height: 0.8rem; border-radius: 50%; border: 1.5px solid #23170d; box-shadow: 0 0 0 1.5px #c9a24a; }
-  .donut-key b { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
-  .donut-key span.p { margin-left: auto; padding-left: 0.5rem; font-size: 0.78rem; color: var(--expl); font-variant-numeric: tabular-nums; }
+  .donut-key .sw { flex: none; width: 0.95rem; height: 0.95rem; border-radius: 50%; border: 1.5px solid #23170d; box-shadow: 0 0 0 1.5px #c9a24a; }
+  .donut-key b { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.88rem; white-space: nowrap; }
+  #s-results.gen .donut-key .sw { width: 0.8rem; height: 0.8rem; }
+  #s-results.gen .donut-key b { font-size: 0.8rem; }
+  #s-results.gen .donut-key span.p { font-size: 0.78rem; }
+  .donut-key span.p { margin-left: auto; padding-left: 0.5rem; font-size: 0.85rem; color: var(--expl); font-variant-numeric: tabular-nums; }
   .donut-key li.mine b { background: var(--gild); border-radius: 0.25rem; padding: 0 0.3rem; margin-left: -0.3rem; box-shadow: inset 0 0 0 1px rgba(35,23,13,0.6); }
   .strip-title { font-size: 1rem; font-style: italic; color: var(--expl); text-align: center; margin: 0 0 0.6rem; }
   .strip-row { margin: 0 0 0.15rem; display: grid; grid-template-columns: 5.6rem 1fr; align-items: center; column-gap: 0.4rem; }
@@ -389,6 +404,7 @@
       <button type="button" data-mode="all" class="on">All</button>
       <button type="button" data-mode="gen">By generation</button>
     </div>
+    <div class="res-mid">
     <div class="gen-chips" id="gen-chips" hidden></div>
     <div class="ring-row">
       <div class="donut-wrap">
@@ -400,6 +416,7 @@
     <div class="strip-title" id="strip-title"></div>
     <div id="strips"></div>
     <p class="dim center res-count" id="res-count"></p>
+    </div>
     <button class="btn solo" id="b-next-penitent" hidden>Next penitent</button>
   </div>
 
@@ -1032,6 +1049,8 @@ function drawDonut(q1Counts, total, myCode) {
       `<image class="ring-tex" href="/art/string/illum/halo_tex.webp" x="-128" y="-128" width="256" height="256" clip-path="url(#ring-clip)"/>`
     const outlines = html.match(/<path class="slice[^>]*>/g).map(p => p.replace(/fill="[^"]*"/, 'fill="none"').replace('class="slice', 'class="slice-outline').replace(' dim', '')).join('')
     html += tex + `<g style="pointer-events:none">${outlines}</g>`
+    const selPath = selSlice && html.match(new RegExp(`<path class="slice[^"]*" data-code="${selSlice}" d="([^"]*)"`))
+    if (selPath) html += `<path class="sel-edge" d="${selPath[1]}"/><path class="sel-gold" d="${selPath[1]}"/>`
   }
   // Manuscript rules: a thin gold band with ink edges hugging the ring
   html = `<circle class="ring-gold" r="${R_OUT + 3}"/><circle class="ring-rule" r="${R_OUT + 4.6}"/><circle class="ring-rule" r="${R_IN - 1}"/>` + html
@@ -1091,6 +1110,7 @@ function renderResults(r) {
 
   // Donut: everyone, or the chosen generation
   const group = resMode === 'gen' ? r.byGen[resGen] : r
+  $('s-results').classList.toggle('gen', resMode === 'gen')
   drawDonut(group.q1, group.total, resMode === 'gen' && resGen !== myGen ? null : myQ1)
 
   // Question II strips
