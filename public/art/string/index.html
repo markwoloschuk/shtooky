@@ -251,6 +251,7 @@
      between everyone and the five generations. The penitent's own
      answers are marked in gold. */
   .res-title { margin: 0.25rem 0 0.9rem; font-family: 'Almendra', 'IM Fell English', serif; font-weight: 700; font-size: 1.9rem; letter-spacing: 0.01em; }
+  #s-results { --gild: #e3b33a; }
   .res-title { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; }
   .res-title::before, .res-title::after { content: '✠'; color: var(--accent); font-size: 0.6em; line-height: 1; margin: 0 0.45em; transform: translateY(0.12em); }
   /* Whole results page sits centred top-to-bottom; the spacers shrink away when it's taller than the screen and scrolls */
@@ -261,13 +262,13 @@
   .seg-toggle button { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.9rem; padding: 0.4rem 1rem; background: none; border: 0; color: var(--ink); cursor: pointer; }
   .seg-toggle button + button { border-left: 1.5px solid var(--ink); }
   .seg-toggle button.on { background: var(--accent); color: var(--on-accent); }
-  .gen-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; margin: 0 0 0.5rem; }
+  .gen-chips { display: flex; flex-wrap: nowrap; justify-content: center; gap: 0.25rem; margin: 0 -0.5rem 0.2rem; }
   .gen-chips[hidden] { display: none; }
-  .gen-chips button { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.78rem; padding: 0.25rem 0.6rem; border-radius: 0.3rem; border: 1px solid var(--line); background: none; color: var(--dim); cursor: pointer; }
+  .gen-chips button { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.72rem; white-space: nowrap; padding: 0.22rem 0.42rem; border-radius: 0.3rem; border: 1px solid var(--line); background: none; color: var(--dim); cursor: pointer; }
   .gen-chips button.on { border-color: var(--ink); color: var(--ink); background: rgba(90,64,30,0.12); }
-  .gen-chips button.mine { color: var(--accent); }
-  .gen-chips button.mine.on { border-color: var(--accent); }
-  .donut-wrap { position: relative; width: min(72vw, 15rem); aspect-ratio: 1; margin: 0.25rem auto 1rem; }
+  .gen-chips button.mine { background: var(--gild); color: #23170d; border-color: #23170d; }
+  .ring-row { display: flex; align-items: center; justify-content: center; gap: 1rem; margin: 0.4rem 0 1.1rem; }
+  .donut-wrap { position: relative; flex: none; width: min(46vw, 11rem); aspect-ratio: 1; }
   #donut { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 2px 2px rgba(60,35,10,0.3)); }
   #donut .slice { cursor: pointer; transition: opacity 150ms, transform 150ms; stroke: #23170d; stroke-width: 1.6; stroke-linejoin: round; }
   #donut .slice-outline { stroke: #23170d; stroke-width: 1.6; stroke-linejoin: round; }
@@ -277,28 +278,31 @@
   #donut .ring-back { fill: #1e1309; }
   /* The halo's mosaic, in greys, laid over the slices so each colour reads as gilded tesserae */
   #donut .ring-tex { mix-blend-mode: overlay; opacity: 0.9; pointer-events: none; }
-  #donut .mine-arc { fill: none; stroke: var(--accent); stroke-width: 3.5; stroke-linecap: round; pointer-events: none; }
+  #donut .mine-arc { fill: none; stroke: var(--gild); stroke-width: 4; stroke-linecap: round; pointer-events: none; }
+  #donut .mine-arc-edge { fill: none; stroke: #23170d; stroke-width: 6.5; stroke-linecap: round; pointer-events: none; }
   .donut-center {
     position: absolute; inset: 30%; border-radius: 50%;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center; cursor: pointer;
   }
-  .donut-center .pct { font-family: 'Almendra', serif; font-weight: 700; font-size: 2rem; line-height: 1; }
-  .donut-center .lbl { font-size: 0.9rem; font-style: italic; color: var(--dim); margin-top: 0.2rem; }
+  .donut-center .pct { font-family: 'Almendra', serif; font-weight: 700; font-size: 1.35rem; line-height: 1; }
+  .donut-center .lbl { font-size: 0.7rem; font-style: italic; color: var(--dim); margin-top: 0.2rem; }
   .donut-center .lbl.mine { color: var(--accent); }
   .donut-center img { width: 100%; height: auto; }
   /* Key for the ring: heaven-first, two columns; tap a line to light its slice */
-  .donut-key { list-style: none; margin: -0.25rem auto 1.4rem; padding: 0; max-width: 21rem; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, auto); grid-auto-flow: column; gap: 0.3rem 1.4rem; }
+  .donut-key { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.18rem; min-width: 0; }
   .donut-key li { display: flex; align-items: center; gap: 0.45rem; cursor: pointer; transition: opacity 150ms; }
   .donut-key li.dim { opacity: 0.4; }
-  .donut-key .sw { flex: none; width: 0.95rem; height: 0.95rem; border-radius: 50%; border: 1.5px solid #23170d; box-shadow: 0 0 0 1.5px #c9a24a; }
-  .donut-key b { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.88rem; }
-  .donut-key span.p { margin-left: auto; font-size: 0.85rem; color: var(--expl); font-variant-numeric: tabular-nums; }
-  .donut-key li.mine b { color: var(--accent); }
+  .donut-key .sw { flex: none; width: 0.8rem; height: 0.8rem; border-radius: 50%; border: 1.5px solid #23170d; box-shadow: 0 0 0 1.5px #c9a24a; }
+  .donut-key b { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
+  .donut-key span.p { margin-left: auto; padding-left: 0.5rem; font-size: 0.78rem; color: var(--expl); font-variant-numeric: tabular-nums; }
+  .donut-key li.mine b { background: var(--gild); border-radius: 0.25rem; padding: 0 0.3rem; margin-left: -0.3rem; box-shadow: inset 0 0 0 1px rgba(35,23,13,0.6); }
   .strip-title { font-size: 1rem; font-style: italic; color: var(--expl); text-align: center; margin: 0 0 0.6rem; }
-  .strip-row { margin: 0 0 0.15rem; }
-  .strip-row .gen-label { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.8rem; color: var(--ink); margin: 0 0 0.25rem; }
-  .strip-row.mine .gen-label { color: var(--accent); }
+  .strip-row { margin: 0 0 0.15rem; display: grid; grid-template-columns: 5.6rem 1fr; align-items: center; column-gap: 0.4rem; }
+  .strip-row .strip-marker { grid-column: 2; height: 0.55rem; }
+  .strip-row .strip { height: 12px; }
+  .strip-row .gen-label { font-family: 'Almendra', serif; font-weight: 700; font-size: 0.75rem; color: var(--ink); white-space: nowrap; }
+  .strip-row.mine .gen-label span { background: var(--gild); border-radius: 0.25rem; padding: 0 0.3rem; margin-left: -0.3rem; box-shadow: inset 0 0 0 1px rgba(35,23,13,0.6); }
   /* The strip is framed like the slider's channel: ink rule inside a gold band */
   .strip { position: relative; display: flex; height: 16px; border-radius: 999px; overflow: hidden; background: rgba(90,64,30,0.15);
     border: 1.5px solid #23170d; box-shadow: 0 0 0 2.5px #c9a24a, 0 0 0 3.6px #23170d; margin: 4px 4px 0; }
@@ -309,7 +313,8 @@
   .strip-marker span {
     position: absolute; top: 1px; transform: translateX(-50%);
     width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent;
-    border-bottom: 9px solid var(--accent);
+    border-bottom: 9px solid var(--gild);
+    filter: drop-shadow(0 0 0.6px #23170d) drop-shadow(0 0 0.6px #23170d);
   }
   .strip-ends { display: flex; justify-content: space-between; gap: 1rem; font-family: 'Almendra', serif; font-weight: 700; font-size: 0.78rem; color: var(--expl); margin-top: 0.15rem; }
   .res-count { margin: 0.6rem 0 0; font-style: italic; font-size: 0.95rem; color: var(--expl); }
@@ -385,11 +390,13 @@
       <button type="button" data-mode="gen">By generation</button>
     </div>
     <div class="gen-chips" id="gen-chips" hidden></div>
-    <div class="donut-wrap">
-      <svg id="donut" viewBox="-110 -110 220 220" aria-label="How oft the faithful floss"></svg>
-      <div class="donut-center" id="donut-center"></div>
+    <div class="ring-row">
+      <div class="donut-wrap">
+        <svg id="donut" viewBox="-110 -110 220 220" aria-label="How oft the faithful floss"></svg>
+        <div class="donut-center" id="donut-center"></div>
+      </div>
+      <ul class="donut-key" id="donut-key"></ul>
     </div>
-    <ul class="donut-key" id="donut-key"></ul>
     <div class="strip-title" id="strip-title"></div>
     <div id="strips"></div>
     <p class="dim center res-count" id="res-count"></p>
@@ -1010,7 +1017,8 @@ function drawDonut(q1Counts, total, myCode) {
       // The penitent's own slice: a gold arc just outside the ring
       if (o.code === myCode) {
         const inset = Math.min(0.03, sweep * 0.15)
-        html += `<path class="mine-arc" d="${arcLine(a + inset, a1 - inset, R_OUT + 7)}" transform="translate(${dx},${dy})"/>`
+        const mp = arcLine(a + inset, a1 - inset, R_OUT + 8)
+        html += `<path class="mine-arc-edge" d="${mp}"/><path class="mine-arc" d="${mp}"/>`
       }
       a = a1
     }
@@ -1094,7 +1102,7 @@ function renderResults(r) {
     for (const g of COPY.q3.options) {
       const gr = r.byGen[g.code]
       const isMine = g.code === myGen
-      strips += `<div class="strip-row${isMine ? ' mine' : ''}"><div class="gen-label">${g.label} · ${gr.total}</div>${stripHTML(gr.q2.dist, isMine ? myScore : null, false)}</div>`
+      strips += `<div class="strip-row${isMine ? ' mine' : ''}"><div class="gen-label"><span>${g.label} · ${gr.total}</span></div>${stripHTML(gr.q2.dist, isMine ? myScore : null, false)}</div>`
     }
   }
   strips += `<div class="strip-ends"><span>0 · ${COPY.q2.left}</span><span>${COPY.q2.right} · 10</span></div>`
